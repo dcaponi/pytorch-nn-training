@@ -1,0 +1,259 @@
+<section class="chapter" id="ch04">
+
+<p class="chapter-meta">Chapter 04 · notebook <code>04_rnn_pytorch</code></p>
+<h1>Recurrence and Its Limits</h1>
+
+<p class="lede">
+A convolution looks at a fixed window. A recurrent network looks at everything it has seen
+so far, by carrying a running summary from one token to the next. That is a strictly more
+powerful idea, and it fails for a reason worth understanding in detail — because the fix
+for it shapes everything that follows.
+</p>
+
+<h2>The recurrence</h2>
+
+<p>
+An RNN processes a sequence one element at a time, maintaining a <strong>hidden state</strong>
+$h_t$ that is meant to summarise everything up to position $t$:
+</p>
+
+$$h_t = \tanh\big(W_{xh}x_t + W_{hh}h_{t-1} + b_h\big) \qquad\qquad y_t = W_{hy}h_t + b_y$$
+
+<p>
+The essential feature is that $W_{xh}$, $W_{hh}$, and $W_{hy}$ do not depend on $t$. The same
+weights are applied at every step, exactly as a convolution applies the same kernel at every
+position. This is what makes the model handle sequences of any length: there is no
+per-position parameter to run out of.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  The hidden state is a fixed-size vector — 256 numbers, say — that must compress the entire
+  history. Whatever the model needs from token 1 at token 500 must survive 499 rounds of
+  being multiplied, squashed, and mixed with new input. That fixed-width bottleneck is the
+  source of both the RNN's elegance and its failure.
+</div>
+
+<h3>Character-level language modelling</h3>
+
+<p>
+The notebook trains on <em>Alice's Adventures in Wonderland</em> at the character level. The
+task at every position is to predict the next character: a $K$-way classification with $K$
+the alphabet size, trained with cross-entropy exactly as derived in
+<a class="xref" href="#ch00-cross-entropy">Chapter 00</a>.
+</p>
+
+<p>
+Characters rather than words is a deliberate simplification. The vocabulary is ~60 symbols
+instead of tens of thousands, there is no tokenisation to get wrong, and there are no unknown
+tokens. The cost is that the model must learn spelling before it can learn anything else,
+which is why early samples are letter soup, then pronounceable non-words, then real words in
+ungrammatical order. Watching that progression is the most instructive part of the exercise.
+</p>
+
+<h2>Backpropagation through time</h2>
+
+<p>
+To train, unroll the recurrence into a feed-forward graph: $T$ copies of the same cell,
+chained. This is not a metaphor — PyTorch's dynamic graph
+(<a class="xref" href="#ch02">Chapter 02</a>) literally builds it as the loop runs. Then
+backpropagate through the whole thing.
+</p>
+
+<p>
+Because the weights are shared, gradients from every timestep accumulate into the same
+tensors:
+</p>
+
+$$\frac{\partial \mathcal{L}}{\partial W_{hh}} = \sum_{t=1}^{T} \frac{\partial \mathcal{L}_t}{\partial W_{hh}}$$
+
+<p>
+This is the gradient accumulation of <a class="xref" href="#ch02">Chapter 02</a> being used
+on purpose rather than by accident. And it means the memory cost of training scales with
+sequence length: every intermediate activation at every timestep must be retained for the
+backward pass. A 1,000-step sequence is, from the optimizer's point of view, a 1,000-layer
+network.
+</p>
+
+<h2>Why gradients vanish</h2>
+
+<p>
+Here is the failure, and it is arithmetic, not bad luck. Propagating a gradient from step $t$
+back to step $k$ means passing through every intermediate cell, and each crossing multiplies
+by the same two factors:
+</p>
+
+$$\frac{\partial h_t}{\partial h_k} = \prod_{i=k+1}^{t} \frac{\partial h_i}{\partial h_{i-1}}
+= \prod_{i=k+1}^{t} W_{hh}^{\top} \operatorname{diag}\big(\tanh'(z_i)\big)$$
+
+<p>
+A product of $t - k$ nearly identical terms. If the typical magnitude of that term is $\lambda$,
+the gradient scales as $\lambda^{t-k}$ — geometric in the distance. And $\tanh' \le 1$ always,
+with equality only at zero, so unless $W_{hh}$ is large enough to compensate, $\lambda < 1$.
+</p>
+
+<div class="widget" data-widget="vanishing"></div>
+
+<p>
+Set the multiplier to 0.85 and look at 30 steps back: the gradient is $10^{-2}$ of its
+original size. At 50 steps it is $10^{-4}$. The information from early tokens is not
+distorted or noisy — it is <em>absent</em>, numerically indistinguishable from zero. No amount
+of additional training fixes this, because there is no signal to train on.
+</p>
+
+<p>
+Push the multiplier above 1 and the opposite happens: the product explodes, producing
+gradients of $10^{6}$ and an immediate <code>nan</code>. Exploding gradients are the easier
+problem, because clipping solves them outright:
+</p>
+
+<pre><code class="language-python">torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)</code></pre>
+
+<p>
+This rescales the whole gradient vector if its norm exceeds the threshold, preserving
+direction while capping magnitude. It goes after <code>backward()</code> and before
+<code>step()</code>, and it is standard in every sequence model in this book —
+<a class="xref" href="#ch09">Chapter 09</a> and <a class="xref" href="#ch10">Chapter 10</a>
+both use it.
+</p>
+
+<div class="box warn">
+  <span class="box-label">Asymmetry</span>
+  Clipping fixes explosion but has no analogue for vanishing — you cannot multiply a
+  gradient that is genuinely zero back up to something meaningful. Vanishing gradients
+  require an architectural fix, which is what <a class="xref" href="#ch05">Chapter 05</a>
+  is about.
+</div>
+
+<h2>Generating text, and the sampling question</h2>
+
+<p>
+After training, generation is a loop: feed a seed character, get a distribution over the next
+character, choose one, feed it back. The choosing is where all the interesting behaviour lives.
+</p>
+
+<p>
+Always taking the <code>argmax</code> is the obvious approach and produces the worst output.
+It is deterministic, so the same seed always gives the same text, and it falls into loops
+almost immediately — "the the the the" is a perfectly reasonable greedy continuation.
+Sampling from the full distribution is the other extreme and produces occasional nonsense,
+because a distribution with 60 characters has a long tail that collectively holds real
+probability mass.
+</p>
+
+<p>
+The dial between them is <strong>temperature</strong>, applied to the logits before softmax:
+</p>
+
+$$p_k = \frac{\exp(z_k / T)}{\sum_j \exp(z_j / T)}$$
+
+<div class="widget" data-widget="softmax"></div>
+
+<p>
+$T < 1$ sharpens the distribution towards the argmax — conservative, repetitive, safe.
+$T > 1$ flattens it — creative, error-prone. $T = 1$ samples from the model's actual beliefs.
+Temperature never changes the <em>ranking</em> of candidates, only how decisively the top ones
+dominate. In practice 0.7 to 0.9 is the useful band for character models, and
+<a class="xref" href="#ch10">Chapter 10</a> adds top-k and nucleus sampling, which truncate
+the tail rather than reweighting it.
+</p>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 04.1</span>
+  <p>
+  Unroll a tiny RNN for three steps. Everything is one-dimensional, so all the matrices are
+  scalars.
+  </p>
+  <div class="given">h₀ = 0.0        W_xh = 1.0     W_hh = 0.5     b = 0.0
+inputs:  x₁ = 1.0,  x₂ = 0.0,  x₃ = −1.0
+
+tanh(1.000) = 0.762    tanh(0.381) = 0.364
+tanh(−0.818) = −0.674  tanh(0.5) = 0.462</div>
+  <ol>
+    <li>Compute $h_1$, $h_2$, $h_3$.</li>
+    <li>At step 2 the input is zero. Explain what $h_2$ represents and where its value came
+        from.</li>
+    <li>Compute $\partial h_3 / \partial h_2$, then $\partial h_3/\partial h_1$, using
+        $\tanh'(z) = 1 - \tanh^2(z)$.</li>
+    <li>If this pattern continued, by what factor would the gradient shrink per step? How
+        many steps until it falls below $10^{-3}$?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Each step is $h_t = \tanh(1.0 \cdot x_t + 0.5\,h_{t-1})$:</p>
+    <div class="given">z₁ = 1.0(1.0) + 0.5(0.0)   =  1.000   →  h₁ = 0.762
+z₂ = 1.0(0.0) + 0.5(0.762) =  0.381   →  h₂ = 0.364
+z₃ = 1.0(−1.0) + 0.5(0.364) = −0.818  →  h₃ = −0.674</div>
+    <p><strong>2.</strong> With $x_2 = 0$ the only contribution is $0.5 h_1$: $h_2$ is
+    <em>pure memory</em>, a decayed echo of step 1 and nothing else. Note it has already
+    halved-and-squashed from 0.762 to 0.364 after a single step of carrying nothing. That
+    decay is the vanishing problem visible in the forward pass — the state is forgetting on
+    its own, before any gradient is involved.</p>
+    <p><strong>3.</strong> $\partial h_t/\partial h_{t-1} = \tanh'(z_t) \cdot W_{hh}
+    = (1 - h_t^2)(0.5)$:</p>
+    <div class="given">∂h₃/∂h₂ = (1 − 0.674²)(0.5) = (1 − 0.4543)(0.5) = 0.273
+∂h₂/∂h₁ = (1 − 0.364²)(0.5) = (1 − 0.1325)(0.5) = 0.434
+
+∂h₃/∂h₁ = 0.273 × 0.434 = 0.118</div>
+    <p>Two steps back, and 88% of the gradient is already gone.</p>
+    <p><strong>4.</strong> The per-step factor is at most $W_{hh} \cdot \max \tanh' = 0.5
+    \times 1 = 0.5$, and typically less. At 0.5 per step, reaching $10^{-3}$ takes
+    $\log(10^{-3})/\log(0.5) \approx \mathbf{10}$ steps. Ten characters — less than two
+    words. A model like this cannot possibly learn that a quotation mark opened forty
+    characters ago needs closing, and that is exactly the kind of dependency real text is
+    full of.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 04.2</span>
+  <p>Temperature, computed rather than dragged.</p>
+  <div class="given">logits over 4 characters:   z = [2.0, 1.0, 0.0, −1.0]
+
+e^0=1.000  e^1=2.718  e^2=7.389  e^4=54.60  e^6=403.4
+e^0.5=1.649  e^{−0.5}=0.607  e^{−1}=0.368  e^{−2}=0.135</div>
+  <ol>
+    <li>Compute the distribution at $T = 1$.</li>
+    <li>Compute it at $T = 0.5$ (divide logits by 0.5, i.e. double them).</li>
+    <li>Compute it at $T = 2$.</li>
+    <li>State what happens in the limits $T \to 0$ and $T \to \infty$, and give one concrete
+        failure mode of each when generating text.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1. $T=1$:</strong> $\sum = 7.389 + 2.718 + 1.000 + 0.368 = 11.475$.</p>
+    <div class="given">p = [0.644, 0.237, 0.087, 0.032]</div>
+    <p><strong>2. $T=0.5$:</strong> logits become $[4, 2, 0, -2]$, so
+    $\sum = 54.60 + 7.389 + 1.000 + 0.135 = 63.12$.</p>
+    <div class="given">p = [0.865, 0.117, 0.016, 0.002]</div>
+    <p>The top character went from 64% to 87%; the last one all but vanished.</p>
+    <p><strong>3. $T=2$:</strong> logits become $[1, 0.5, 0, -0.5]$, so
+    $\sum = 2.718 + 1.649 + 1.000 + 0.607 = 5.974$.</p>
+    <div class="given">p = [0.455, 0.276, 0.167, 0.102]</div>
+    <p>Much flatter — the least likely character now has a one-in-ten chance every step.</p>
+    <p><strong>4.</strong> As $T \to 0$ the distribution becomes one-hot on the argmax:
+    generation is deterministic and falls into repetition loops, because once the model
+    re-enters a state it has visited it must produce the identical continuation forever. As
+    $T \to \infty$ it becomes uniform: output is random characters, ignoring everything the
+    model learned. Both extremes destroy the model's usefulness in opposite directions,
+    which is why the interesting values are all in a narrow band around 0.7–1.0.</p>
+  </details>
+</div>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>04_rnn_pytorch/prompt.ipynb</code>. You will build character sequences with a
+  sliding window, define the RNN, train with gradient clipping, and generate text at several
+  temperatures. Sample at intervals during training, not just at the end — the progression
+  from noise to spelling to grammar is the clearest picture of learning in the whole
+  curriculum.
+</div>
+
+<div class="box note">
+  <span class="box-label">Where this goes next</span>
+  The vanishing gradient is not a tuning problem, so <a class="xref" href="#ch05">Chapter
+  05</a> changes the architecture: give the cell a memory that is <em>added to</em> rather
+  than multiplied through, and put learned gates in charge of what enters and leaves it.
+</div>
+
+</section>

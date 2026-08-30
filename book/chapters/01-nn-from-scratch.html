@@ -1,0 +1,427 @@
+<section class="chapter" id="ch01">
+
+<p class="chapter-meta">Chapter 01 · notebook <code>01_nn_from_scratch</code></p>
+<h1>A Neural Network from Scratch</h1>
+
+<p class="lede">
+One network, four training examples, no framework. By the end of this chapter you will have
+computed a forward pass, a loss, and every gradient in a two-layer network with nothing but
+arithmetic — and you will know exactly which line of PyTorch replaces each step.
+</p>
+
+<h2>XOR: the smallest problem that needs a hidden layer</h2>
+
+<p>
+The exclusive-or function is the traditional first problem, and not for sentimental reasons.
+It is the smallest dataset that a network without a hidden layer provably cannot learn.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>$x_1$</th><th>$x_2$</th><th>$y$</th></tr></thead>
+  <tbody>
+    <tr><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>1</td><td>1</td></tr>
+    <tr><td>1</td><td>0</td><td>1</td></tr>
+    <tr><td>1</td><td>1</td><td>0</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Plot those four points. The two labelled 1 sit on one diagonal, the two labelled 0 on the
+other. A model of the form $\hat{y} = \sigma(w_1x_1 + w_2x_2 + b)$ can only carve the plane
+with a single straight line — the decision boundary is exactly where
+$w_1x_1 + w_2x_2 + b = 0$ — and no straight line separates one diagonal from the other. This
+is not a matter of insufficient training. It is a geometric impossibility, and it is the
+observation that stalled neural network research for most of the 1970s.
+</p>
+
+<p>
+The fix is a <strong>hidden layer</strong>: a first transformation that bends the space so
+that a straight line does work in the new coordinates. This is worth stating precisely,
+because it is what every deep network is doing at every layer.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  A neural network is a stack of alternating linear maps and elementwise non-linearities.
+  The linear maps rotate, scale, and shear the space; the non-linearities fold it. Composing
+  the two, repeatedly, warps the input space until the classes become linearly separable —
+  and the last layer draws the straight line. Without the non-linearity between them, two
+  stacked linear maps collapse into a single linear map ($W_2(W_1x) = (W_2W_1)x$) and the
+  extra layer buys you nothing at all.
+</div>
+
+<h2>Architecture and shapes</h2>
+
+<p>
+We use two inputs, four hidden units, one output. All four training examples are processed
+at once as a batch, which makes every operation a matrix multiply.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Tensor</th><th>Shape</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td>$X$</td><td><span class="shape">(4, 2)</span></td><td>4 examples, 2 features each</td></tr>
+    <tr><td>$W_1$</td><td><span class="shape">(2, 4)</span></td><td>input → hidden weights</td></tr>
+    <tr><td>$b_1$</td><td><span class="shape">(1, 4)</span></td><td>hidden biases</td></tr>
+    <tr><td>$W_2$</td><td><span class="shape">(4, 1)</span></td><td>hidden → output weights</td></tr>
+    <tr><td>$b_2$</td><td><span class="shape">(1, 1)</span></td><td>output bias</td></tr>
+    <tr><td>$Y$</td><td><span class="shape">(4, 1)</span></td><td>4 targets</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Reading a weight shape tells you what a layer does: <span class="shape">(2, 4)</span> means
+"consumes 2 features, produces 4". The batch dimension is always first and always passes
+through untouched. If you internalise one debugging habit from this book, make it this one:
+when something breaks, print the shapes.
+</p>
+
+<h2>The forward pass</h2>
+
+$$Z_1 = XW_1 + b_1 \qquad A_1 = \sigma(Z_1) \qquad Z_2 = A_1W_2 + b_2 \qquad A_2 = \sigma(Z_2)$$
+
+<p>
+Four lines, and $A_2$ is the prediction. Two mechanisms inside them deserve unpacking.
+</p>
+
+<h3>Every entry is a dot product</h3>
+
+<p>
+The matrix product $XW_1$ produces a <span class="shape">(4, 4)</span> result whose entry
+$(i, j)$ is the dot product of example $i$'s features with hidden unit $j$'s weights. That is
+the entire content of a linear layer: each output unit takes a weighted vote over all inputs.
+Step through the widget below and watch each output cell get assembled from one row and one
+column.
+</p>
+
+<div class="widget" data-widget="matmul"></div>
+
+<h3>Broadcasting the bias</h3>
+
+<p>
+$b_1$ has shape <span class="shape">(1, 4)</span> but is added to a
+<span class="shape">(4, 4)</span> matrix. NumPy and PyTorch both stretch the length-1
+dimension to match, adding the same bias vector to every row — every example gets the same
+bias, which is what you want. Broadcasting is convenient and it is also a rich source of
+silent bugs: a stray <span class="shape">(4, 1)</span> where you meant
+<span class="shape">(1, 4)</span> will broadcast happily into a
+<span class="shape">(4, 4)</span> of garbage rather than raising an error.
+</p>
+
+<h3>Sigmoid</h3>
+
+$$\sigma(z) = \frac{1}{1 + e^{-z}} \qquad\qquad \sigma'(z) = \sigma(z)\big(1 - \sigma(z)\big)$$
+
+<p>
+It squashes any real number into $(0, 1)$, which is what lets us read the output as a
+probability, as <a class="xref" href="#ch00">Chapter 00</a> argued we must. Its derivative
+has the pleasant property of being expressible in terms of its own output — so during
+backpropagation you can reuse the value you already computed instead of recomputing an
+exponential.
+</p>
+
+<div class="widget" data-widget="activation"></div>
+
+<p>
+Drag the input past $\pm 5$ and watch the derivative curve flatten to nothing. That is
+<strong>saturation</strong>, and it is sigmoid's defining flaw: a unit driven far from zero
+stops learning, because whatever gradient arrives from above gets multiplied by ~0.0001 on
+its way down. Note also that the derivative peaks at just 0.25. Stack ten sigmoid layers and
+the best case is a gradient scaled by $0.25^{10} \approx 10^{-6}$ before it reaches the first
+layer. This is the vanishing-gradient problem, and it is the reason ReLU and GELU replaced
+sigmoid in hidden layers everywhere — switch the selector above to compare them. Sigmoid
+survives only where you genuinely need a probability: at the output.
+</p>
+
+<h2>The loss</h2>
+
+<p>
+The output is a probability and the target is binary, so <a class="xref" href="#ch00">Chapter
+00</a> already told us what to use — the Bernoulli negative log-likelihood:
+</p>
+
+$$\mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N}\Big[y_i \log a_{2,i} + (1-y_i)\log(1 - a_{2,i})\Big]$$
+
+<div class="box warn">
+  <span class="box-label">Numerical trap</span>
+  If the network ever outputs exactly 0 or 1, this is $\log 0 = -\infty$ and your loss
+  becomes <code>nan</code> — permanently, since <code>nan</code> propagates through every
+  subsequent gradient and weight. Working from scratch, the fix is to clip:
+  <code>np.clip(a2, 1e-7, 1 - 1e-7)</code>. This is exactly the kind of hazard that
+  <code>BCEWithLogitsLoss</code> exists to remove in <a class="xref" href="#ch02">Chapter
+  02</a>, by never materialising the probability at all.
+</div>
+
+<h2>Backpropagation</h2>
+
+<p>
+We need $\partial\mathcal{L}/\partial W$ for all four parameter tensors. Backpropagation is
+not a new theorem — it is the chain rule applied in a specific order, reusing intermediate
+results instead of recomputing them.
+</p>
+
+<h3>Start at the output</h3>
+
+<p>
+Differentiate the loss with respect to the prediction, then push through the sigmoid:
+</p>
+
+$$\frac{\partial \mathcal{L}}{\partial a_2} = \frac{1}{N}\left(\frac{a_2 - y}{a_2(1-a_2)}\right)
+\qquad
+\frac{\partial a_2}{\partial z_2} = a_2(1-a_2)$$
+
+<p>
+Multiply them, and the denominator cancels the derivative exactly:
+</p>
+
+$$\delta_2 = \frac{\partial \mathcal{L}}{\partial z_2} = \frac{1}{N}(a_2 - y)$$
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  This is the same cancellation as the softmax/cross-entropy pairing in
+  <a class="xref" href="#ch00-cross-entropy">Chapter 00</a>, and it is not a coincidence —
+  sigmoid + BCE is the two-class special case of softmax + cross-entropy. The signal that
+  starts the entire backward pass is just <em>prediction minus target</em>: no saturation
+  factor, no attenuation. Had we chosen MSE, that surviving $\sigma'(z_2)$ term would
+  throttle learning exactly when the model is most wrong.
+</div>
+
+<h3>Gradients for the output layer</h3>
+
+<p>
+Since $z_2 = a_1W_2 + b_2$, and $\partial z_2/\partial W_2 = a_1$:
+</p>
+
+$$\frac{\partial \mathcal{L}}{\partial W_2} = A_1^{\top}\delta_2
+\qquad
+\frac{\partial \mathcal{L}}{\partial b_2} = \sum_i \delta_{2,i}$$
+
+<p>
+Check the shapes, because they are the best proof you have written it correctly:
+$A_1^\top$ is <span class="shape">(4, 4)</span>, $\delta_2$ is
+<span class="shape">(4, 1)</span>, so the product is <span class="shape">(4, 1)</span> —
+matching $W_2$ exactly, as a gradient must. The bias gradient sums over the batch because
+the same $b_2$ was broadcast to all four examples, so all four contributions accumulate.
+</p>
+
+<div class="box note">
+  <span class="box-label">Rule of thumb</span>
+  The gradient with respect to a weight is always <em>(what came in)ᵀ × (what wants to
+  change on the way out)</em>. Every backward formula in this book, including attention's,
+  is an instance of that pattern.
+</div>
+
+<h3>Propagate to the hidden layer</h3>
+
+<p>
+The hidden activations influenced the loss only through $z_2$, so the error flows back
+through $W_2$, then through the hidden sigmoid:
+</p>
+
+$$\delta_1 = \big(\delta_2 W_2^{\top}\big) \odot \sigma'(Z_1)
+\qquad\text{where}\qquad \sigma'(Z_1) = A_1 \odot (1 - A_1)$$
+
+<p>
+$\odot$ is elementwise multiplication. The two factors have distinct jobs:
+$\delta_2W_2^\top$ distributes blame — a hidden unit connected by a large weight receives
+a large share — while $\sigma'(Z_1)$ asks how responsive that unit was. A saturated unit
+has $\sigma' \approx 0$ and receives nothing, no matter how much blame it deserves.
+</p>
+
+$$\frac{\partial \mathcal{L}}{\partial W_1} = X^{\top}\delta_1
+\qquad
+\frac{\partial \mathcal{L}}{\partial b_1} = \sum_i \delta_{1,i}$$
+
+<p>
+Same pattern, one layer down. That is the whole algorithm: compute $\delta$ at the top,
+alternately multiply by a weight matrix (to move down a layer) and by an activation
+derivative (to cross a non-linearity), collecting a weight gradient at each stop.
+</p>
+
+<h2>Gradient descent</h2>
+
+$$W \leftarrow W - \eta\,\frac{\partial \mathcal{L}}{\partial W}$$
+
+<p>
+Move each parameter a small step in the direction that decreases the loss. The learning rate
+$\eta$ controls the step size and is the single most consequential number in training.
+</p>
+
+<div class="widget" data-widget="gradient-descent"></div>
+
+<p>
+Press <em>Step</em> and watch. At a small learning rate the ball creeps downhill reliably but
+slowly. Push $\eta$ past about 0.5 and it overshoots: the gradient at the new point is
+larger and points back the other way, each step lands further out, and the loss diverges to
+infinity in a handful of iterations. This is what a <code>nan</code> loss five steps into
+training usually means, and lowering the learning rate is usually the fix.
+</p>
+
+<p>
+Notice too that this landscape has two minima, and which one you land in depends entirely on
+where you started. Real loss surfaces have astronomically many, which is why weight
+initialisation matters and why two runs of identical code give different results. It is also
+why we initialise $W$ randomly rather than at zero: with identical weights, every hidden unit
+computes the same thing, receives the same gradient, and stays identical forever — a failure
+called <strong>symmetry breaking</strong>. Biases can safely start at zero because the
+random weights already break the symmetry.
+</p>
+
+<h2>The training loop</h2>
+
+<pre><code class="language-python">for epoch in range(10000):
+    # forward
+    z1 = X @ W1 + b1
+    a1 = sigmoid(z1)
+    z2 = a1 @ W2 + b2
+    a2 = sigmoid(z2)
+
+    # loss (for monitoring; the gradients below are already differentiated)
+    loss = -np.mean(y * np.log(a2) + (1 - y) * np.log(1 - a2))
+
+    # backward
+    d2 = (a2 - y) / len(X)          # (4, 1)
+    dW2 = a1.T @ d2                 # (4, 1)
+    db2 = d2.sum(axis=0, keepdims=True)
+    d1 = (d2 @ W2.T) * a1 * (1 - a1)  # (4, 4)
+    dW1 = X.T @ d1                  # (2, 4)
+    db1 = d1.sum(axis=0, keepdims=True)
+
+    # update
+    W2 -= lr * dW2; b2 -= lr * db2
+    W1 -= lr * dW1; b1 -= lr * db1</code></pre>
+
+<p>
+Ten thousand epochs sounds excessive for four data points, and it is a consequence of
+sigmoid's small gradients plus a modest learning rate. What matters is the structure:
+<strong>forward, loss, backward, update</strong>. Every training loop in the rest of this
+book is these four steps. <a class="xref" href="#ch02">Chapter 02</a> replaces the six
+backward lines with <code>loss.backward()</code> and the four update lines with
+<code>optimizer.step()</code> — but the shape of the loop never changes again.
+</p>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 01.1</span>
+  <p>
+  A single training example through a 2→2→1 network. The numbers are rigged so every
+  sigmoid lands on a value you can look up.
+  </p>
+  <div class="given">x = [1, 0]          y = 1          learning rate η = 0.5
+
+W1 = [[ 0.5, -0.5],        b1 = [0, 0]
+      [ 0.5,  0.5]]        (rows = inputs, cols = hidden units)
+
+W2 = [[1.0],               b2 = [0]
+      [1.0]]
+
+σ(0) = 0.500    σ(0.5) = 0.622    σ(-0.5) = 0.378    σ(1.0) = 0.731</div>
+  <ol>
+    <li>Forward pass: compute $z_1$, $a_1$, $z_2$, $a_2$.</li>
+    <li>Compute the BCE loss (use $\ln 0.731 \approx -0.313$).</li>
+    <li>Backward pass: compute $\delta_2$, then $\partial\mathcal{L}/\partial W_2$.</li>
+    <li>Compute $\delta_1$ and $\partial\mathcal{L}/\partial W_1$.</li>
+    <li>Apply one gradient descent step to $W_2$. Did the update move the prediction
+        towards the target?</li>
+  </ol>
+
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1. Forward.</strong> With $x = [1, 0]$, the second input contributes nothing,
+    so $z_1$ is just the first row of $W_1$:</p>
+    <div class="given">z1 = [1, 0] @ W1 + b1 = [0.5, -0.5]
+a1 = [σ(0.5), σ(−0.5)] = [0.622, 0.378]
+
+z2 = a1 @ W2 + b2 = 0.622(1.0) + 0.378(1.0) = 1.000
+a2 = σ(1.000) = 0.731</div>
+    <p><strong>2. Loss.</strong> $y = 1$, so only the first BCE term survives:
+    $\mathcal{L} = -\ln(0.731) = \mathbf{0.313}$.</p>
+    <p><strong>3. Output layer.</strong> With $N = 1$:</p>
+    <div class="given">δ2 = a2 − y = 0.731 − 1 = −0.269
+
+∂L/∂W2 = a1ᵀ δ2 = [0.622, 0.378]ᵀ × (−0.269)
+       = [[−0.167],
+          [−0.102]]</div>
+    <p>Both negative, meaning both weights should <em>increase</em> — sensible, since the
+    prediction is too low and both hidden units are outputting positive values.</p>
+    <p><strong>4. Hidden layer.</strong> First distribute the error backwards through $W_2$:</p>
+    <div class="given">δ2 W2ᵀ = −0.269 × [1.0, 1.0] = [−0.269, −0.269]
+
+σ′(z1) = a1 ⊙ (1 − a1)
+       = [0.622(0.378), 0.378(0.622)] = [0.235, 0.235]
+
+δ1 = [−0.269, −0.269] ⊙ [0.235, 0.235] = [−0.0632, −0.0632]
+
+∂L/∂W1 = xᵀ δ1 = [1, 0]ᵀ × [−0.0632, −0.0632]
+       = [[−0.0632, −0.0632],
+          [ 0.0000,  0.0000]]</div>
+    <p>The second row is exactly zero because $x_2 = 0$: an input that contributed nothing
+    to the forward pass receives no gradient. This is not an approximation, it is the chain
+    rule — and it is why a dead input feature never gets its weights updated.</p>
+    <p>Notice also the magnitude: $\delta_1$ is 0.063 against $\delta_2$'s 0.269, a
+    <strong>4.3× attenuation across a single sigmoid</strong>. That factor of 0.235 is
+    $\sigma'$ near its maximum of 0.25. Multiply it ten times and you have the vanishing
+    gradient problem in one number.</p>
+    <p><strong>5. Update.</strong></p>
+    <div class="given">W2 ← W2 − 0.5 × [[−0.167], [−0.102]]
+   = [[1.0 + 0.0835], [1.0 + 0.0510]]
+   = [[1.0835], [1.0510]]
+
+new z2 = 0.622(1.0835) + 0.378(1.0510) = 1.0713
+new a2 = σ(1.0713) ≈ 0.745</div>
+    <p>The prediction moved from 0.731 to 0.745, towards the target of 1. The loss drops
+    from 0.313 to $-\ln(0.745) = 0.294$. That is one step of learning, computed entirely by
+    hand — and it is precisely what <code>loss.backward(); optimizer.step()</code> will do
+    for you in the next chapter.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 01.2</span>
+  <p>
+  A short proof, no arithmetic. Show that a network with <em>no</em> activation function
+  cannot solve XOR regardless of depth.
+  </p>
+  <ol>
+    <li>Write the two-layer network without activations: $\hat{y} = (XW_1 + b_1)W_2 + b_2$.
+        Expand it and collect terms.</li>
+    <li>Conclude what family of functions the network can express.</li>
+    <li>Explain in one sentence why this rules out XOR.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Expanding by distributivity:</p>
+    $$\hat{y} = XW_1W_2 + b_1W_2 + b_2$$
+    <p><strong>2.</strong> Set $W' = W_1W_2$ (a single <span class="shape">(2, 1)</span>
+    matrix) and $b' = b_1W_2 + b_2$ (a single scalar). Then $\hat{y} = XW' + b'$ — an
+    ordinary linear model. The hidden layer has vanished. This holds for any depth: a
+    product of matrices is a matrix.</p>
+    <p><strong>3.</strong> A linear model's decision boundary is a straight line, and XOR's
+    two classes lie on opposite diagonals of a square, which no straight line separates. So
+    depth without non-linearity buys exactly nothing — the non-linearity is not a detail of
+    the architecture, it <em>is</em> the architecture.</p>
+  </details>
+</div>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>01_nn_from_scratch/prompt.ipynb</code>. You will implement <code>sigmoid</code>
+  and its derivative, the forward pass, the BCE loss, all six backward expressions, and the
+  update — then train to convergence and watch the loss curve. The concept-check cells ask
+  you to predict what happens before you run it; answer them first. Every array is small
+  enough to print, and printing them is the point.
+</div>
+
+<div class="box note">
+  <span class="box-label">Where this goes next</span>
+  <a class="xref" href="#ch02">Chapter 02</a> rebuilds this identical network in PyTorch.
+  The value of having done it by hand is that you will recognise every piece: autograd
+  computes the same $\delta$s, <code>nn.Linear</code> holds the same $W$ and $b$, and the
+  optimizer performs the same subtraction. Nothing becomes magic — it just gets shorter.
+</div>
+
+</section>

@@ -1,0 +1,323 @@
+<section class="chapter" id="ch06">
+
+<p class="chapter-meta">Chapter 06 · notebook <code>06_self_attention</code></p>
+<h1>Self-Attention from Scratch</h1>
+
+<p class="lede">
+Recurrence forces information through a fixed-width state, one step at a time. Attention
+deletes both constraints at once: every position reads directly from every other, in a single
+parallel operation. The mechanism is four lines of algebra, and this chapter derives all four.
+</p>
+
+<h2>The problem with summarising</h2>
+
+<p>
+Consider <em>"The animal didn't cross the road because it was too tired."</em> Resolving
+<em>it</em> requires linking back six words. An LSTM must have encoded "animal" into its cell
+state and preserved it across six updates, competing with everything else that needed
+remembering. It might work. It is certainly indirect.
+</p>
+
+<p>
+Attention makes the link directly. When processing <em>it</em>, the model computes a
+relevance score against every other position and builds a representation weighted by those
+scores. The path from <em>it</em> to <em>animal</em> is one step long, regardless of the six
+words between them — or six hundred.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  In an RNN the path length between two positions is their distance apart, so gradients decay
+  with distance. In self-attention every path length is 1. That single property is the reason
+  transformers displaced recurrent models, and it is worth holding onto when the notation
+  below gets dense.
+</div>
+
+<h2>Queries, keys, and values</h2>
+
+<p>
+The framing is a soft dictionary lookup. Each position produces three vectors from its
+embedding, by three learned linear projections:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Vector</th><th>Produced by</th><th>Role</th></tr></thead>
+  <tbody>
+    <tr><td>Query $q_i$</td><td>$x_iW^Q$</td><td>what position $i$ is looking for</td></tr>
+    <tr><td>Key $k_j$</td><td>$x_jW^K$</td><td>what position $j$ offers as a label</td></tr>
+    <tr><td>Value $v_j$</td><td>$x_jW^V$</td><td>what position $j$ actually contributes</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+A hard dictionary matches one key exactly and returns its value. Attention compares the query
+against <em>all</em> keys, converts the similarities into weights, and returns the weighted
+average of all values. Soft, differentiable, and — crucially — the model learns what to look
+for and what to advertise, since $W^Q$, $W^K$, and $W^V$ are parameters.
+</p>
+
+<p>
+Separating keys from values matters more than it first appears. The features that make a
+position <em>findable</em> need not be the features worth <em>retrieving</em>. A token can
+advertise "I am a noun, singular, animate" in its key while carrying an entirely different
+payload in its value.
+</p>
+
+<h2>Scaled dot-product attention</h2>
+
+$$\operatorname{Attention}(Q, K, V) = \operatorname{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}}\right)V$$
+
+<p>
+Four steps, each with a job.
+</p>
+
+<p>
+<strong>$QK^\top$ — score every pair.</strong> With $Q$ of shape
+<span class="shape">(L, d_k)</span> and $K^\top$ of shape <span class="shape">(d_k, L)</span>,
+the result is <span class="shape">(L, L)</span>: entry $(i,j)$ is $q_i \cdot k_j$, the raw
+affinity of position $i$ for position $j$. This matrix is quadratic in sequence length, which
+is attention's one genuine cost — doubling the context quadruples the compute and memory.
+</p>
+
+<p>
+<strong>Divide by $\sqrt{d_k}$ — keep softmax in its useful range.</strong> See below; this is
+the step people skip and regret.
+</p>
+
+<p>
+<strong>Softmax over the last dimension.</strong> Each <em>row</em> becomes a probability
+distribution: position $i$'s attention is a normalised allocation over all positions. Rows
+sum to 1; columns do not, and need not.
+</p>
+
+<p>
+<strong>Multiply by $V$.</strong> <span class="shape">(L, L)</span> @
+<span class="shape">(L, d_v)</span> gives <span class="shape">(L, d_v)</span> — each output
+row is the weighted average of all value vectors, weighted by that position's attention.
+</p>
+
+<div class="widget" data-widget="attention"></div>
+
+<h3>Why the $\sqrt{d_k}$</h3>
+
+<p>
+This is the one piece of the formula that looks arbitrary and is not. Suppose the components
+of $q$ and $k$ are independent with mean 0 and variance 1. Their dot product is a sum of
+$d_k$ such products, so
+</p>
+
+$$\operatorname{Var}(q \cdot k) = \sum_{i=1}^{d_k}\operatorname{Var}(q_ik_i) = d_k$$
+
+<p>
+Standard deviation $\sqrt{d_k}$. At $d_k = 64$ that is 8, so scores routinely span $\pm 20$ —
+and softmax of scores that spread out is numerically one-hot. Once it saturates, its gradient
+is approximately zero (revisit <a class="xref" href="#ch00-cross-entropy">Chapter 00</a>: the
+softmax Jacobian involves $\hat{y}(1-\hat{y})$, which dies at both ends), so the attention
+weights stop learning. Dividing by $\sqrt{d_k}$ restores unit variance and keeps the
+distribution soft.
+</p>
+
+<p>
+In the widget above, untick <em>√dₖ scaling</em> and drag $d_k$ up to 128. The heatmap
+collapses to a hard diagonal-ish pattern — that is a layer that has stopped learning, visible
+as a picture.
+</p>
+
+<h2>Multi-head attention</h2>
+
+<p>
+One attention operation produces one distribution per position, and therefore expresses one
+kind of relationship. But <em>it</em> in our sentence needs both a syntactic link (subject of
+<em>was</em>) and a semantic one (refers to <em>animal</em>). A single softmax must choose.
+</p>
+
+<p>
+Multi-head attention runs $h$ attention operations in parallel on lower-dimensional
+projections, then concatenates:
+</p>
+
+$$\operatorname{head}_i = \operatorname{Attention}(XW_i^Q, XW_i^K, XW_i^V)$$
+$$\operatorname{MultiHead}(X) = \big[\operatorname{head}_1; \dots; \operatorname{head}_h\big]W^O$$
+
+<p>
+With $d_k = d_{\text{model}}/h$, the total compute is essentially unchanged — you are
+splitting the same budget into independent subspaces rather than adding to it. Each head is
+free to specialise, and in trained models they demonstrably do: some track syntactic
+dependencies, some attend to the previous token, some attend to rare words, and a good number
+attend to nothing in particular and can be pruned.
+</p>
+
+<h3>The implementation, and the reshape that trips everyone</h3>
+
+<pre><code class="language-python">def split_heads(self, x):          # (B, L, d_model)
+    B, L, _ = x.shape
+    return x.view(B, L, self.n_heads, self.d_k).transpose(1, 2)
+    #                                                    (B, n_heads, L, d_k)</code></pre>
+
+<p>
+In practice you do not run $h$ separate layers. One <code>nn.Linear(d_model, d_model)</code>
+computes all heads at once, and a reshape splits the result. The <code>view</code> carves the
+feature axis into <span class="shape">(n_heads, d_k)</span>; the <code>transpose</code> moves
+heads next to the batch dimension so that the subsequent matrix multiplications treat
+<span class="shape">(B, n_heads)</span> as batch and operate independently per head.
+</p>
+
+<p>
+Coming back, you must reverse both, and the <code>.contiguous()</code> is not optional:
+</p>
+
+<pre><code class="language-python">out = out.transpose(1, 2).contiguous().view(B, L, d_model)</code></pre>
+
+<p>
+<code>transpose</code> returns a view with permuted strides rather than reordered memory, and
+<code>view</code> requires contiguous memory. Without <code>.contiguous()</code> PyTorch
+raises an error — which is the good outcome. The bad outcome is using
+<code>reshape</code>, which silently copies and succeeds, hiding a mistake if your axes were
+wrong.
+</p>
+
+<h2>Masking</h2>
+
+<p>
+Two situations require suppressing specific attention weights: padding positions carry no
+information, and — in a decoder — future positions must not be visible. Both use the same
+device. Add $-\infty$ to the scores before the softmax:
+</p>
+
+<pre><code class="language-python">scores = scores.masked_fill(mask, float('-inf'))
+weights = F.softmax(scores, dim=-1)</code></pre>
+
+<p>
+Since $e^{-\infty} = 0$, those entries receive exactly zero weight, and the remaining weights
+still sum to 1 because the softmax denominator excludes them too. Masking after the softmax
+would leave the rows unnormalised — a subtle bug that degrades results without crashing.
+</p>
+
+<p>
+Tick <em>causal mask</em> in the widget to see the upper triangle go dark. That is the
+decoder of <a class="xref" href="#ch09">Chapter 09</a> and the whole of
+<a class="xref" href="#ch10">Chapter 10</a>.
+</p>
+
+<div class="box warn">
+  <span class="box-label">The all-masked row</span>
+  If an entire row is masked — a fully-padded sequence, say — every score is $-\infty$, the
+  softmax denominator is zero, and the output is <code>nan</code>. It propagates to every
+  parameter on the next backward pass and the model is destroyed. Guard against empty
+  sequences in your data pipeline; this bug is famous for surviving weeks of training before
+  anyone notices.
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 06.1</span>
+  <p>
+  A complete attention computation over three tokens with $d_k = 2$. The numbers are chosen
+  so the exponentials are friendly.
+  </p>
+  <div class="given">Q = [[1, 0],      K = [[1, 0],      V = [[1, 0],
+     [0, 1],           [0, 1],           [0, 1],
+     [1, 1]]           [1, 1]]           [1, 1]]
+
+e^0 = 1.000   e^{0.707} = 2.028   e^{1.414} = 4.113</div>
+  <ol>
+    <li>Compute the raw score matrix $QK^\top$ — all nine entries.</li>
+    <li>Scale by $1/\sqrt{d_k} = 1/\sqrt{2} \approx 0.707$.</li>
+    <li>Softmax <strong>row 1</strong> only (the query $[1,0]$).</li>
+    <li>Compute the output for position 1: the weighted sum of value vectors.</li>
+    <li>Now redo step 3 with a causal mask, so position 1 may attend only to itself. What is
+        the output, and why is that result inevitable?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Entry $(i,j) = q_i \cdot k_j$:</p>
+    <div class="given">        k₁=[1,0]  k₂=[0,1]  k₃=[1,1]
+q₁=[1,0]     1         0         1
+q₂=[0,1]     0         1         1
+q₃=[1,1]     1         1         2</div>
+    <p><strong>2.</strong> Multiplying every entry by 0.707, row 1 becomes
+    $[0.707,\ 0,\ 0.707]$.</p>
+    <p><strong>3.</strong> Exponentiate: $[2.028,\ 1.000,\ 2.028]$, summing to 5.056.</p>
+    <div class="given">row 1 weights = [0.401, 0.198, 0.401]</div>
+    <p>Positions 1 and 3 tie, which is right: $q_1 = [1,0]$ has dot product 1 with both
+    $k_1 = [1,0]$ and $k_3 = [1,1]$. Position 2 is orthogonal to the query and gets the
+    least.</p>
+    <p><strong>4.</strong> Weighted sum of the value rows:</p>
+    <div class="given">out₁ = 0.401[1,0] + 0.198[0,1] + 0.401[1,1]
+     = [0.401 + 0 + 0.401,  0 + 0.198 + 0.401]
+     = [0.802, 0.599]</div>
+    <p>Notice the output is <em>not</em> any input row — it is a genuine blend. That is the
+    whole point: position 1's new representation now contains information from position 3.</p>
+    <p><strong>5.</strong> With a causal mask, scores at $j > 1$ become $-\infty$, so
+    $e^{-\infty} = 0$ and the row is $[1, 0, 0]$ after normalisation. The output is exactly
+    $v_1 = [1, 0]$.</p>
+    <p>This is inevitable and worth stating as a general fact: <strong>the first position of
+    a causal attention layer can only ever return its own value vector</strong>, because it
+    has nothing else to attend to. Its representation is unchanged by attention, no matter
+    how well trained the model is. This is why decoder-only models get so little from their
+    first token, and part of why a <code>&lt;SOS&gt;</code> token — a position whose output
+    nobody needs — is a convenient thing to put there.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 06.2</span>
+  <p>Shapes and cost. No arithmetic beyond multiplication.</p>
+  <div class="given">B = 32    L = 128    d_model = 256    n_heads = 8</div>
+  <ol>
+    <li>What is $d_k$?</li>
+    <li>Write the shape after each step: embedding → $W^Q$ → split_heads → $QK^\top$ →
+        softmax → @V → merge heads → $W^O$.</li>
+    <li>How many floats does the attention weight tensor hold? At 4 bytes each, how much
+        memory — and how much if $L$ becomes 1024?</li>
+    <li>Parameter count of the multi-head attention block (four projections, no biases).
+        Does it depend on $L$ or on <code>n_heads</code>?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $d_k = 256/8 = \mathbf{32}$.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">embedding          (32, 128, 256)
+after W^Q          (32, 128, 256)
+after split_heads  (32, 8, 128, 32)
+Q @ Kᵀ             (32, 8, 128, 128)     ← the quadratic one
+after softmax      (32, 8, 128, 128)
+@ V                (32, 8, 128, 32)
+merge heads        (32, 128, 256)
+after W^O          (32, 128, 256)</div>
+    <p><strong>3.</strong> $32 \times 8 \times 128 \times 128 = 4{,}194{,}304$ floats =
+    <strong>16.8 MB</strong> — for one layer's attention weights, in one forward pass, and
+    they must be retained for the backward pass.</p>
+    <p>At $L = 1024$: $32 \times 8 \times 1024^2 = 268$M floats = <strong>1.07 GB</strong>.
+    Eight times the sequence length, sixty-four times the memory. On a 24 GB machine a
+    six-layer model at $L = 1024$ and batch 32 is already out of budget on attention weights
+    alone. This is why every long-context method — sliding windows, sparse patterns,
+    FlashAttention's tiling — targets exactly this tensor.</p>
+    <p><strong>4.</strong> Four projections of $d_{\text{model}} \times d_{\text{model}}$:
+    $4 \times 256^2 = \mathbf{262{,}144}$. It depends on neither $L$ nor
+    <code>n_heads</code> — sequence length affects activations but not weights, and heads
+    partition a fixed budget rather than adding to it. Adding heads is free in parameters and
+    nearly free in compute, which is why 8 or 16 is standard.</p>
+  </details>
+</div>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>06_self_attention/prompt.ipynb</code>. You will implement
+  <code>scaled_dot_product_attention</code>, then <code>MultiHeadAttention</code>, then a
+  classifier that applies them to the movie reviews from
+  <a class="xref" href="#ch03">Chapter 03</a> — so you get a direct accuracy comparison
+  against the CNN on identical data. The final section visualises the learned attention
+  weights, which is worth studying: several heads will have found something interpretable.
+</div>
+
+<div class="box note">
+  <span class="box-label">Where this goes next</span>
+  Attention as built here has a startling gap: it is entirely order-blind. Shuffle the input
+  tokens and the outputs are shuffled identically, with each vector unchanged.
+  <a class="xref" href="#ch07">Chapter 07</a> fixes that, and adds the residual connections
+  and normalisation that make deep stacks of these blocks trainable.
+</div>
+
+</section>

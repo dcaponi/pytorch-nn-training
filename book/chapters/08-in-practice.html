@@ -1,0 +1,337 @@
+<section class="chapter" id="ch08">
+
+<p class="chapter-meta">Chapter 08 · notebook <code>08_pytorch_in_practice</code></p>
+<h1>PyTorch in Practice</h1>
+
+<p class="lede">
+Everything so far has been architecture. This chapter is craft: the patterns that separate
+code that trains from code that trains reliably, reproducibly, and fast enough to iterate on.
+None of it is conceptually hard, and all of it is the difference between a working project
+and a week of confusion.
+</p>
+
+<h2>Factor the training loop</h2>
+
+<p>
+Inline training loops are fine for one experiment and unmanageable by the fifth. Two
+functions cover almost every project:
+</p>
+
+<pre><code class="language-python">def train_one_epoch(model, loader, criterion, optimizer, device):
+    model.train()
+    total = 0.0
+    for xb, yb in loader:
+        xb, yb = xb.to(device), yb.to(device)
+        optimizer.zero_grad()
+        loss = criterion(model(xb), yb)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        optimizer.step()
+        total += loss.item() * xb.size(0)
+    return total / len(loader.dataset)
+
+
+@torch.no_grad()
+def evaluate(model, loader, criterion, device):
+    model.eval()
+    total = 0.0
+    for xb, yb in loader:
+        xb, yb = xb.to(device), yb.to(device)
+        total += criterion(model(xb), yb).item() * xb.size(0)
+    return total / len(loader.dataset)</code></pre>
+
+<p>
+Three details in there are worth calling out.
+</p>
+
+<p>
+<code>loss.item() * xb.size(0)</code> divided by <code>len(dataset)</code> weights each batch
+by its true size. Averaging batch means directly over-weights the final partial batch — a
+small error, but it makes your reported loss depend on your batch size, which is a bad
+property for a number you compare across runs.
+</p>
+
+<p>
+<code>.item()</code> is essential, not cosmetic. Accumulating the tensor itself keeps the
+entire computational graph alive for every batch in the epoch, and you will run out of memory
+with no obvious cause. <code>.item()</code> extracts a Python float and drops the graph.
+</p>
+
+<p>
+<code>@torch.no_grad()</code> as a decorator applies to the whole function — cleaner than
+wrapping the body, and impossible to forget halfway through.
+</p>
+
+<h2>Learning rate schedules</h2>
+
+<p>
+A constant learning rate is a compromise: too large to settle at the end, too small to make
+progress at the start. Schedules resolve it.
+</p>
+
+<div class="widget" data-widget="lr-schedule"></div>
+
+<p>
+<strong>Warmup</strong> ramps the rate up over the first few hundred steps. The reason is
+specific to Adam: its second-moment estimate $v$ is computed from a handful of samples early
+on and is correspondingly unreliable, so a full-size step divided by a bad $\sqrt{v}$ can be
+enormous. Transformers are notoriously sensitive to this — training one without warmup often
+diverges in the first hundred steps.
+</p>
+
+<p>
+<strong>Cosine decay</strong> then anneals smoothly to near zero, spending the end of training
+taking small careful steps near a minimum instead of bouncing around it. Warmup plus cosine is
+the default for essentially every modern language model.
+</p>
+
+<p>
+<code>ReduceLROnPlateau</code>, which <a class="xref" href="#ch09">Chapter 09</a> uses, is the
+reactive alternative: halve the rate whenever validation loss stops improving. It requires no
+knowledge of total training length, which makes it convenient for exploratory work.
+</p>
+
+<div class="box warn">
+  <span class="box-label">Step the scheduler once per epoch or once per batch — decide which</span>
+  Most schedulers advance on <code>scheduler.step()</code>. Warmup schedules are per-batch;
+  <code>ReduceLROnPlateau</code> is per-epoch and takes the validation metric as an argument.
+  Mixing them up gives you a schedule that completes in the first epoch, or one that never
+  moves. Print the learning rate for the first few epochs — always.
+</div>
+
+<h2>Checkpointing</h2>
+
+<pre><code class="language-python">torch.save({
+    'epoch': epoch,
+    'model_state_dict': model.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict(),
+    'best_val': best_val,
+}, 'checkpoint.pt')</code></pre>
+
+<p>
+Save the <code>state_dict</code>, not the model object. Pickling the object embeds your class
+definitions and import paths, so the file breaks the moment you rename a module. A
+<code>state_dict</code> is just a dictionary of tensors and loads into any code that defines a
+matching architecture.
+</p>
+
+<p>
+Save the optimizer too. Adam's $m$ and $v$ accumulate real information, and resuming without
+them restarts the moment estimates from zero — visible as a loss spike right after every
+resume.
+</p>
+
+<p>
+And keep the <em>best</em> checkpoint, not the last:
+</p>
+
+<pre><code class="language-python">if val_loss &lt; best_val:
+    best_val, best_state = val_loss, copy.deepcopy(model.state_dict())
+...
+model.load_state_dict(best_state)</code></pre>
+
+<p>
+Validation loss frequently turns upward long before training ends.
+<a class="xref" href="#ch09">Chapter 09</a> hits its best validation loss at epoch 11 of 30
+and is meaningfully worse by epoch 30 — without this pattern, you would ship the worse model.
+<code>copy.deepcopy</code> matters: <code>state_dict()</code> returns references to live
+tensors, so keeping it without copying keeps a handle on weights that keep changing.
+</p>
+
+<h2 id="ch08-padding">Batching sequences without wasting compute</h2>
+
+<p>
+Padding every sequence to a global maximum is simple and expensive.
+</p>
+
+<div class="widget" data-widget="padding"></div>
+
+<p>
+Tick <em>sort batch by length</em>. Grouping similar-length sequences means each batch pads
+only to its own maximum rather than to the longest sequence in the dataset. The saving is
+larger than the bar chart suggests, because attention is quadratic in padded length: cutting
+padded length by 30% cuts attention cost by about half.
+</p>
+
+<p>
+The general form is a <strong>bucketing sampler</strong> — sort by length, chunk into batches,
+shuffle the batch order (so you keep randomness between epochs without breaking the length
+grouping). Combine it with a custom <code>collate_fn</code> that pads dynamically per batch
+rather than pre-padding the whole dataset.
+</p>
+
+<div class="box note">
+  <span class="box-label">DataLoader settings on a Mac</span>
+  <code>num_workers&gt;0</code> spawns subprocesses for data loading. On macOS the default
+  start method is spawn, so each worker re-imports your module — anything at module scope runs
+  again in every worker. Keep heavy setup inside <code>if __name__ == "__main__":</code> or
+  inside functions. In notebooks, <code>num_workers=0</code> is often genuinely fastest, since
+  the datasets here are small and already in memory. <code>pin_memory=True</code> helps CUDA
+  transfers and does nothing useful on MPS.
+</div>
+
+<h2>Reproducibility</h2>
+
+<pre><code class="language-python">torch.manual_seed(42)
+np.random.seed(42)
+random.seed(42)</code></pre>
+
+<p>
+Necessary, and not sufficient. GPU reduction kernels accumulate in nondeterministic order, so
+floating-point results differ slightly run to run; <code>torch.use_deterministic_algorithms(True)</code>
+forces deterministic kernels where they exist and raises an error where they do not. Dataloader
+workers need <code>worker_init_fn</code> to seed each subprocess distinctly.
+</p>
+
+<p>
+The deeper point is that a single run tells you less than people assume. Different seeds on
+the same code routinely differ by a point or two of accuracy on small datasets. If a change
+improves your model by half a point, you have measured noise. Run three seeds before believing
+anything.
+</p>
+
+<h2>Diagnosing training</h2>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Symptom</th><th>Most likely cause</th><th>Check</th></tr></thead>
+  <tbody>
+    <tr><td>Loss is <code>nan</code> immediately</td><td>learning rate far too high; $\log 0$; all-masked attention row</td><td>drop lr 10×; clip probabilities; check for empty sequences</td></tr>
+    <tr><td>Loss is <code>nan</code> after a while</td><td>exploding gradients</td><td>add <code>clip_grad_norm_</code>; print grad norms</td></tr>
+    <tr><td>Loss flat from step 0</td><td>missing <code>zero_grad()</code>; frozen params; lr ≈ 0</td><td>print <code>p.grad.norm()</code> for a few params</td></tr>
+    <tr><td>Train falls, val rises</td><td>overfitting</td><td>more dropout/weight decay; less capacity; best-checkpoint restore</td></tr>
+    <tr><td>Both plateau high</td><td>underfitting or bad lr</td><td>overfit a batch of 8 first (see below)</td></tr>
+    <tr><td>Val far better than train</td><td>dropout on during eval, or a leak</td><td><code>model.eval()</code>; check vocabulary construction</td></tr>
+    <tr><td>Great val, terrible in production</td><td>train/test leakage</td><td>rebuild preprocessing from the train split only</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box concept">
+  <span class="box-label">Key concept — the single best debugging move</span>
+  Before training on the full dataset, take <strong>eight examples and overfit them
+  completely</strong>. Turn off dropout and regularisation and train until the loss is
+  essentially zero. If you cannot drive the loss to zero on eight examples, the bug is in your
+  model, loss, or data pipeline — not in your hyperparameters — and no amount of tuning on the
+  full dataset will find it. This takes two minutes and saves entire afternoons.
+</div>
+
+<h2>Making it fast on Apple silicon</h2>
+
+<p>
+Unified memory is the M4's defining feature: CPU and GPU share one pool, so
+<code>.to('mps')</code> costs far less than a PCIe transfer to a discrete GPU. It also means
+your model competes with everything else on the machine for the same 24 GB, and there is no
+separate VRAM figure to watch.
+</p>
+
+<ul>
+  <li><strong>Measure before optimising.</strong> MPS is asynchronous, so wall-clock timing
+      around a forward pass measures only queueing. Call
+      <code>torch.mps.synchronize()</code> before stopping the clock.</li>
+  <li><strong>Batch size is the first lever.</strong> Small models are launch-overhead-bound;
+      going from batch 16 to 128 is often nearly free in time and a large gain in throughput.</li>
+  <li><strong>Watch for silent CPU fallback.</strong> With
+      <code>PYTORCH_ENABLE_MPS_FALLBACK=1</code>, unsupported ops run on CPU — correct, but
+      each one forces a synchronisation. One fallback op inside your inner loop can cost more
+      than everything else combined.</li>
+  <li><strong><code>torch.compile</code> is not the answer here.</strong> Its MPS support
+      lags CUDA considerably; on these model sizes it usually costs more in compile time than
+      it returns.</li>
+  <li><strong>float16 halves memory</strong> and is well supported on MPS, but Apple's backend
+      lacks the mature autocast/GradScaler story CUDA has. Use it for inference freely; for
+      training, treat it as an experiment (see <a class="xref" href="#ch11">Chapter 11</a>).</li>
+</ul>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 08.1</span>
+  <p>Memory arithmetic for a training run — the calculation you should do <em>before</em>
+  starting one.</p>
+  <div class="given">model: 12M parameters, fp32, trained with Adam
+batch: 64 sequences × 512 tokens
+activations: measured at ~1.2 KB per token per layer, 6 layers</div>
+  <ol>
+    <li>Memory for weights, gradients, and Adam's two state tensors.</li>
+    <li>Memory for activations retained for the backward pass.</li>
+    <li>Total, and how it compares to a 24 GB budget (assume ~17 GB usable).</li>
+    <li>You need to double the batch size and cannot. Give three ways to get the effect, and
+        state what each one costs.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> 12M parameters × 4 bytes = 48 MB each for weights, gradients,
+    Adam $m$, and Adam $v$ = <strong>192 MB</strong>, i.e. 16 bytes per parameter.</p>
+    <p><strong>2.</strong> $64 \times 512 \times 1.2\text{ KB} \times 6 =
+    \mathbf{236\text{ MB}}$.</p>
+    <p><strong>3.</strong> About <strong>428 MB</strong> plus framework overhead — comfortably
+    inside 17 GB. Worth noticing which term dominates: activations exceed the entire model,
+    and they scale with batch size and sequence length while the model does not. On small
+    models, activations are the thing that actually runs you out of memory.</p>
+    <p><strong>4.</strong></p>
+    <ul>
+      <li><strong>Gradient accumulation</strong> — run two batches of 64, calling
+      <code>backward()</code> on each and <code>step()</code> only after the second. Gradients
+      accumulate by default (<a class="xref" href="#ch02">Chapter 02</a>), so this is
+      mathematically identical to batch 128. Costs: two forward/backward passes of wall-clock
+      time, and you must scale the loss by 1/2 to keep the gradient magnitude right.</li>
+      <li><strong>Gradient checkpointing</strong> — store only some activations and recompute
+      the rest during the backward pass. Cuts activation memory by roughly $\sqrt{N}$ for $N$
+      layers. Costs about 30% extra compute.</li>
+      <li><strong>Shorter sequences</strong> — halve the sequence length. Costs the model any
+      dependency longer than the new window, and for attention it is a
+      <em>quadratic</em> saving, so it is the most effective of the three per unit of harm.</li>
+    </ul>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 08.2</span>
+  <p>Reading a training log. Diagnose each, and name the first thing you would change.</p>
+  <div class="given">Run A          Run B          Run C          Run D
+ep  tr    val    tr    val    tr    val    tr    val
+ 1  2.31  2.30   2.30  2.29   2.31  2.28   4.02  3.81
+ 5  2.30  2.30   1.41  1.52   0.98  1.61   nan   nan
+10  2.30  2.31   0.88  1.19   0.31  2.04    -     -
+15  2.30  2.30   0.71  1.14   0.09  2.55    -     -</div>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>Run A — not learning at all.</strong> The loss sits at 2.30, which for a
+    10-class problem is exactly $\ln 10 = 2.303$: the model is outputting a uniform
+    distribution and never moving. Nothing is reaching the weights. Check for a missing
+    <code>zero_grad()</code>, a learning rate of zero, parameters not passed to the
+    optimizer, or a <code>requires_grad=False</code> left somewhere. <em>First move:</em>
+    print <code>p.grad.norm()</code> after <code>backward()</code> — if it is zero or
+    <code>None</code>, you have found it.</p>
+    <p><strong>Run B — healthy.</strong> Both losses fall, with a modest and stable gap
+    (0.71 vs 1.14) that is normal generalisation error. Validation is still improving at
+    epoch 15. <em>First move:</em> keep training, and consider a larger model.</p>
+    <p><strong>Run C — textbook overfitting.</strong> Validation bottoms out around epoch 5
+    at 1.61 and then climbs steadily while training loss drives towards zero. The model is
+    memorising. <em>First move:</em> restore the epoch-5 weights, then add regularisation —
+    dropout, weight decay, more data, or less capacity. Note that without best-checkpoint
+    restore you would have shipped the epoch-15 model at val 2.55, which is worse than the
+    model was after five epochs.</p>
+    <p><strong>Run D — divergence.</strong> Starting loss of 4.02 is already high and it
+    reaches <code>nan</code> within five epochs. Almost always too large a learning rate;
+    occasionally a $\log 0$ or an all-masked attention row. <em>First move:</em> cut the
+    learning rate by 10× and add <code>clip_grad_norm_</code>. If it still diverges, print
+    the loss every batch rather than every epoch to find the exact step where it breaks.</p>
+  </details>
+</div>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>08_pytorch_in_practice/prompt.ipynb</code>. It is a reference notebook rather
+  than a single build: reusable <code>train_one_epoch</code> and <code>evaluate</code>
+  functions, custom <code>Dataset</code>s, <code>nn.Sequential</code> models, save/load
+  patterns, and device handling. Come back to it whenever you start something new.
+</div>
+
+<div class="box note">
+  <span class="box-label">Where this goes next</span>
+  <a class="xref" href="#ch09">Chapter 09</a> returns to architecture and builds the first
+  model in this book that generates sequences rather than classifying them — which introduces
+  a whole category of problems that classification never had.
+</div>
+
+</section>

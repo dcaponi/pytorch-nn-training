@@ -1,0 +1,295 @@
+<section class="chapter" id="ch03">
+
+<p class="chapter-meta">Chapter 03 · notebook <code>03_cnn_sentiment</code></p>
+<h1>Convolutions over Text</h1>
+
+<p class="lede">
+Two thousand real film reviews, and the first architecture in this book with an inductive
+bias: the assumption that <em>local phrases carry meaning wherever they appear</em>. That
+assumption is what a convolution encodes, and understanding it as an assumption — rather
+than as a piece of machinery — is what lets you predict when it will work.
+</p>
+
+<h2>From words to numbers</h2>
+
+<p>
+A network consumes vectors of floats. A review is a list of words. Three steps bridge the gap,
+and each is a design decision with consequences.
+</p>
+
+<p>
+<strong>Tokenise.</strong> Split text into units. Here, lowercased whitespace-and-punctuation
+tokens from NLTK. Simple, and it makes <em>"Don't"</em> and <em>"dont"</em> different words,
+which is a real cost. <a class="xref" href="#ch10">Chapter 10</a> introduces subword
+tokenisation, which fixes it properly.
+</p>
+
+<p>
+<strong>Build a vocabulary.</strong> Map the most frequent $V$ tokens to integer indices,
+reserving index 0 for <code>&lt;PAD&gt;</code> and 1 for <code>&lt;UNK&gt;</code>. Everything
+outside the top $V$ becomes <code>&lt;UNK&gt;</code>. Vocabulary size trades coverage against
+parameters: the embedding table alone is $V \times d$ numbers, so at $V = 10{,}000$ and
+$d = 100$ that is a million parameters before any actual model.
+</p>
+
+<p>
+<strong>Pad or truncate to a fixed length.</strong> Tensors are rectangular; reviews are not.
+Every sequence becomes exactly $L$ tokens, cut if longer, filled with
+<code>&lt;PAD&gt;</code> if shorter. This is pure bookkeeping overhead, and
+<a class="xref" href="#ch08-padding">Chapter 08</a> shows how much compute it can waste.
+</p>
+
+<div class="box warn">
+  <span class="box-label">Leakage</span>
+  Build the vocabulary from the <strong>training split only</strong>. Building it from the
+  full corpus lets test-set vocabulary influence the model and quietly inflates your reported
+  accuracy. It is the most common way to accidentally lie to yourself in NLP, and the symptom
+  — excellent test numbers that collapse on genuinely new data — appears far too late to be
+  useful.
+</div>
+
+<h2>Embeddings: geometry learned from the task</h2>
+
+<p>
+One-hot vectors are the obvious encoding and a bad one: a 10,000-dimensional vector that is
+all zeros except a single 1, in which every pair of words is exactly equidistant. "Excellent"
+is as far from "superb" as it is from "the". No structure to exploit.
+</p>
+
+<p>
+An <strong>embedding</strong> replaces this with a dense, learned vector — typically 50 to
+300 numbers. <code>nn.Embedding(V, d)</code> is a $V \times d$ lookup table:
+</p>
+
+<pre><code class="language-python">emb = nn.Embedding(vocab_size, 100, padding_idx=0)
+x = emb(token_ids)      # (B, L) -&gt; (B, L, 100)</code></pre>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  An embedding layer <em>is</em> a linear layer applied to a one-hot vector — multiplying a
+  one-hot by a matrix just selects a row. It is implemented as a lookup because doing the
+  multiplication would be absurd, but this equivalence is why gradients flow through it
+  normally: the backward pass scatters gradient into the rows that were used, leaving every
+  other row untouched. Words that do not appear in a batch receive no update.
+</div>
+
+<p>
+Because the vectors are learned by gradient descent on <em>this</em> task, they arrange
+themselves according to what this task needs. Train on sentiment and "boring", "tedious", and
+"dull" drift together — not because the model knows they are synonyms, but because they
+predict the same label. <code>padding_idx=0</code> pins the pad row at zero and excludes it
+from updates, so padding contributes nothing.
+</p>
+
+<h2>The convolution</h2>
+
+<p>
+Now the architectural claim. A phrase like "not bad" means the same thing at the start of a
+review as at the end. A model that had to learn it separately for each position would need
+far more data than we have. A convolution builds that assumption in structurally: one small
+set of weights is applied at every position.
+</p>
+
+<div class="widget" data-widget="conv1d"></div>
+
+<p>
+Drag the window along. The kernel weights never change — only which tokens they multiply.
+Each position produces one number, and the sequence of those numbers is the
+<strong>feature map</strong>. A kernel is a phrase detector, and the same detector fires
+wherever its phrase occurs. That property is called <strong>translation invariance</strong>,
+and it is the entire reason CNNs are data-efficient.
+</p>
+
+<h3>Shapes, and the transpose that catches everyone</h3>
+
+<p>
+<code>nn.Conv1d</code> expects <span class="shape">(B, C_in, L)</span> — channels
+<em>before</em> length — while <code>nn.Embedding</code> produces
+<span class="shape">(B, L, d)</span>. You must transpose:
+</p>
+
+<pre><code class="language-python">x = self.embedding(x)        # (B, L, d)
+x = x.transpose(1, 2)        # (B, d, L)   &lt;- d is now the channel dim
+x = self.conv(x)             # (B, n_filters, L_out)</code></pre>
+
+<p>
+The embedding dimension becomes the input channel count: the kernel spans all $d$ dimensions
+at once and slides only along length. A kernel of width $k$ therefore holds
+$d \times k$ weights per filter — it is genuinely reading whole word vectors, not individual
+numbers.
+</p>
+
+<p>
+Output length follows the standard formula, worth committing to memory:
+</p>
+
+$$L_{\text{out}} = \left\lfloor \frac{L_{\text{in}} + 2p - k}{s} \right\rfloor + 1$$
+
+<p>
+with padding $p$, kernel width $k$, stride $s$. With the defaults here ($p=0$, $s=1$) it is
+just $L - k + 1$: a width-3 kernel over 200 tokens gives 198 positions.
+</p>
+
+<h3>Several kernel widths at once</h3>
+
+<p>
+Language does not have one characteristic phrase length. So run three convolutions in
+parallel — widths 3, 4, and 5, say — and concatenate their outputs. Width 3 catches
+"not very good"; width 5 catches longer constructions. Each contributes its own filters to a
+shared representation.
+</p>
+
+<h3>Global max pooling</h3>
+
+<p>
+Each feature map is one number per position, but the classifier needs a fixed-size vector.
+Take the maximum:
+</p>
+
+<pre><code class="language-python">x = F.relu(conv(x))              # (B, n_filters, L_out)
+x = F.max_pool1d(x, x.size(2))   # (B, n_filters, 1)
+x = x.squeeze(2)                 # (B, n_filters)</code></pre>
+
+<p>
+The semantics are exactly right for this problem: <em>did this phrase pattern appear anywhere
+in the review, and how strongly?</em> Position is discarded deliberately. For sentiment that
+is the correct trade — a review is negative whether the damning phrase is in sentence one or
+sentence twelve.
+</p>
+
+<p>
+It is also the model's ceiling. Max pooling cannot represent order between detected phrases,
+so "the acting saved a terrible script" and "a terrible script saved the acting" reduce to
+the same bag of activations. Fixing that is what <a class="xref" href="#ch06">attention</a>
+is for.
+</p>
+
+<h2>Dropout</h2>
+
+<p>
+Two thousand reviews against a model with a million-plus parameters is an invitation to
+memorise. Dropout is the counter: during training, zero each activation independently with
+probability $p$, and scale the survivors by $1/(1-p)$ so the expected sum is unchanged.
+</p>
+
+<p>
+The usual intuition is that this prevents co-adaptation — no unit can rely on a specific
+partner being present, so features must be individually useful. A second reading: it trains
+an exponentially large ensemble of subnetworks that share weights, and averages them at test
+time. Both are fair; both predict the same practical rule, which is that dropout must be
+<em>off</em> at evaluation. That is what <code>model.eval()</code> does, and forgetting it
+gives you noisy, pessimistic, irreproducible test numbers.
+</p>
+
+<h2>Batching and the train/test split</h2>
+
+<p>
+<code>Dataset</code> tells PyTorch how to fetch one example; <code>DataLoader</code> handles
+batching, shuffling, and parallel loading. Shuffling matters more than it looks: the movie
+review corpus is sorted by label, so an unshuffled loader delivers 1,000 negative reviews
+followed by 1,000 positive ones. The model would learn "always negative", then catastrophically
+unlearn it.
+</p>
+
+<p>
+The held-out test set is the only honest number you have. Training accuracy measures
+memorisation; test accuracy measures learning. A gap of a few points is normal, and a large
+and widening gap is the definition of overfitting — which is exactly what
+<a class="xref" href="#ch09">Chapter 09</a> runs into, and handles by keeping the weights
+from the best validation epoch.
+</p>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 03.1</span>
+  <p>
+  A one-dimensional embedding (so each token is a single number) and a width-3 kernel.
+  </p>
+  <div class="given">sentence:   the   film   was   not   bad   at   all
+embedding:  0.1   0.3   0.0  −0.9  −0.6  0.1   0.0
+
+kernel w = [−1.0, 1.0, 0.5]     bias b = 0.1
+stride 1, no padding, ReLU after</div>
+  <ol>
+    <li>How many output positions are there? Use the formula.</li>
+    <li>Compute the pre-activation value at each position.</li>
+    <li>Apply ReLU, then global max pooling. Which window won?</li>
+    <li>The kernel has learned $-w_1 + w_2$ — it fires on a rise from a negative token to a
+        positive one. Explain, in terms of this sentence, why the winning window is a
+        sensible thing for a sentiment model to detect.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $L_{\text{out}} = (7 + 0 - 3)/1 + 1 = \mathbf{5}$ positions.</p>
+    <p><strong>2.</strong> Each is $-1.0\,e_i + 1.0\,e_{i+1} + 0.5\,e_{i+2} + 0.1$:</p>
+    <div class="given">pos 0  "the film was":   −0.1 + 0.3 + 0.00 + 0.1 =  0.30
+pos 1  "film was not":   −0.3 + 0.0 − 0.45 + 0.1 = −0.65
+pos 2  "was not bad":     0.0 − 0.9 − 0.30 + 0.1 = −1.10
+pos 3  "not bad at":      0.9 − 0.6 + 0.05 + 0.1 =  0.45
+pos 4  "bad at all":      0.6 + 0.1 + 0.00 + 0.1 =  0.80</div>
+    <p><strong>3.</strong> ReLU gives <code>[0.30, 0, 0, 0.45, 0.80]</code>; max pooling
+    returns <strong>0.80</strong>, from window 4, "bad at all".</p>
+    <p><strong>4.</strong> The kernel responds to a transition <em>out of</em> a negative
+    token. "bad at all" is the tail of the construction "not bad at all" — a phrase whose
+    sentiment is the opposite of its most negative word. A unigram model sees "bad" and
+    predicts negative; this kernel sees the local context in which "bad" is negated and can
+    fire positively instead. Detecting that requires looking at neighbouring positions
+    together, which is precisely what the convolution provides and what a bag-of-words model
+    structurally cannot do.</p>
+    <p>Note also what was lost: after max pooling, the model knows this pattern fired at
+    strength 0.80 <em>somewhere</em>, and has no idea it was at position 4.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 03.2</span>
+  <p>Parameter counting for the real architecture in the notebook.</p>
+  <div class="given">vocab V = 10,000     embedding d = 100     sequence length L = 200
+three parallel Conv1d layers, kernel widths 3, 4, 5, 100 filters each
+then Linear(300 → 2)</div>
+  <ol>
+    <li>Parameters in the embedding table.</li>
+    <li>Parameters in one Conv1d of width $k$ with 100 filters. (Remember the kernel spans
+        all input channels, and each filter has a bias.) Sum over the three widths.</li>
+    <li>Parameters in the final linear layer, and why its input is 300.</li>
+    <li>Total. What fraction is the embedding — and what does that suggest about where
+        overfitting will come from?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $10{,}000 \times 100 = \mathbf{1{,}000{,}000}$.</p>
+    <p><strong>2.</strong> One filter of width $k$ holds $d \times k$ weights plus one bias,
+    so 100 filters cost $100(100k + 1)$:</p>
+    <div class="given">k=3:  100 × 301 =  30,100
+k=4:  100 × 401 =  40,100
+k=5:  100 × 501 =  50,100
+                  120,300</div>
+    <p><strong>3.</strong> Each conv contributes 100 pooled features and there are three, so
+    the concatenated vector is 300 long. $300 \times 2 + 2 = \mathbf{602}$.</p>
+    <p><strong>4.</strong> Total $\approx \mathbf{1{,}120{,}902}$, of which the embedding is
+    <strong>89%</strong>.</p>
+    <p>That is the important observation. Nearly the whole model is a lookup table, and a
+    lookup table is the easiest thing in machine learning to overfit — with 2,000 reviews,
+    many of those 10,000 rows are updated only a handful of times and will happily memorise
+    the single review they appeared in. It also tells you where to intervene: shrink the
+    vocabulary, shrink $d$, initialise from pretrained vectors, or freeze the embedding
+    entirely. Tuning the convolutions, which hold 11% of the parameters, would be attacking
+    the wrong end of the model.</p>
+  </details>
+</div>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>03_cnn_sentiment/prompt.ipynb</code>. You will build the vocabulary, encode and
+  pad the reviews, define the multi-width CNN, and train to roughly 80% test accuracy on
+  held-out data. Worth trying afterwards: drop the vocabulary to 2,000 words and see whether
+  test accuracy actually falls — exercise 03.2 predicts it may improve.
+</div>
+
+<div class="box note">
+  <span class="box-label">Where this goes next</span>
+  The CNN's blindness to order is a hard ceiling, not a tuning problem.
+  <a class="xref" href="#ch04">Chapter 04</a> takes the opposite approach — process tokens
+  strictly in sequence, carrying a memory — and discovers a different hard ceiling.
+</div>
+
+</section>

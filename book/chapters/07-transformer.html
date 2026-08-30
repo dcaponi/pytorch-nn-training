@@ -1,0 +1,320 @@
+<section class="chapter" id="ch07">
+
+<p class="chapter-meta">Chapter 07 · notebook <code>07_transformer_pytorch</code></p>
+<h1>The Transformer Encoder</h1>
+
+<p class="lede">
+Attention alone is not a model. It is order-blind, it is shallow, and stacking it naively
+does not train. This chapter adds the three components that turn the mechanism of
+<a class="xref" href="#ch06">Chapter 06</a> into an architecture: positional encoding,
+residual connections with layer normalisation, and a position-wise feed-forward network.
+</p>
+
+<h2>Attention is permutation-equivariant</h2>
+
+<p>
+Start with the gap. Take the attention formula and permute the input rows. Every $q_i$,
+$k_j$, and $v_j$ moves with its token, every pairwise score is preserved, and the output rows
+come out permuted in exactly the same way — with identical contents.
+</p>
+
+<p>
+So <em>"dog bites man"</em> and <em>"man bites dog"</em> produce the same set of
+representations. For a task where word order carries meaning — which is all of them — that is
+fatal. An RNN gets order for free from the sequential recurrence; attention, having thrown
+recurrence away, must be told.
+</p>
+
+<h2>Positional encoding</h2>
+
+<p>
+The fix is to add a position-dependent vector to each token embedding before the first
+attention layer. The original transformer uses fixed sinusoids:
+</p>
+
+$$PE_{(pos,\,2i)} = \sin\!\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)
+\qquad
+PE_{(pos,\,2i+1)} = \cos\!\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)$$
+
+<p>
+Even dimensions get sines, odd get cosines, and the wavelength grows geometrically with
+dimension index — from $2\pi$ at $i=0$ up to $10000 \cdot 2\pi$ at the top.
+</p>
+
+<div class="widget" data-widget="posenc"></div>
+
+<p>
+The picture explains the design better than the formula. Left-hand columns oscillate quickly
+and distinguish neighbouring positions; right-hand columns oscillate slowly and encode coarse
+location in the sequence. Together they form a multi-resolution code — much like a binary
+counter, where the low bit alternates every step and the high bit once per half-sequence.
+Every position gets a distinct fingerprint, and positions close together get similar ones.
+</p>
+
+<p>
+The genuinely clever property is this: for any fixed offset $k$, $PE_{pos+k}$ is a
+<em>linear</em> function of $PE_{pos}$ — a rotation, by the angle-addition identities for
+sine and cosine. So a model can learn to attend "three positions back" as a single linear
+operation applied uniformly, rather than memorising every absolute pair. Relative position
+becomes learnable.
+</p>
+
+<div class="box note">
+  <span class="box-label">Why add rather than concatenate</span>
+  Adding position to content seems like it should corrupt the content, and it is reasonable
+  to expect concatenation instead. Two answers. Practically, concatenation costs dimensions
+  you would rather spend on meaning. Structurally, in a high-dimensional space a learned
+  embedding can simply keep the two kinds of information in near-orthogonal subspaces, and
+  trained models do exactly that. Modern alternatives — learned absolute embeddings, or
+  rotary embeddings (RoPE) that rotate $Q$ and $K$ by a position-dependent angle inside each
+  attention layer — mostly outperform sinusoids, and RoPE is what current large language
+  models use.
+</div>
+
+<h2>Residual connections</h2>
+
+<p>
+Each sub-layer is wrapped rather than applied directly:
+</p>
+
+$$x \leftarrow \operatorname{LayerNorm}\big(x + \operatorname{Sublayer}(x)\big)$$
+
+<p>
+The <code>x +</code> is a <strong>residual connection</strong>, and it is what makes depth
+possible. Differentiate it: because $\partial(x + f(x))/\partial x = 1 + f'(x)$, the gradient
+reaching the input is the gradient from above <em>plus</em> a correction. Even if $f'$ is
+tiny, the 1 remains. Gradients therefore have an unobstructed path from the loss to every
+layer, however deep the stack.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  This is the same structural idea as the LSTM cell state in
+  <a class="xref" href="#ch05">Chapter 05</a> — an additive path that gradients traverse
+  without repeated multiplication. The LSTM gates it, the transformer leaves it open. Every
+  deep architecture that trains successfully has some version of this, because
+  <a class="xref" href="#ch04">Chapter 04</a>'s product-of-Jacobians problem is universal, not
+  specific to recurrence.
+</div>
+
+<p>
+There is a second reading. Each sub-layer computes a <em>correction</em> to the running
+representation rather than replacing it. A block that has learned nothing useful can output
+approximately zero and become the identity, which means adding layers is close to harmless.
+That is why transformer depth scales so gracefully.
+</p>
+
+<h2>Layer normalisation</h2>
+
+<p>
+For each token independently, normalise across the feature dimension:
+</p>
+
+$$\operatorname{LN}(x) = \gamma \odot \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta$$
+
+<p>
+with $\mu$ and $\sigma^2$ computed over that token's $d_{\text{model}}$ features, and
+$\gamma, \beta$ learned per-feature scale and shift. Adding attention outputs to residuals
+repeatedly lets activation magnitudes drift; layer norm resets the scale at every step, which
+keeps the network in the range where its non-linearities and its optimizer both behave.
+</p>
+
+<p>
+The contrast with batch normalisation is instructive. Batch norm computes statistics across
+the <em>batch</em> for each feature, which makes each example's output depend on its
+batch-mates, requires separate train and eval behaviour, and degrades badly at small batch
+sizes. Layer norm looks only at one token's own features: batch size is irrelevant, sequence
+length is irrelevant, train and eval are identical, and inference on a single example works
+unchanged. For variable-length sequence data that is decisive.
+</p>
+
+<h3>Post-norm and pre-norm</h3>
+
+<p>
+The formula above is <strong>post-norm</strong>, as in the original paper. Modern models
+almost always use <strong>pre-norm</strong> instead:
+</p>
+
+$$x \leftarrow x + \operatorname{Sublayer}\big(\operatorname{LayerNorm}(x)\big)$$
+
+<p>
+The difference is whether the residual path passes through a normalisation. In pre-norm it
+does not — the skip connection is a completely clean highway from input to output, which
+makes deep stacks train without a learning-rate warmup and much more stably. Post-norm
+sometimes reaches marginally better final quality with careful tuning. The notebook uses
+post-norm to match the original formulation;
+<a class="xref" href="#ch10">Chapter 10</a>'s GPT uses pre-norm, as GPT-2 onwards does.
+</p>
+
+<h2>The feed-forward network</h2>
+
+$$\operatorname{FFN}(x) = W_2\,\operatorname{ReLU}(W_1x + b_1) + b_2$$
+
+<p>
+Applied identically and independently at every position — it is a
+<span class="shape">(1×1)</span> convolution in disguise. The inner dimension is conventionally
+$4d_{\text{model}}$: expand, apply a non-linearity, project back.
+</p>
+
+<p>
+Why is it there at all? Attention is, between its softmax weights, a linear operation on
+values: it moves and mixes information but does not transform it non-linearly. Stack attention
+layers without an FFN and you get an expensive linear map. The FFN supplies the per-position
+non-linear processing — and it holds roughly two-thirds of the parameters in a transformer
+block ($8d^2$ against attention's $4d^2$). Recent interpretability work reads it as a
+key-value memory: the first matrix detects patterns, the second writes learned facts
+associated with them.
+</p>
+
+<h2>The full encoder block</h2>
+
+<pre><code class="language-python">class TransformerEncoderLayer(nn.Module):
+    def __init__(self, d_model, n_heads, d_ff, dropout=0.1):
+        super().__init__()
+        self.attn  = MultiHeadAttention(d_model, n_heads)
+        self.ff    = nn.Sequential(nn.Linear(d_model, d_ff), nn.ReLU(),
+                                   nn.Linear(d_ff, d_model))
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.drop  = nn.Dropout(dropout)
+
+    def forward(self, x, mask=None):
+        attn_out, _ = self.attn(x, x, x, mask)          # self-attention: Q=K=V=x
+        x = self.norm1(x + self.drop(attn_out))
+        x = self.norm2(x + self.drop(self.ff(x)))
+        return x</code></pre>
+
+<p>
+That is the entire architecture. Stack $N$ of these, add embeddings and positional encoding at
+the bottom, and put a task head on top. Every transformer you have heard of is this block,
+repeated, at scale — the innovations since 2017 have been about efficiency, position encoding,
+normalisation placement, and data, not about the block.
+</p>
+
+<p>
+Note <code>self.attn(x, x, x)</code>: query, key, and value all come from the same sequence,
+which is what makes it <em>self</em>-attention. In <a class="xref" href="#ch09">Chapter 09</a>
+the decoder's cross-attention passes a different tensor for the query, and that one change
+turns the block into a translator.
+</p>
+
+<h2>Pooling for classification</h2>
+
+<p>
+The encoder outputs one vector per token; classification needs one per sequence. Mean-pool
+over non-padding positions is the simple option and works well. BERT instead prepends a
+<code>[CLS]</code> token and uses its final representation — reasonable, since attention lets
+that position gather from everywhere, and it gives the model a dedicated slot for a summary
+rather than forcing an average.
+</p>
+
+<div class="box warn">
+  <span class="box-label">Pool with the mask</span>
+  <code>x.mean(dim=1)</code> averages over padding too, so a 10-token review padded to 200
+  gets 95% of its representation from <code>&lt;PAD&gt;</code> embeddings. Multiply by the
+  mask and divide by the true length. This is a quiet accuracy killer — the model still
+  trains, it just trains worse, and nothing in the output tells you why.
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 07.1</span>
+  <p>Layer normalisation on one token with four features.</p>
+  <div class="given">x = [2.0, 4.0, 4.0, 6.0]        γ = [1, 1, 1, 1]   β = [0, 0, 0, 0]   ε ≈ 0</div>
+  <ol>
+    <li>Compute the mean $\mu$ and variance $\sigma^2$ across the four features.</li>
+    <li>Normalise each feature.</li>
+    <li>Verify the result has mean 0 and variance 1.</li>
+    <li>Now suppose $\gamma = [2,2,2,2]$ and $\beta = [1,1,1,1]$. What is the output, and why
+        would a network ever want to undo the normalisation it just performed?</li>
+    <li>If instead you had applied <em>batch</em> norm to a batch containing this token and
+        three others, which numbers would have entered the mean — and what breaks at
+        inference time on a single example?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $\mu = (2+4+4+6)/4 = 4$. Squared deviations are
+    $4, 0, 0, 4$, so $\sigma^2 = 8/4 = 2$ and $\sigma = 1.414$.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">(2 − 4)/1.414 = −1.414
+(4 − 4)/1.414 =  0.000
+(4 − 4)/1.414 =  0.000
+(6 − 4)/1.414 =  1.414</div>
+    <p><strong>3.</strong> Mean $= (-1.414 + 0 + 0 + 1.414)/4 = 0$ ✓. Variance
+    $= (2 + 0 + 0 + 2)/4 = 1$ ✓.</p>
+    <p><strong>4.</strong> Output $= 2 \times [-1.414, 0, 0, 1.414] + 1 =
+    \mathbf{[-1.828, 1, 1, 3.828]}$.</p>
+    <p>As for why: forcing every representation to unit variance is a strong constraint, and
+    sometimes the right answer really does involve a feature with large magnitude or a
+    non-zero mean. $\gamma$ and $\beta$ let the network recover any scale and shift it needs,
+    so normalisation stabilises training <em>without</em> reducing what the model can express.
+    In the limit the network can learn $\gamma = \sigma$, $\beta = \mu$ and undo the operation
+    entirely — normalisation is a helpful default, not a restriction.</p>
+    <p><strong>5.</strong> Batch norm would average feature 0 across all four tokens in the
+    batch — $x_0$ of token 1, $x_0$ of token 2, and so on — producing four means, one per
+    feature. At inference on a single example there is no batch to compute statistics from,
+    so batch norm must fall back on running averages accumulated during training, which is
+    why it needs distinct train and eval behaviour. Layer norm has no such problem: the
+    statistics come from within the token, so one example works exactly like a thousand.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 07.2</span>
+  <p>Positional encoding, computed directly.</p>
+  <div class="given">d_model = 4, so dimension pairs are i = 0 (dims 0,1) and i = 1 (dims 2,3)
+
+PE(pos, 2i)   = sin(pos / 10000^{2i/4})
+PE(pos, 2i+1) = cos(pos / 10000^{2i/4})
+
+10000^{0} = 1        10000^{0.5} = 100
+sin 0 = 0    cos 0 = 1    sin 1 = 0.841   cos 1 = 0.540
+sin 2 = 0.909  cos 2 = −0.416   sin 0.01 = 0.010   cos 0.01 = 1.000
+sin 0.02 = 0.020   cos 0.02 = 1.000</div>
+  <ol>
+    <li>Compute $PE(0)$, $PE(1)$, and $PE(2)$ — each a 4-vector.</li>
+    <li>Which dimensions distinguish position 1 from position 2 clearly? Which barely change?</li>
+    <li>At what position would dimension 2 complete a full cycle back to $\sin = 0$?</li>
+    <li>Explain what would go wrong with $d_{\text{model}} = 4$ and a sequence of length
+        50,000.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> For $i = 0$ the divisor is 1; for $i = 1$ it is 100.</p>
+    <div class="given">PE(0) = [sin 0,     cos 0,     sin 0,      cos 0    ] = [0.000,  1.000, 0.000, 1.000]
+PE(1) = [sin 1,     cos 1,     sin 0.01,   cos 0.01 ] = [0.841,  0.540, 0.010, 1.000]
+PE(2) = [sin 2,     cos 2,     sin 0.02,   cos 0.02 ] = [0.909, −0.416, 0.020, 1.000]</div>
+    <p><strong>2.</strong> Dimensions 0 and 1 change sharply — cos goes from 0.540 to −0.416
+    between consecutive positions. Dimensions 2 and 3 barely move (0.010 → 0.020, and 1.000 →
+    1.000 to three decimals). Fast dimensions resolve <em>local</em> position, slow ones carry
+    <em>global</em> position, exactly as the widget above shows.</p>
+    <p><strong>3.</strong> Dimension 2 has $\sin(pos/100)$, so a full cycle needs
+    $pos/100 = 2\pi$, i.e. $pos \approx \mathbf{628}$.</p>
+    <p><strong>4.</strong> The slowest dimension here has wavelength ~628, so beyond that
+    positions start repeating in every dimension and the encoding is no longer unique —
+    positions 700 and 72 would receive nearly identical codes and the model could not tell
+    them apart. That is why $d_{\text{model}}$ must be large enough that the slowest
+    wavelength ($2\pi \times 10000 \approx 62{,}800$ at realistic sizes) exceeds your longest
+    sequence. It is also a preview of why extending a trained model's context window is hard:
+    the position codes beyond the training range are ones the model has never seen.</p>
+  </details>
+</div>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>07_transformer_pytorch/prompt.ipynb</code>. You will implement positional
+  encoding, assemble the encoder layer, stack it into a sentiment classifier, and compare
+  against both the CNN (<a class="xref" href="#ch03">Chapter 03</a>) and plain self-attention
+  (<a class="xref" href="#ch06">Chapter 06</a>) on the same reviews. With 2,000 training
+  examples do not expect the transformer to dominate — it is the most data-hungry of the
+  three, and seeing that empirically is more valuable than seeing it win.
+</div>
+
+<div class="box note">
+  <span class="box-label">Where this goes next</span>
+  <a class="xref" href="#ch08">Chapter 08</a> steps away from architecture to cover the craft
+  of training these things — schedules, checkpoints, profiling, and the failure modes you
+  will actually hit. Then <a class="xref" href="#ch09">Chapter 09</a> adds a decoder and turns
+  the encoder into a translator.
+</div>
+
+</section>

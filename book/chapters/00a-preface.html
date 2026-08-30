@@ -1,0 +1,183 @@
+<section class="chapter" id="preface">
+
+<p class="chapter-meta">Front matter</p>
+<h1>How to read this book</h1>
+
+<p class="lede">
+This is the companion volume to the <code>pytorch_nn_training</code> notebooks. The notebooks
+are where you type; this is where you understand what you typed. Keep both open.
+</p>
+
+<p>
+Most machine-learning tutorials fail in one of two ways. Either they hand you working
+code and leave the mathematics as an unexplained black box — you can run it, you cannot
+reason about it, and when it breaks you are stuck — or they hand you the mathematics and
+leave you unable to write a training loop. This book and its notebooks are built to close
+that gap from both ends: every idea appears three times, in three different registers.
+</p>
+
+<ol>
+  <li><strong>As mathematics,</strong> here, derived rather than asserted.</li>
+  <li><strong>As arithmetic you do yourself,</strong> in the <em>By hand</em> exercises — small
+      enough for paper, large enough to be real.</li>
+  <li><strong>As code,</strong> in the notebook for that chapter, which you complete and run.</li>
+</ol>
+
+<p>
+The by-hand step is the one people skip, and it is the one that does the work. A gradient
+you have computed once with a pencil stops being a symbol on a page and becomes a number
+you know how to check. When your loss goes to <code>nan</code> at three in the morning, that
+is the difference between debugging and guessing.
+</p>
+
+<h2>The rhythm</h2>
+
+<p>
+Each chapter of this book pairs with one lesson folder. The intended loop is:
+</p>
+
+<ol>
+  <li>Read the chapter here, all the way through, before opening the notebook. It is written
+      to be read linearly and takes twenty to forty minutes.</li>
+  <li>Do the <em>By hand</em> exercise. Do not read the solution first. Getting it wrong and
+      then seeing why is worth more than getting it right by reading.</li>
+  <li>Open <code>prompt.ipynb</code> in the matching folder and fill in the <code>TODO</code>s.
+      You will recognise every formula, because you just computed one by hand.</li>
+  <li>Compare against <code>solution.ipynb</code> — which has already been executed, so you can
+      read its outputs without running anything.</li>
+</ol>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Boxes like this one point at the lesson folder for the chapter, and name the specific
+  cells the surrounding text explains.
+</div>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  Boxes like this one isolate an idea that the rest of the chapter depends on. If you
+  remember nothing else from a chapter, remember these.
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand</span>
+  And these are the pencil-and-paper exercises. Each has a worked solution folded up
+  underneath it. The numbers are always chosen to be tractable — small integers, halves,
+  the occasional <span class="katex-inline">e</span> — so that arithmetic never obscures
+  the idea being drilled.
+</div>
+
+<h2>Interactive figures</h2>
+
+<p>
+Where a picture beats a paragraph, this book has a live one. Every widget is driven by the
+same arithmetic described in the surrounding text — nothing is faked or hand-drawn to look
+convincing. Drag the sliders; the interesting behaviour is usually at the extremes.
+</p>
+
+<div class="widget" data-widget="surprisal"></div>
+
+<p>
+That figure is from <a class="xref" href="#ch00">Probability, Likelihood, and Loss</a>, and
+it is a fair sample of what the widgets are for: the fact that cross-entropy loss is
+unbounded above is a sentence you can read and forget, or a curve you can drag a point along
+and never forget.
+</p>
+
+<h2>What you need</h2>
+
+<p>
+Everything in this curriculum was written for, and runs on, a MacBook Air with an M4 chip
+and 24&nbsp;GB of unified memory. That constraint is not incidental — it shapes every
+architectural choice in the later chapters. No model here exceeds a few million parameters;
+nothing needs a data-centre GPU, an API key, or a multi-gigabyte checkpoint download. The
+largest single download is an NLTK corpus of a few dozen megabytes.
+</p>
+
+<p>
+PyTorch's Metal Performance Shaders backend (<code>device = "mps"</code>) gives you real GPU
+acceleration on that machine. Every notebook selects it automatically and falls back to CPU
+when it is unavailable, so the code runs unchanged on other hardware — just slower.
+</p>
+
+<div class="box note">
+  <span class="box-label">Setup</span>
+  <p style="margin-bottom:.5rem">From the repository root:</p>
+<pre><code class="language-python">uv sync                     # creates .venv with torch, numpy, matplotlib, nltk, jupyter
+uv run jupyter notebook     # then open a lesson folder</code></pre>
+  <p style="margin-bottom:0">
+  Corpora download on first use and cache in <code>~/nltk_data/</code>. Chapter&nbsp;11 needs
+  no extra dependencies: quantization and LoRA are both implemented from scratch, because
+  implementing them from scratch is the point.
+  </p>
+</div>
+
+<h2>Notation</h2>
+
+<p>
+The book is consistent about symbols, and the notebooks are consistent about tensor shapes.
+Both conventions are collected in the <a class="xref" href="#appendix">Appendix</a>, which
+is worth a glance now and a return visit whenever a formula stops parsing. The short version:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Symbol</th><th>Means</th><th>In code</th></tr></thead>
+  <tbody>
+    <tr><td>$x$, $\mathbf{x}$</td><td>a scalar input; a vector of inputs</td><td><code>x</code></td></tr>
+    <tr><td>$W$, $b$</td><td>weight matrix, bias vector</td><td><code>self.linear.weight</code>, <code>.bias</code></td></tr>
+    <tr><td>$z$</td><td>pre-activation ("logit"): $z = Wx + b$</td><td><code>logits</code></td></tr>
+    <tr><td>$a = \sigma(z)$</td><td>post-activation</td><td><code>a</code>, <code>h</code></td></tr>
+    <tr><td>$\hat{y}$</td><td>the model's prediction</td><td><code>pred</code>, <code>out</code></td></tr>
+    <tr><td>$\mathcal{L}$</td><td>the loss, a single scalar</td><td><code>loss</code></td></tr>
+    <tr><td>$\eta$</td><td>learning rate</td><td><code>lr</code></td></tr>
+    <tr><td>$B, T, C$</td><td>batch, time/sequence, channel/feature</td><td><span class="shape">(B, T, C)</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Tensor shapes are annotated inline throughout the notebooks and written like
+<span class="shape">(B, T, d_model)</span> here. Shape errors are the single most common
+bug in this material, and tracking shapes by eye as you read is the cheapest habit you can
+build.
+</p>
+
+<h2>The path through</h2>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Ch.</th><th>Subject</th><th>Notebook folder</th><th>Time</th></tr></thead>
+  <tbody>
+    <tr><td>00</td><td><a class="xref" href="#ch00">Probability, likelihood, and loss</a></td><td><code>00_probability_and_loss</code></td><td>45–60 min</td></tr>
+    <tr><td>01</td><td><a class="xref" href="#ch01">A neural network from scratch</a></td><td><code>01_nn_from_scratch</code></td><td>45–60 min</td></tr>
+    <tr><td>02</td><td><a class="xref" href="#ch02">The same network in PyTorch</a></td><td><code>02_nn_pytorch</code></td><td>30–45 min</td></tr>
+    <tr><td>03</td><td><a class="xref" href="#ch03">Convolutions over text</a></td><td><code>03_cnn_sentiment</code></td><td>45–60 min</td></tr>
+    <tr><td>04</td><td><a class="xref" href="#ch04">Recurrence and its limits</a></td><td><code>04_rnn_pytorch</code></td><td>60–90 min</td></tr>
+    <tr><td>05</td><td><a class="xref" href="#ch05">LSTMs: gated memory</a></td><td><code>05_lstm_pytorch</code></td><td>60–90 min</td></tr>
+    <tr><td>06</td><td><a class="xref" href="#ch06">Self-attention from scratch</a></td><td><code>06_self_attention</code></td><td>60–90 min</td></tr>
+    <tr><td>07</td><td><a class="xref" href="#ch07">The transformer encoder</a></td><td><code>07_transformer_pytorch</code></td><td>90 min</td></tr>
+    <tr><td>08</td><td><a class="xref" href="#ch08">PyTorch in practice</a></td><td><code>08_pytorch_in_practice</code></td><td>45–60 min</td></tr>
+    <tr><td>09</td><td><a class="xref" href="#ch09">Encoder–decoder translation</a></td><td><code>09_seq2seq_translation</code></td><td>90 min</td></tr>
+    <tr><td>10</td><td><a class="xref" href="#ch10">GPT: a decoder-only model</a></td><td><code>10_gpt_from_scratch</code></td><td>90 min</td></tr>
+    <tr><td>11</td><td><a class="xref" href="#ch11">Quantization, LoRA, and fitting in memory</a></td><td><code>11_quantization_and_lora</code></td><td>90 min</td></tr>
+    <tr><td>12</td><td><a class="xref" href="#ch12">Capstone projects</a></td><td><code>12_capstone_projects</code></td><td>open-ended</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Chapters 00 through 07 are a single argument and should be read in order — each one is
+built out of the previous one's vocabulary. From 08 onward they become more independent:
+08 is practical craft you can read at any point once you have trained something, and 11
+stands alone well if you already know what a transformer is.
+</p>
+
+<p>
+Two navigation conveniences, since this is a long document and you will be jumping backwards
+constantly. Cross-references look <a class="xref" href="#ch00-cross-entropy">like this</a>;
+following one pops up a <em>Back to where you were</em> button in the corner that returns you
+to your place. The sidebar has a filter box for when you remember a word but not a chapter.
+</p>
+
+</section>

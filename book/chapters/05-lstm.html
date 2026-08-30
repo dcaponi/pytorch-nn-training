@@ -1,0 +1,277 @@
+<section class="chapter" id="ch05">
+
+<p class="chapter-meta">Chapter 05 · notebook <code>05_lstm_pytorch</code></p>
+<h1>LSTMs: Gated Memory</h1>
+
+<p class="lede">
+The vanishing gradient of <a class="xref" href="#ch04">Chapter 04</a> came from repeatedly
+multiplying by the same matrix. The LSTM's answer is to add a second state that is mostly
+<em>added to</em> rather than transformed — a path along which gradients can travel
+undiminished — and to let the network learn when to write to it, when to forget, and when
+to read.
+</p>
+
+<h2>Two states, not one</h2>
+
+<p>
+An LSTM cell carries both a hidden state $h_t$ and a <strong>cell state</strong> $c_t$. The
+cell state is the long-term memory; the hidden state is the working output handed to the next
+layer and the next timestep. Three gates control the traffic between them. Each gate is a
+small linear layer followed by a sigmoid, producing a vector of numbers in $(0,1)$ — a soft,
+differentiable switch, one value per memory slot.
+</p>
+
+$$f_t = \sigma\big(W_f[h_{t-1}, x_t] + b_f\big) \qquad \text{forget: what to keep}$$
+$$i_t = \sigma\big(W_i[h_{t-1}, x_t] + b_i\big) \qquad \text{input: what to write}$$
+$$o_t = \sigma\big(W_o[h_{t-1}, x_t] + b_o\big) \qquad \text{output: what to expose}$$
+$$\tilde{c}_t = \tanh\big(W_c[h_{t-1}, x_t] + b_c\big) \qquad \text{candidate content}$$
+
+<p>
+And then the two lines that matter:
+</p>
+
+$$\boxed{\;c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t\;} \qquad\qquad h_t = o_t \odot \tanh(c_t)$$
+
+<p>
+Read the boxed equation carefully, because the entire architecture is justified by its shape.
+The old cell state is <em>scaled</em> by the forget gate and the new content is
+<em>added</em>. There is no weight matrix applied to $c_{t-1}$ — the path from $c_{t-1}$ to
+$c_t$ passes through one elementwise multiplication and nothing else.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  In a plain RNN the backward path is
+  $\prod W_{hh}^\top \operatorname{diag}(\tanh')$ — a product of matrices, each shrinking the
+  signal. In an LSTM the corresponding path along the cell state is $\prod f_t$, a product of
+  numbers the network chooses. If a memory slot matters, the network can learn $f_t \approx 1$
+  for it, and the gradient passes through that slot essentially unchanged for hundreds of
+  steps. Vanishing does not become impossible — it becomes <em>optional</em>, and under the
+  network's control.
+</div>
+
+<div class="widget" data-widget="vanishing"></div>
+
+<p>
+This is the same widget as the last chapter, read differently. The multiplier there was
+imposed by $W_{hh}$ and $\tanh'$; here it is $f_t$, a learned quantity. Set it to 1.0 and the
+gradient is flat forever — that is the regime the forget gate can select.
+</p>
+
+<div class="box note">
+  <span class="box-label">Why the forget-gate bias starts at 1</span>
+  A common and worthwhile initialisation trick is to set $b_f$ to 1 rather than 0, making
+  $\sigma(b_f) \approx 0.73$ at step zero. The cell then defaults to <em>remembering</em>,
+  and must learn to forget. Starting near zero has the opposite default — memory decays
+  before the network has learned that anything is worth keeping — and materially slows early
+  training. PyTorch does not do this for you.
+</div>
+
+<h2>Reading the gates as behaviour</h2>
+
+<p>
+Because gates are vectors, different slots can do different things simultaneously — this is
+one cell, but it is not one memory.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>$f$</th><th>$i$</th><th>Effect on that slot</th><th>A use for it</th></tr></thead>
+  <tbody>
+    <tr><td>≈1</td><td>≈0</td><td>hold the old value, ignore input</td><td>remember an open quote across a sentence</td></tr>
+    <tr><td>≈0</td><td>≈1</td><td>discard and overwrite</td><td>reset at a sentence boundary</td></tr>
+    <tr><td>≈1</td><td>≈1</td><td>accumulate</td><td>running count or intensity</td></tr>
+    <tr><td>≈0</td><td>≈0</td><td>clear to zero</td><td>end of a phrase, nothing to carry</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+The output gate is separate for a reason worth noticing: the cell can hold information it is
+not currently exposing. A slot tracking "we are inside a parenthesis" is relevant to the
+eventual closing bracket but irrelevant to predicting the next ordinary word, and $o_t$ lets
+the cell keep it while withholding it.
+</p>
+
+<h3>The GRU, briefly</h3>
+
+<p>
+The Gated Recurrent Unit merges the forget and input gates into a single update gate ($i_t =
+1 - f_t$, so writing implies forgetting) and drops the separate cell state. Roughly 25% fewer
+parameters and comparable accuracy on most tasks. If you have an LSTM working, a GRU is
+usually a free speedup worth trying; the intuition transfers directly.
+</p>
+
+<h2>Using <code>nn.LSTM</code></h2>
+
+<pre><code class="language-python">self.lstm = nn.LSTM(input_size, hidden_size, num_layers=2,
+                    batch_first=True, dropout=0.2)
+
+out, (h_n, c_n) = self.lstm(x)   # x: (B, L, input_size)
+#   out : (B, L, hidden_size)    -- h_t at every timestep
+#   h_n : (num_layers, B, hidden_size)  -- final h per layer
+#   c_n : (num_layers, B, hidden_size)  -- final c per layer</code></pre>
+
+<p>
+Three details that cause most of the confusion:
+</p>
+
+<p>
+<strong><code>batch_first=True</code> is not the default.</strong> PyTorch's native layout is
+<span class="shape">(L, B, H)</span>, sequence-first. Everything else in this book is
+batch-first, so set it explicitly — and set it consistently, because mixing conventions
+produces a model that runs, trains, and is silently transposing your batch against your
+sequence.
+</p>
+
+<p>
+<strong><code>out</code> versus <code>h_n</code>.</strong> Use <code>out</code> when you need a
+prediction at every timestep (language modelling); use <code>h_n[-1]</code> when you need one
+summary of the whole sequence (classification, or the regression in this notebook). Note
+<code>out[:, -1, :]</code> equals <code>h_n[-1]</code> for a unidirectional LSTM — the same
+tensor reached two ways.
+</p>
+
+<p>
+<strong>The <code>dropout</code> argument applies <em>between</em> layers only.</strong> It has
+no effect when <code>num_layers=1</code>, and PyTorch warns you about exactly that. It also
+never applies to the final layer's output, so add your own <code>nn.Dropout</code> after the
+LSTM if you want it there.
+</p>
+
+<h3>Bidirectionality</h3>
+
+<p>
+<code>bidirectional=True</code> runs a second LSTM backwards over the sequence and
+concatenates, doubling the output width. It helps substantially for classification, where the
+whole sequence is available. It is <em>impossible</em> for generation: you cannot read
+backwards from text that does not exist yet. That distinction — full context versus causal
+context — reappears as the central architectural split between the encoder and the decoder in
+<a class="xref" href="#ch09">Chapter 09</a>.
+</p>
+
+<h2>The task: sine wave prediction</h2>
+
+<p>
+The notebook switches from text to a regression problem: given 50 samples of a sine wave,
+predict the 51st. The target is a continuous number, so by
+<a class="xref" href="#ch00">Chapter 00</a>'s reasoning the loss is MSE — the Gaussian
+negative log-likelihood.
+</p>
+
+<p>
+This looks like a toy, and it is a well-chosen one. A sine wave has a genuinely long-range
+dependency (the phase, which persists across the whole window), it has an exactly known
+correct answer so you can see precisely how wrong the model is, and it needs no corpus. It
+also exposes a failure mode text hides: run the model autoregressively on its own predictions
+and small errors compound, with the wave drifting out of phase after a few dozen steps.
+That is the same exposure-bias problem that
+<a class="xref" href="#ch09">teacher forcing</a> creates in translation.
+</p>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 05.1</span>
+  <p>
+  One step of an LSTM cell, one-dimensional so every gate is a single number.
+  </p>
+  <div class="given">c₀ = 0.8      h₀ = 0.5      x₁ = 1.0
+
+pre-activations already computed for you:
+    forget gate    z_f = 2.0
+    input gate     z_i = −1.0
+    output gate    z_o = 0.0
+    candidate      z_c = 1.0
+
+σ(2.0) = 0.881   σ(−1.0) = 0.269   σ(0.0) = 0.500
+tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
+  <ol>
+    <li>Compute $f_1$, $i_1$, $o_1$, $\tilde{c}_1$.</li>
+    <li>Compute $c_1$, and say how much of it came from memory versus from new input.</li>
+    <li>Compute $h_1$.</li>
+    <li>Compute $\partial c_1 / \partial c_0$. Compare with the plain-RNN factor of about
+        0.25–0.5 from <a class="xref" href="#ch04">exercise 04.1</a>.</li>
+    <li>Suppose this same $f$ held for 20 steps. What fraction of $c_0$ survives? What if the
+        network had instead learned $f = 0.99$?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $f_1 = \sigma(2.0) = 0.881$, $i_1 = \sigma(-1.0) = 0.269$,
+    $o_1 = \sigma(0) = 0.500$, $\tilde{c}_1 = \tanh(1.0) = 0.762$.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">c₁ = f₁ c₀ + i₁ c̃₁
+   = 0.881(0.8) + 0.269(0.762)
+   = 0.705 + 0.205
+   = 0.909</div>
+    <p>Memory contributes 0.705 and new input 0.205 — the gates chose to keep 88% of what was
+    there and admit only 27% of the candidate. That is a cell in "hold" mode.</p>
+    <p><strong>3.</strong> $h_1 = o_1 \tanh(c_1) = 0.5 \times \tanh(0.909) = 0.5 \times 0.721
+    = \mathbf{0.361}$. Note $h_1$ (0.361) is much smaller than $c_1$ (0.909): the cell is
+    holding more than it is showing, which is precisely what the output gate is for.</p>
+    <p><strong>4.</strong> Differentiating $c_1 = f_1c_0 + i_1\tilde{c}_1$ with respect to
+    $c_0$, treating the gates as fixed:</p>
+    <div class="given">∂c₁/∂c₀ = f₁ = 0.881</div>
+    <p>No weight matrix, no $\tanh'$ — just the forget gate. Against the RNN's 0.273 from
+    exercise 04.1, this is <strong>3.2× more gradient preserved per step</strong>, and unlike
+    the RNN's factor it is something the network can adjust.</p>
+    <p><strong>5.</strong> Over 20 steps at $f = 0.881$: $0.881^{20} = 0.081$, so about 8%
+    survives — decay, but gentle enough to learn through. At $f = 0.99$:
+    $0.99^{20} = \mathbf{0.818}$, and even at 200 steps $0.99^{200} = 0.134$. The network can
+    genuinely choose to remember something for hundreds of timesteps. Compare the RNN, where
+    $0.5^{20} = 10^{-6}$ and the choice was never available.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 05.2</span>
+  <p>Parameter counting, and one consequence.</p>
+  <ol>
+    <li>An LSTM cell computes four pre-activations, each from the concatenation
+        $[h_{t-1}, x_t]$. For input size $n$ and hidden size $m$, how many parameters is
+        that in total (weights and biases)?</li>
+    <li>Evaluate for $n = 1$, $m = 64$ as in the notebook.</li>
+    <li>How many for a plain RNN with the same sizes? What is the ratio, and where does it
+        come from?</li>
+    <li>The LSTM has 4× the parameters per unit. Give one argument for why comparing an LSTM
+        and an RNN at equal <em>hidden size</em> is an unfair comparison, and what you would
+        do instead.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Each of the four gates has a weight matrix over the concatenated
+    input of width $n + m$, producing $m$ outputs, plus $m$ biases:</p>
+    $$4\big[m(n + m) + m\big] = 4m(n + m + 1)$$
+    <p><strong>2.</strong> $4 \times 64 \times (1 + 64 + 1) = 256 \times 66 =
+    \mathbf{16{,}896}$.</p>
+    <p><strong>3.</strong> A plain RNN has one such block instead of four:
+    $64 \times 66 = 4{,}224$. The ratio is exactly <strong>4×</strong>, and it comes from
+    the three gates — the RNN's single transformation plus $f$, $i$, and $o$.</p>
+    <p><strong>4.</strong> At equal hidden size the LSTM has four times the capacity, so
+    beating the RNN proves little: some of the gain may be parameters rather than gating. The
+    fair comparison holds <em>parameter count</em> fixed, which means giving the RNN roughly
+    twice the hidden units ($m_{\text{RNN}} \approx 2m_{\text{LSTM}}$, since parameters grow
+    as $m^2$). The LSTM usually still wins on long sequences — but by less, and the residual
+    gap is the part genuinely attributable to gated memory rather than to size. This is
+    worth generalising: almost every architecture comparison in the literature is confounded
+    by parameter count unless it explicitly says otherwise.</p>
+  </details>
+</div>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>05_lstm_pytorch/prompt.ipynb</code>. You will generate the sine data, build
+  sliding-window sequences, define the LSTM regressor, train it, and plot predictions against
+  ground truth. The final section compares directly against the RNN from
+  <a class="xref" href="#ch04">Chapter 04</a> — keep exercise 05.2 in mind when you read that
+  comparison.
+</div>
+
+<div class="box note">
+  <span class="box-label">Where this goes next</span>
+  LSTMs solved the gradient problem but kept the sequential bottleneck: step $t$ cannot be
+  computed until step $t-1$ is done, so training cannot be parallelised across time, and
+  everything must still squeeze through one fixed-width state.
+  <a class="xref" href="#ch06">Chapter 06</a> abandons recurrence entirely and lets every
+  position look directly at every other.
+</div>
+
+</section>

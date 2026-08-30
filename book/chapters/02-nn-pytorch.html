@@ -1,0 +1,332 @@
+<section class="chapter" id="ch02">
+
+<p class="chapter-meta">Chapter 02 · notebook <code>02_nn_pytorch</code></p>
+<h1>The Same Network in PyTorch</h1>
+
+<p class="lede">
+Nothing new is learned in this chapter — the network, the loss, and the maths are identical
+to <a class="xref" href="#ch01">Chapter 01</a>. What changes is who computes the gradients.
+Understanding precisely what PyTorch automates, and what it deliberately does not, is what
+makes every later chapter readable.
+</p>
+
+<h2>Tensors are arrays that remember</h2>
+
+<p>
+A <code>torch.Tensor</code> is a NumPy array with two additions: it can live on a GPU, and it
+can record the operations performed on it. The second is autograd, and it is the whole point.
+</p>
+
+<pre><code class="language-python">x = torch.tensor([[1.0, 2.0]])              # requires_grad=False by default
+w = torch.tensor([[0.5], [0.5]], requires_grad=True)
+z = x @ w                                   # z.grad_fn = &lt;MmBackward0&gt;</code></pre>
+
+<p>
+Setting <code>requires_grad=True</code> tells PyTorch to track everything downstream of that
+tensor. Each resulting tensor carries a <code>grad_fn</code> — a reference to the operation
+that produced it and to its inputs. Those references form a directed graph, built forwards as
+you compute, and traversed backwards when you ask for gradients.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  The graph is <strong>dynamic</strong>: it is constructed anew on every forward pass and
+  discarded after every backward pass. This is why <code>if</code> statements, loops of
+  data-dependent length, and ordinary Python control flow all work inside a
+  <code>forward()</code> method — there is no static graph to compile against. The
+  <a class="xref" href="#ch04">RNN in Chapter 04</a> exploits this directly, building a graph
+  whose depth equals the sequence length.
+</div>
+
+<h3>What <code>backward()</code> actually does</h3>
+
+<p>
+Calling <code>loss.backward()</code> walks that graph from the scalar loss back to every
+leaf tensor with <code>requires_grad=True</code>, applying the chain rule at each node and
+<em>accumulating</em> the result into <code>tensor.grad</code>. Those are the same
+$\delta$ quantities you computed by hand in the last chapter — PyTorch just knows the
+derivative rule for every built-in operation and composes them automatically.
+</p>
+
+<p>
+Two consequences follow immediately, and both bite beginners.
+</p>
+
+<p>
+<strong>The loss must be a scalar.</strong> "The derivative of a vector with respect to a
+matrix" is a tensor of partial derivatives with no single descent direction. That is why
+every loss function ends in <code>.mean()</code> or <code>.sum()</code>.
+</p>
+
+<p>
+<strong>Gradients accumulate rather than replace.</strong> A second <code>backward()</code>
+adds to whatever is already in <code>.grad</code>. Forget <code>optimizer.zero_grad()</code>
+and your update uses the sum of every gradient computed since the beginning of training —
+the model will appear to train, badly, in a way that is genuinely hard to diagnose. The
+default seems perverse until you need it: it is exactly what lets you accumulate gradients
+over several small batches to simulate a large one, which is
+<a class="xref" href="#ch11">how you train on limited memory</a>.
+</p>
+
+<h2>The five-step loop</h2>
+
+<pre><code class="language-python">for epoch in range(10000):
+    out  = model(X)          # 1. forward — builds the graph
+    loss = criterion(out, y) # 2. loss    — a scalar
+    optimizer.zero_grad()    # 3. clear stale gradients
+    loss.backward()          # 4. backward — fills every .grad
+    optimizer.step()         # 5. update   — applies them</code></pre>
+
+<p>
+Line for line against <a class="xref" href="#ch01">Chapter 01</a>: step 1 replaces the four
+forward equations, step 4 replaces the six hand-derived backward expressions, and step 5
+replaces the four subtraction lines. The structure is unchanged, which is exactly why it was
+worth doing the hard way first.
+</p>
+
+<div class="box warn">
+  <span class="box-label">Ordering</span>
+  <code>zero_grad()</code> may go anywhere before <code>backward()</code>, but
+  <code>backward()</code> must precede <code>step()</code> — the optimizer reads
+  <code>.grad</code>, and if it is empty or stale you silently update with the wrong numbers.
+  A model that trains but plateaus embarrassingly early is very often this bug.
+</div>
+
+<h2><code>nn.Module</code>: parameters that know they are parameters</h2>
+
+<pre><code class="language-python">class XORNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.hidden = nn.Linear(2, 4)
+        self.output = nn.Linear(4, 1)
+
+    def forward(self, x):
+        x = torch.sigmoid(self.hidden(x))
+        return torch.sigmoid(self.output(x))</code></pre>
+
+<p>
+<code>nn.Linear(2, 4)</code> holds exactly the $W_1$ and $b_1$ of the previous chapter — with
+one wrinkle worth knowing, because it will confuse you when you inspect weights.
+<strong>PyTorch stores the weight transposed</strong>, as
+<span class="shape">(out_features, in_features)</span>, and computes $xW^\top + b$. So
+<code>hidden.weight</code> has shape <span class="shape">(4, 2)</span> where our by-hand
+$W_1$ was <span class="shape">(2, 4)</span>. The arithmetic is identical; only the storage
+layout differs.
+</p>
+
+<p>
+Assigning a submodule to <code>self</code> registers it. That registration is what makes
+<code>model.parameters()</code>, <code>model.to(device)</code>,
+<code>model.state_dict()</code>, and <code>model.train()</code> work — they all walk the
+registered tree. A tensor you create with plain <code>torch.randn(..., requires_grad=True)</code>
+and assign to <code>self</code> is <em>not</em> registered, will not move to the GPU with the
+model, and will not be passed to the optimizer. If you need a raw tensor as a parameter, wrap
+it: <code>nn.Parameter(torch.randn(...))</code>. If you need a tensor that should move with
+the model but <em>not</em> be trained — a positional encoding table, say, as in
+<a class="xref" href="#ch07">Chapter 07</a> — use <code>self.register_buffer(...)</code>.
+</p>
+
+<p>
+Call the module, never its <code>forward</code>: <code>model(x)</code>, not
+<code>model.forward(x)</code>. The former runs registered hooks; the latter quietly skips
+them, which breaks anything built on hooks.
+</p>
+
+<h3>Initialisation, for free</h3>
+
+<p>
+<code>nn.Linear</code> initialises its weights from
+$\mathcal{U}(-1/\sqrt{n_{\text{in}}},\, 1/\sqrt{n_{\text{in}}})$ rather than from a plain
+standard normal. The $1/\sqrt{n_{\text{in}}}$ scaling keeps the variance of activations
+roughly constant as signal passes through a layer: sum $n$ independent terms and the
+variance grows by $n$, so shrinking each weight by $\sqrt{n}$ cancels it. Without this,
+deep stacks either saturate or explode within a few layers. It is the single most
+underappreciated line in the framework.
+</p>
+
+<h2>Optimizers</h2>
+
+<p>
+<code>optim.SGD</code> performs exactly the update from
+<a class="xref" href="#ch01">Chapter 01</a>. <code>optim.Adam</code> does more, and is the
+default choice for everything in this book.
+</p>
+
+$$m_t = \beta_1 m_{t-1} + (1-\beta_1)g_t \qquad v_t = \beta_2 v_{t-1} + (1-\beta_2)g_t^2$$
+$$\theta_t = \theta_{t-1} - \eta\,\frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}$$
+
+<p>
+$m$ is a running average of the gradient (momentum: keep going in a consistent direction,
+damp oscillation across a narrow valley). $v$ is a running average of the gradient
+<em>squared</em>, and dividing by $\sqrt{v}$ gives each parameter its own effective learning
+rate — parameters with consistently large gradients get small steps, rarely-updated
+parameters get large ones. The hats denote bias correction, which compensates for both
+averages starting at zero.
+</p>
+
+<p>
+The practical upshot: Adam converges far faster on the XOR problem (hundreds of epochs
+rather than ten thousand) and is much less sensitive to the learning rate. It costs two
+extra tensors per parameter in memory, which is a detail here and a
+<a class="xref" href="#ch11">hard constraint</a> when models get large.
+</p>
+
+<div class="box note">
+  <span class="box-label">Defaults worth memorising</span>
+  Adam at <code>lr=1e-3</code> is a sound starting point for small models; transformers
+  usually want <code>1e-4</code> to <code>3e-4</code> with warmup
+  (<a class="xref" href="#ch08">Chapter 08</a>). If training diverges, halve the learning
+  rate before changing anything else. If it plateaus immediately, you have probably
+  forgotten <code>zero_grad()</code>.
+</div>
+
+<h2>Devices</h2>
+
+<pre><code class="language-python">device = torch.device('mps' if torch.backends.mps.is_available()
+                      else 'cuda' if torch.cuda.is_available()
+                      else 'cpu')
+model = model.to(device)
+X, y = X.to(device), y.to(device)</code></pre>
+
+<p>
+On an M-series Mac, <code>mps</code> is the Metal Performance Shaders backend and gives real
+GPU acceleration. Every tensor in an operation must be on the same device or PyTorch raises
+an error — a good error, since a silent CPU fallback would just make everything mysteriously
+slow. Note that <code>model.to(device)</code> mutates in place and returns self, while
+<code>tensor.to(device)</code> returns a <em>copy</em>: <code>X.to(device)</code> alone does
+nothing, you must reassign.
+</p>
+
+<div class="box warn">
+  <span class="box-label">MPS specifics</span>
+  Apple's backend defaults to float32 and does not support float64 — a stray
+  <code>torch.tensor([1.0], dtype=torch.float64)</code> will fail on transfer. Coverage is
+  good but not total; a rarely-used op may raise <code>NotImplementedError</code>, in which
+  case setting <code>PYTORCH_ENABLE_MPS_FALLBACK=1</code> routes just that operation to the
+  CPU. For the tiny models in this chapter, MPS is often <em>slower</em> than CPU: kernel
+  launch overhead dominates when there are only four examples. The benefit shows up from
+  <a class="xref" href="#ch03">Chapter 03</a> onward.
+</div>
+
+<h2><code>train()</code>, <code>eval()</code>, and <code>no_grad()</code></h2>
+
+<p>
+Three separate switches that beginners routinely conflate.
+</p>
+
+<p>
+<code>model.train()</code> and <code>model.eval()</code> set a flag that changes the
+behaviour of exactly two kinds of layer: dropout (active in train, identity in eval) and
+batch norm (batch statistics in train, running averages in eval). This network contains
+neither, so the calls do nothing here — but forget <code>model.eval()</code> in
+<a class="xref" href="#ch03">Chapter 03</a> and your reported accuracy will be wrong,
+because dropout will be randomly deleting activations at test time.
+</p>
+
+<p>
+<code>torch.no_grad()</code> is unrelated: it stops the graph from being built at all. Use it
+for every evaluation and inference pass. It cuts memory substantially — no intermediate
+activations need to be retained for a backward pass that will never happen — and speeds
+things up. The two belong together:
+</p>
+
+<pre><code class="language-python">model.eval()
+with torch.no_grad():
+    preds = model(X_test)</code></pre>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 02.1</span>
+  <p>
+  Predict what autograd will produce, then check yourself. Given
+  </p>
+  <div class="given">w = tensor(3.0, requires_grad=True)
+x = tensor(2.0)
+
+a = w * x           # = 6
+b = a + w           # = 9
+L = b ** 2          # = 81</div>
+  <ol>
+    <li>Draw the computational graph: nodes for $w$, $x$, $a$, $b$, $L$, edges for the
+        operations.</li>
+    <li>Compute $\partial L/\partial b$, then $\partial b/\partial a$ and
+        $\partial b/\partial w$ (note that $w$ reaches $b$ by <em>two</em> paths).</li>
+    <li>Apply the multivariable chain rule to get $\partial L/\partial w$.</li>
+    <li>After <code>L.backward()</code>, what is <code>w.grad</code>? What is
+        <code>x.grad</code>?</li>
+    <li>If you now ran <code>L2 = (w * x) ** 2</code> and <code>L2.backward()</code> without
+        zeroing, what would <code>w.grad</code> hold?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $w$ and $x$ feed a multiply producing $a$; $a$ and $w$ feed an add
+    producing $b$; $b$ feeds a square producing $L$. The important feature is that $w$ has
+    <em>two</em> outgoing edges — one into the multiply, one into the add.</p>
+    <p><strong>2.</strong> $\partial L/\partial b = 2b = 18$. Through the multiply,
+    $\partial a/\partial w = x = 2$. Through the add, $b = a + w$ gives
+    $\partial b/\partial a = 1$ and a direct $\partial b/\partial w = 1$.</p>
+    <p><strong>3.</strong> The multivariable chain rule says: sum over all paths from $w$ to
+    $L$.</p>
+    <div class="given">path 1 (w → a → b → L):  2 × 1 × 18 = 36
+path 2 (w → b → L):      1 × 18      = 18
+                          total  ∂L/∂w = 54</div>
+    <p><strong>4.</strong> <code>w.grad</code> is <code>tensor(54.)</code>. <code>x.grad</code>
+    is <code>None</code> — <code>x</code> was created without <code>requires_grad</code>, so
+    no gradient is computed or stored for it. This is exactly how input data behaves in a real
+    training loop: gradients flow <em>through</em> the batch to the weights, never <em>into</em>
+    the batch.</p>
+    <p><strong>5.</strong> $L_2 = (wx)^2 = 4w^2$, so $\partial L_2/\partial w = 8w = 24$.
+    Because gradients accumulate, <code>w.grad</code> would hold $54 + 24 = \mathbf{78}$ —
+    a number that is the derivative of nothing in particular. This is the missing
+    <code>zero_grad()</code> bug, and note how plausible 78 looks. Nothing crashes; the model
+    just learns the wrong thing.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 02.2</span>
+  <p>
+  Count the parameters in <code>XORNet</code>, then generalise.
+  </p>
+  <ol>
+    <li>How many numbers are in <code>hidden.weight</code>, <code>hidden.bias</code>,
+        <code>output.weight</code>, <code>output.bias</code>? Total?</li>
+    <li>Write the general formula for an <code>nn.Linear(n_in, n_out)</code>.</li>
+    <li>A transformer feed-forward block is <code>Linear(512, 2048)</code> then
+        <code>Linear(2048, 512)</code>. How many parameters? At 4 bytes each, how much
+        memory for the weights alone — and how much once Adam's two state tensors and the
+        gradients are included?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> <code>hidden.weight</code> is
+    <span class="shape">(4, 2)</span> = 8; <code>hidden.bias</code> = 4;
+    <code>output.weight</code> is <span class="shape">(1, 4)</span> = 4;
+    <code>output.bias</code> = 1. Total <strong>17</strong> parameters — the entire model.</p>
+    <p><strong>2.</strong> $n_{\text{in}} \times n_{\text{out}} + n_{\text{out}}$.</p>
+    <p><strong>3.</strong> $512 \times 2048 + 2048 = 1{,}050{,}624$, and
+    $2048 \times 512 + 512 = 1{,}049{,}088$. Total <strong>2,099,712</strong> ≈ 2.1M
+    parameters — in one feed-forward block, of one layer.</p>
+    <p>Weights alone: 8.4 MB. But training needs the gradient (another 8.4 MB) and Adam's
+    $m$ and $v$ (8.4 MB each), giving <strong>~33.6 MB</strong>, or 16 bytes per parameter.
+    That 16× multiplier is the number that decides what you can train on a 24 GB machine,
+    and <a class="xref" href="#ch11">Chapter 11</a> is largely about attacking it.</p>
+  </details>
+</div>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>02_nn_pytorch/prompt.ipynb</code>. You will build <code>XORNet</code>, run the
+  five-step loop, inspect <code>state_dict()</code>, and — the exercise most worth your time —
+  swap SGD for Adam and compare epochs-to-convergence. Try also deliberately deleting
+  <code>zero_grad()</code> to see the failure mode from exercise 02.1 in the wild.
+</div>
+
+<div class="box note">
+  <span class="box-label">Where this goes next</span>
+  From here on, the framework is assumed. <a class="xref" href="#ch03">Chapter 03</a> leaves
+  toy data behind for 2,000 real film reviews, which brings the two things every real
+  problem brings: data that must be batched, and a test set that tells you whether you
+  learned anything or just memorised.
+</div>
+
+</section>

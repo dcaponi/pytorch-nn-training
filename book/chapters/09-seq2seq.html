@@ -1,0 +1,309 @@
+<section class="chapter" id="ch09">
+
+<p class="chapter-meta">Chapter 09 · notebook <code>09_seq2seq_translation</code></p>
+<h1>Encoder–Decoder Translation</h1>
+
+<p class="lede">
+Every model so far has mapped a sequence to a single label or number. Translation maps a
+sequence to <em>another sequence</em>, of different length, in a different language, with
+different word order. This chapter builds the architecture that does it — and confronts the
+new problem that generation creates: the model must consume its own output.
+</p>
+
+<h2>Two stacks with different jobs</h2>
+
+<p>
+The encoder reads the source sentence and produces one contextual vector per source token —
+collectively called the <strong>memory</strong>. It is exactly the encoder of
+<a class="xref" href="#ch07">Chapter 07</a>, unchanged, with bidirectional (unmasked)
+attention because the whole source is available at once.
+</p>
+
+<p>
+The decoder generates the target sentence one token at a time. It differs from the encoder in
+two ways, and both are essential:
+</p>
+
+<ol>
+  <li>Its self-attention is <strong>causally masked</strong> — position $t$ may not see
+      $t+1$ — because at generation time those tokens do not exist yet.</li>
+  <li>It has a third sub-layer, <strong>cross-attention</strong>, which is how the source
+      sentence gets in.</li>
+</ol>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th></th><th>Encoder layer</th><th>Decoder layer</th></tr></thead>
+  <tbody>
+    <tr><td>Self-attention</td><td>bidirectional</td><td>causally masked</td></tr>
+    <tr><td>Cross-attention</td><td>—</td><td>Q from decoder, K/V from memory</td></tr>
+    <tr><td>Feed-forward</td><td>yes</td><td>yes</td></tr>
+    <tr><td>Sub-layers</td><td>2</td><td>3</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Causal masking</h2>
+
+<p>
+The mask is an upper-triangular boolean matrix — <code>True</code> meaning "block this":
+</p>
+
+<pre><code class="language-python">def make_causal_mask(L, device):
+    return torch.triu(torch.ones(L, L, dtype=torch.bool, device=device), diagonal=1)</code></pre>
+
+<p>
+<code>diagonal=1</code> starts the triangle one above the main diagonal, so position $t$ can
+attend to itself and everything before it, but nothing after. Applied as
+<code>scores.masked_fill(mask, float('-inf'))</code> before the softmax, as in
+<a class="xref" href="#ch06">Chapter 06</a>.
+</p>
+
+<div class="widget" data-widget="attention"></div>
+
+<p>
+Tick <em>causal mask</em>: the upper triangle goes dark, and each row's remaining weights
+renormalise to sum to 1.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  Masking is what lets the decoder be trained in parallel. Without it you would have to run
+  the decoder once per output position — $T$ sequential forward passes per example. With it,
+  all $T$ positions are computed in a single pass, each one seeing exactly the prefix it will
+  have at generation time. The mask makes a parallel computation simulate a sequential one,
+  and it is the reason transformers train orders of magnitude faster than RNNs.
+</div>
+
+<h2>Cross-attention</h2>
+
+<p>
+One line, and it is the line that makes this a translator:
+</p>
+
+<pre><code class="language-python">ca_out, _ = self.cross_attn(tgt, memory, memory)   # Q=tgt, K=V=memory</code></pre>
+
+<p>
+The query comes from the decoder — <em>what do I need in order to produce the next French
+word?</em> — while keys and values come from the encoder's memory. The resulting attention
+matrix has shape <span class="shape">(B, heads, T_tgt, S_src)</span>: a soft alignment
+between target and source positions.
+</p>
+
+<p>
+No mask is applied here, and it would be wrong to apply one. The entire source sentence is
+known from the start, and word order differs between languages — producing the first French
+word may well require the last English one. Statistical machine translation spent two decades
+building explicit alignment models; cross-attention learns alignment as a side effect of
+learning to translate, and you can read it straight off the attention weights. The notebook
+plots exactly this.
+</p>
+
+<h2>Teacher forcing</h2>
+
+<p>
+Training a generator poses a chicken-and-egg problem. To predict token $t$ the decoder needs
+tokens $1..t-1$ — but early in training the model's own tokens are garbage, so it would be
+learning to continue nonsense.
+</p>
+
+<p>
+<strong>Teacher forcing</strong> feeds the <em>ground-truth</em> prefix instead. The
+implementation is a one-token shift:
+</p>
+
+<pre><code class="language-python">logits = model(src, tgt[:, :-1])              # input:  &lt;SOS&gt; w1 w2 ... w_{T-1}
+loss   = criterion(logits.reshape(-1, V),
+                   tgt[:, 1:].reshape(-1))    # target: w1 w2 ... w_{T-1} &lt;EOS&gt;</code></pre>
+
+<p>
+The decoder input is the target shifted right and prefixed with <code>&lt;SOS&gt;</code>; the
+prediction target is the target shifted left, ending with <code>&lt;EOS&gt;</code>. Position
+$t$ of the input aligns with position $t$ of the output, and the causal mask guarantees no
+position can peek at its own answer.
+</p>
+
+<div class="box warn">
+  <span class="box-label">Exposure bias</span>
+  Training always supplies a perfect prefix; generation never does. The model has therefore
+  never seen its own mistakes and does not know how to recover from them — one wrong token
+  and it is in a state that never occurred during training. This is <strong>exposure
+  bias</strong>, and it is why the sample translations in the notebook sometimes fall into
+  loops ("de la session de la session…"). Mitigations exist — scheduled sampling, sequence-level
+  objectives, beam search — but the mismatch is inherent to teacher forcing, and every
+  autoregressive model in production has it.
+</div>
+
+<h2>Autoregressive decoding</h2>
+
+<pre><code class="language-python">memory  = model.encode(src)          # once — the source never changes
+tgt_ids = [SOS_IDX]
+for _ in range(max_len):
+    out = model.decode(torch.tensor([tgt_ids]), memory)
+    next_token = model.fc_out(out)[0, -1].argmax().item()
+    tgt_ids.append(next_token)
+    if next_token == EOS_IDX:
+        break</code></pre>
+
+<p>
+Three points. The encoder runs <strong>once</strong> — recomputing it every step is a common
+and expensive mistake. Only the <em>last</em> position's logits are used, since the earlier
+ones re-predict tokens already chosen. And generation stops on <code>&lt;EOS&gt;</code>,
+which the model must learn to emit — this is why <code>&lt;EOS&gt;</code> must appear in the
+training targets, and why a model that never learns it will run to <code>max_len</code> every
+time.
+</p>
+
+<p>
+This loop is also quadratic in wasted work: at step $t$ it re-encodes the whole prefix
+$1..t-1$ even though those representations have not changed.
+<a class="xref" href="#ch10-kv-cache">Chapter 10</a> fixes that with a KV cache.
+</p>
+
+<h3>Greedy versus beam search</h3>
+
+<p>
+Taking the argmax at each step is <strong>greedy decoding</strong>, and it is myopic: the
+locally best token can lead to a globally poor sentence. <strong>Beam search</strong> keeps
+the $k$ best partial sequences ranked by total log-probability, expanding all of them at each
+step. It reliably improves translation quality by a point or two of BLEU — and, notably,
+tends to <em>hurt</em> open-ended generation, where it produces bland, repetitive text.
+Translation has one roughly-correct answer; storytelling does not.
+</p>
+
+<h2>Evaluating a translation</h2>
+
+<p>
+Cross-entropy measures how well the model predicts the reference given a perfect prefix.
+That is not the same as translating well, and it is not comparable across vocabularies.
+<strong>BLEU</strong> is the standard alternative: compare $n$-gram overlap between hypothesis
+and reference for $n = 1..4$, take a geometric mean, and apply a brevity penalty so that
+producing three safe words is not rewarded.
+</p>
+
+<p>
+BLEU is a blunt instrument — it has no notion of synonyms or of grammaticality — but it
+correlates well enough in aggregate to be useful. The honest evaluation, for a model this
+size, is to read twenty outputs yourself.
+</p>
+
+<div class="box note">
+  <span class="box-label">A dataset trap worth remembering</span>
+  NLTK's <code>comtrans</code> corpus contains three alignment files: German–English,
+  German–French, and English–French. Calling <code>comtrans.aligned_sents()</code> with no
+  argument concatenates <em>all three</em>, so a model that looks like it is learning
+  English→French is actually being trained on three language pairs at once — and will emit
+  English where you expected French. Always name the file:
+  <code>aligned_sents('alignment-en-fr.txt')</code>. Sanity-check your data by printing a
+  few pairs and reading them. The lesson generalises: almost every corpus has a trap like
+  this, and printing ten examples is the cheapest bug-detector in machine learning.
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 09.1</span>
+  <p>Masking and shifting — the two pieces of bookkeeping most likely to bite you.</p>
+  <div class="given">target sentence:   &lt;SOS&gt;  le  chat  dort  &lt;EOS&gt;
+indices:              1    7    12    23     2</div>
+  <ol>
+    <li>Write out the decoder input and the prediction target after the shift.</li>
+    <li>Draw the $4 \times 4$ causal mask for the decoder input (True = blocked).</li>
+    <li>For each of the four decoder positions, list which target tokens it can attend to and
+        what it must predict.</li>
+    <li>Suppose you forgot the shift and fed the full target as decoder input, predicting the
+        same full target. What loss would you get after a few epochs, and why is it useless?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong></p>
+    <div class="given">decoder input  = tgt[:-1] = [&lt;SOS&gt;, le, chat, dort]     = [1, 7, 12, 23]
+prediction tgt = tgt[1:]  = [le, chat, dort, &lt;EOS&gt;]    = [7, 12, 23, 2]</div>
+    <p><strong>2.</strong> Upper triangle above the main diagonal:</p>
+    <div class="given">        j=0     j=1     j=2     j=3
+i=0    False   True    True    True
+i=1    False   False   True    True
+i=2    False   False   False   True
+i=3    False   False   False   False</div>
+    <p><strong>3.</strong></p>
+    <div class="given">pos 0: sees [&lt;SOS&gt;]                  → predicts "le"
+pos 1: sees [&lt;SOS&gt;, le]              → predicts "chat"
+pos 2: sees [&lt;SOS&gt;, le, chat]        → predicts "dort"
+pos 3: sees [&lt;SOS&gt;, le, chat, dort]  → predicts &lt;EOS&gt;</div>
+    <p>Each position sees exactly the prefix it will have available at generation time. That
+    correspondence is the entire justification for the mask.</p>
+    <p><strong>4.</strong> Without the shift, position $t$'s input contains the token it is
+    being asked to predict. The causal mask allows attending to oneself, so the model learns
+    the identity function — copy the input to the output — and the loss collapses to
+    <strong>near zero within one or two epochs</strong>.</p>
+    <p>That is exactly what makes this bug dangerous: near-zero training loss looks like
+    spectacular success. The tell is that validation loss also looks great (the same trick
+    works there) while generated output is garbage — at generation time the input is not the
+    answer, and the model has learned nothing else. Any time a sequence model's loss drops
+    implausibly fast, check your shift first.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 09.2</span>
+  <p>Cross-attention alignment, computed and then interpreted.</p>
+  <div class="given">source (English):  [ the,  red,  house ]
+encoder memory keys give these raw scores for the decoder query
+at target position 2 (generating the word after "la"):
+
+    score(la → the)   = 0.0
+    score(la → red)   = 2.0
+    score(la → house) = 1.0
+
+d_k = 4, so the scale factor is 1/√4 = 0.5
+e^0 = 1.000   e^0.5 = 1.649   e^1 = 2.718</div>
+  <ol>
+    <li>Apply the scaling and compute the attention distribution over the three source words.</li>
+    <li>The correct French is "la maison rouge". Given that word order, is this alignment
+        sensible for the word the decoder is about to produce?</li>
+    <li>The value vectors are $v_{\text{the}} = [1,0]$, $v_{\text{red}} = [0,1]$,
+        $v_{\text{house}} = [1,1]$. Compute the cross-attention output.</li>
+    <li>Why is it correct that no causal mask is applied here, even though the decoder's
+        self-attention is masked?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Scaled scores are $[0.0, 1.0, 0.5]$. Exponentiating:
+    $[1.000, 2.718, 1.649]$, summing to 5.367.</p>
+    <div class="given">weights = [0.186, 0.506, 0.307]</div>
+    <p><strong>2.</strong> French puts the adjective after the noun: "la <b>maison</b>
+    rouge". So after producing "la", the next word should be "maison" — which aligns to
+    <em>house</em>, not <em>red</em>. This distribution puts most weight (0.506) on
+    <em>red</em>, which suggests the model would produce "rouge" next and generate "la rouge
+    maison" — English word order with French words. That is a recognisable failure of an
+    undertrained translation model, and reading cross-attention weights is precisely how you
+    diagnose it.</p>
+    <p><strong>3.</strong></p>
+    <div class="given">out = 0.186[1,0] + 0.506[0,1] + 0.307[1,1]
+    = [0.186 + 0 + 0.307,  0 + 0.506 + 0.307]
+    = [0.493, 0.813]</div>
+    <p><strong>4.</strong> The mask exists to prevent a position from seeing information it
+    will not have at generation time. The decoder's <em>own future tokens</em> are exactly
+    that. The <em>source sentence</em> is not — it is given in full before generation begins.
+    Masking it would forbid the model from using source words that appear later than the
+    current output position, which is nonsense across languages whose word orders differ.
+    This exercise is a case in point: producing the second French word requires the third
+    English one.</p>
+  </details>
+</div>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>09_seq2seq_translation/prompt.ipynb</code>. You will build the causal mask, the
+  decoder layer with its three sub-layers, the full seq2seq model, teacher-forced training,
+  and greedy decoding — then visualise the cross-attention alignments. The model overfits
+  after about epoch 11 on this small corpus, so the training loop keeps the best-validation
+  weights, following <a class="xref" href="#ch08">Chapter 08</a>'s pattern.
+</div>
+
+<div class="box note">
+  <span class="box-label">Where this goes next</span>
+  <a class="xref" href="#ch10">Chapter 10</a> deletes the encoder. If the task is to continue
+  text rather than to transform it, the decoder alone suffices — and that stripped-down
+  architecture, scaled up, is GPT.
+</div>
+
+</section>
