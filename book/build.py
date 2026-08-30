@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import json
 import re
 import sys
 from dataclasses import dataclass, field
@@ -252,6 +253,42 @@ def render_toc(chapters: list[Chapter]) -> str:
 
 
 # --------------------------------------------------------------------------
+# Search index
+# --------------------------------------------------------------------------
+
+BLOCK_SPLIT_RE = re.compile(r"</(?:p|li|h[1-3]|pre|figcaption|td)>", re.IGNORECASE)
+
+
+def build_search_index(chapters: list[Chapter]) -> str:
+    """A flat list of {chapter, anchor, heading, text} records, one per block.
+
+    Small enough to inline (a few hundred KB of plain text) and it keeps the page
+    a single file, which is what lets it work from file:// as well as over http.
+    """
+    records = []
+    for ch in chapters:
+        current = Heading(1, ch.chap_id, ch.title)
+        for chunk in BLOCK_SPLIT_RE.split(ch.body):
+            hm = HEADING_RE.search(chunk + "</h2>")
+            for h in ch.headings:
+                if f'id="{h.anchor}"' in chunk:
+                    current = h
+                    break
+            text = strip_markup(chunk)
+            text = re.sub(r"\s+", " ", text).strip()
+            if len(text) < 30:
+                continue
+            records.append({
+                "c": ch.chap_id,
+                "t": ch.title,
+                "a": current.anchor,
+                "h": current.text,
+                "x": text[:220],
+            })
+    return json.dumps(records, separators=(",", ":"), ensure_ascii=False)
+
+
+# --------------------------------------------------------------------------
 # Validation
 # --------------------------------------------------------------------------
 
@@ -277,6 +314,12 @@ PAGE = """<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>@@TITLE@@</title>
+<meta name="description" content="@@SUBTITLE@@">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="@@TITLE@@">
+<meta property="og:description" content="@@SUBTITLE@@">
+<meta property="og:type" content="book">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#128218;</text></svg>">
 <link rel="stylesheet" href="vendor/katex/katex.min.css">
 <style>
 @@CSS@@
@@ -293,17 +336,25 @@ PAGE = """<!DOCTYPE html>
   <div class="sidebar-head">
     <div class="book-title">@@TITLE@@</div>
     <div class="book-sub">@@SUBTITLE@@</div>
-    <input id="toc-filter" type="search" placeholder="Filter chapters…" aria-label="Filter table of contents">
+    <input id="toc-filter" type="search" placeholder="Search the book…"
+           aria-label="Search the book" autocomplete="off">
+    <div id="search-results" hidden></div>
   </div>
   @@TOC@@
   <div class="sidebar-foot">
     <button id="theme-toggle" aria-label="Toggle colour theme">◐ Theme</button>
+    <button id="mode-toggle" aria-label="Toggle continuous reading mode">▤ One chapter</button>
   </div>
 </aside>
 
 <main id="content">
 @@BODY@@
 </main>
+
+<nav id="chapter-nav" aria-label="Chapter navigation">
+  <a id="prev-chapter" rel="prev"></a>
+  <a id="next-chapter" rel="next"></a>
+</nav>
 
 <button id="back-btn" hidden>↩ Back to where you were</button>
 <button id="to-top" aria-label="Back to top" hidden>↑</button>
@@ -334,6 +385,7 @@ def build(check_only: bool = False) -> int:
         raise SystemExit(f"duplicate chapter ids: {', '.join(sorted(dupes))}")
 
     body = "\n\n".join(highlight_blocks(c.body) for c in chapters)
+    index_js = "window.__BOOK_INDEX__ = " + build_search_index(chapters) + ";" 
     # str.format is unusable here: the CSS and JS are full of braces.
     page = PAGE
     for token, value in (
@@ -342,7 +394,7 @@ def build(check_only: bool = False) -> int:
         ("@@TOC@@", render_toc(chapters)),
         ("@@BODY@@", body),
         ("@@CSS@@", (BOOK / "style.css").read_text(encoding="utf-8")),
-        ("@@JS@@", (BOOK / "book.js").read_text(encoding="utf-8")),
+        ("@@JS@@", index_js + "\n" + (BOOK / "book.js").read_text(encoding="utf-8")),
     ):
         page = page.replace(token, value)
 

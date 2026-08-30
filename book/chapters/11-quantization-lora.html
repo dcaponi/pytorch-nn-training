@@ -482,8 +482,9 @@ activations (~30%) :               = 0.90 GB
   You implemented both techniques from their definitions. Here is what the same two
   ideas look like as one-liners, and what each library adds beyond your version.
   </p>
-<pre><code class="language-python"># quantization — PyTorch native, works today on CPU
+<pre><code class="language-python"># quantization — PyTorch native, CPU only, and you must pick a backend first
 import torch.ao.quantization as tq
+torch.backends.quantized.engine = 'qnnpack'   # 'none' by default on Apple silicon
 qmodel = tq.quantize_dynamic(model, {nn.Linear}, dtype=torch.qint8)
 
 # LoRA — the peft library, the de facto standard
@@ -504,14 +505,23 @@ model.save_pretrained("adapter/")    # a few hundred KB, not a few GB</code></pr
     </tbody>
   </table>
   </div>
+  <p>
+  Three honest notes, all discovered by running this. <code>torch.ao.quantization</code>
+  needs an explicit backend: the engine is <code>'none'</code> by default on this build,
+  and the first quantized op otherwise fails with
+  <code>NoQEngine</code> — an error that does not obviously mean "pick a backend". The
+  module is also <strong>deprecated</strong> in current PyTorch in favour of the separate
+  <code>torchao</code> package, so check its migration notes before building on it.
+  </p>
   <p style="margin-bottom:0">
-  Two honest notes. <code>bitsandbytes</code> is CUDA-first and will not give you 4-bit
-  kernels on Apple silicon — on this machine, <strong>MLX</strong> and
-  <strong>llama.cpp/GGUF</strong> are the ones that actually deliver quantized speedups,
-  and both are worth an afternoon. And the reason to have built these by hand is not
-  purity: it is that when a 4-bit model degrades, the useful question is "which tensor
-  has the outlier, and is my grid per-channel?" — and that question is unaskable if
-  quantization is a flag you passed.
+  And <code>bitsandbytes</code> is CUDA-first, so it will not give you 4-bit kernels on
+  Apple silicon at all — here, <strong>MLX</strong> and <strong>llama.cpp/GGUF</strong>
+  are what actually deliver. The pattern across all three is the same one the KV cache
+  taught in <a class="xref" href="#ch10">Chapter 10</a>: a technique working is not the
+  same as a technique working on your hardware. The reason to have built these by hand
+  is not purity — it is that when a 4-bit model degrades, the useful question is "which
+  tensor has the outlier, and is my grid per-channel?", and that question is unaskable
+  if quantization is a flag you passed.
   </p>
 </div>
 

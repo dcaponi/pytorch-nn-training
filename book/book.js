@@ -27,7 +27,8 @@
   function applyTheme(t) {
     if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
     else document.documentElement.removeAttribute('data-theme');
-    redrawAllWidgets();
+    if (typeof markWidgetsStale === 'function') markWidgetsStale();
+    if (typeof redrawVisibleWidgets === 'function') redrawVisibleWidgets();
   }
   try { applyTheme(localStorage.getItem(THEME_KEY)); } catch (e) { /* private mode */ }
 
@@ -62,25 +63,22 @@
     });
   }
 
-  /* -- TOC filter --------------------------------------------------------- */
-  var filter = $('#toc-filter');
-  if (filter) {
-    filter.addEventListener('input', function () {
-      var q = filter.value.trim().toLowerCase();
-      $$('.toc-chapter').forEach(function (li) {
-        if (!q) { li.classList.remove('filtered-out'); return; }
-        li.classList.toggle('filtered-out', li.textContent.toLowerCase().indexOf(q) === -1);
-      });
-    });
-  }
-
   /* -- scroll-spy --------------------------------------------------------- */
   var links = {};
   $$('.toc-link').forEach(function (a) {
     var id = a.getAttribute('href').slice(1);
     links[id] = a;
   });
-  var spyTargets = $$('h1[id], h2[id], h3[id]').filter(function (h) { return links[h.id]; });
+  var allSpyTargets = $$('h1[id], h2[id], h3[id]').filter(function (h) { return links[h.id]; });
+  var spyTargets = allSpyTargets;
+
+  function refreshSpyTargets() {
+    // headings inside a hidden chapter have offsetTop 0 and would confuse the spy
+    spyTargets = allSpyTargets.filter(function (h) {
+      var sec = h.closest('.chapter');
+      return !sec || !sec.hidden;
+    });
+  }
   var activeLink = null;
   var expandedSec = null;
 
@@ -109,6 +107,7 @@
   var toTop = $('#to-top');
 
   function onScroll() {
+    refreshSpyTargets();
     var y = window.scrollY + 90;
     var current = spyTargets.length ? spyTargets[0].id : null;
     for (var i = 0; i < spyTargets.length; i++) {
@@ -143,25 +142,314 @@
   document.addEventListener('click', function (e) {
     var a = e.target.closest('a[href^="#"]');
     if (!a) return;
-    var target = a.getAttribute('href').slice(1);
-    if (!target || !document.getElementById(target)) return;
-    if (a.classList.contains('anchor-link')) return;   // copying a link, not travelling
-    returnTo = window.scrollY;
-    if (backBtn) {
-      backBtn.hidden = false;
-      clearTimeout(backTimer);
-      backTimer = setTimeout(function () { backBtn.hidden = true; }, 20000);
+    var raw = a.getAttribute('href').slice(1);
+    if (!raw) return;
+
+    // route-shaped links (#/ch03[/anchor]) are handled by the hashchange listener
+    if (raw.charAt(0) === '/') {
+      returnTo = { chapter: currentChapter, y: window.scrollY };
+      showBack();
+      return;
     }
+
+    var target = document.getElementById(raw);
+    if (!target) return;
+    if (a.classList.contains('anchor-link')) return;   // copying a link, not travelling
+
+    e.preventDefault();
+    returnTo = { chapter: currentChapter, y: window.scrollY };
+    showBack();
+    location.hash = routeFor(raw);
   });
+
+  function showBack() {
+    if (!backBtn) return;
+    backBtn.hidden = false;
+    clearTimeout(backTimer);
+    backTimer = setTimeout(function () { backBtn.hidden = true; }, 20000);
+  }
 
   if (backBtn) {
     backBtn.addEventListener('click', function () {
-      if (returnTo === null) return;
-      window.scrollTo({ top: returnTo, behavior: 'smooth' });
+      if (!returnTo) return;
+      var dest = returnTo;
       returnTo = null;
       backBtn.hidden = true;
+      if (dest.chapter && dest.chapter !== currentChapter) {
+        try { history.replaceState(null, '', '#/' + dest.chapter); }
+        catch (e) { location.hash = '#/' + dest.chapter; }
+        showChapter(dest.chapter, null, { keepScroll: true });
+      }
+      window.scrollTo({ top: dest.y, behavior: 'smooth' });
     });
   }
+
+
+  /* ======================================================================
+     1b. Router — a hash-routed SPA that also works from file://
+     ======================================================================
+
+     Routes look like  #/ch03  or  #/ch03/ch03-global-max-pooling
+     Legacy anchors    #ch03   or  #ch03-global-max-pooling      still work and
+     are rewritten, so every link written before the router existed survives.
+
+     All chapters stay in the DOM. Navigation hides and shows sections rather
+     than fetching, which keeps the whole book in one file — the thing that makes
+     it work equally from a GitHub Pages URL and from a local file:// path, with
+     no server and no build step beyond build.py.
+  */
+
+  var chapters = $$('#content > .chapter');
+  var chapterIds = chapters.map(function (c) { return c.id; });
+  var byId = {};
+  chapters.forEach(function (c) { byId[c.id] = c; });
+
+  var MODE_KEY = 'nnbook-mode';
+  var continuous = false;
+  try { continuous = localStorage.getItem(MODE_KEY) === 'continuous'; } catch (e) {}
+
+  var currentChapter = null;
+
+  function anchorChapter(id) {
+    // an element id belongs to whichever chapter section contains it
+    var el = document.getElementById(id);
+    if (!el) return null;
+    var sec = el.closest('.chapter');
+    return sec ? sec.id : null;
+  }
+
+  function parseHash() {
+    var h = (location.hash || '').replace(/^#/, '');
+    if (!h) return { chapter: chapterIds[0], anchor: null };
+
+    if (h.charAt(0) === '/') {                       // #/chapter[/anchor]
+      var parts = h.slice(1).split('/');
+      var ch = parts[0] || chapterIds[0];
+      return { chapter: byId[ch] ? ch : chapterIds[0], anchor: parts[1] || null };
+    }
+    // legacy: #ch03 or #ch03-some-heading
+    if (byId[h]) return { chapter: h, anchor: null };
+    var owner = anchorChapter(h);
+    if (owner) return { chapter: owner, anchor: h };
+    return { chapter: chapterIds[0], anchor: null };
+  }
+
+  function routeFor(id) {
+    var owner = byId[id] ? id : anchorChapter(id);
+    if (!owner) return '#/' + chapterIds[0];
+    return owner === id ? '#/' + owner : '#/' + owner + '/' + id;
+  }
+
+  var chapterNav = $('#chapter-nav');
+  var prevLink = $('#prev-chapter');
+  var nextLink = $('#next-chapter');
+
+  function updateChapterNav(id) {
+    var i = chapterIds.indexOf(id);
+    if (!prevLink || !nextLink) return;
+    if (i > 0) {
+      prevLink.href = '#/' + chapterIds[i - 1];
+      prevLink.innerHTML = '<span class="nav-dir">← Previous</span><span class="nav-title">' +
+        byId[chapterIds[i - 1]].querySelector('h1').firstChild.textContent.trim() + '</span>';
+      prevLink.hidden = false;
+    } else prevLink.hidden = true;
+
+    if (i > -1 && i < chapterIds.length - 1) {
+      nextLink.href = '#/' + chapterIds[i + 1];
+      nextLink.innerHTML = '<span class="nav-dir">Next →</span><span class="nav-title">' +
+        byId[chapterIds[i + 1]].querySelector('h1').firstChild.textContent.trim() + '</span>';
+      nextLink.hidden = false;
+    } else nextLink.hidden = true;
+
+    chapterNav.hidden = continuous;
+  }
+
+  function showChapter(id, anchor, opts) {
+    opts = opts || {};
+    if (!byId[id]) id = chapterIds[0];
+
+    // Always reassert visibility. Skipping this when id === currentChapter looks
+    // like a cheap optimisation but breaks the continuous-mode toggle, which
+    // changes what should be visible without changing which chapter is current.
+    chapters.forEach(function (c) {
+      c.hidden = continuous ? false : (c.id !== id);
+    });
+    currentChapter = id;
+
+    // recompute widget canvases that were hidden (clientWidth was 0 while hidden)
+    if (!opts.noRedraw) redrawVisibleWidgets();
+
+    updateChapterNav(id);
+    document.title = (byId[id].querySelector('h1').firstChild.textContent.trim()
+                      || 'Book') + ' · ' + BOOK_TITLE;
+
+    if (!opts.keepScroll) {
+      var target = anchor && document.getElementById(anchor);
+      if (target) {
+        if (typeof target.scrollIntoView === 'function') {
+          target.scrollIntoView({ behavior: opts.smooth ? 'smooth' : 'auto', block: 'start' });
+        } else if (typeof target.offsetTop === 'number') {
+          window.scrollTo({ top: Math.max(0, target.offsetTop - 20), behavior: 'auto' });
+        }
+        flash(target);
+      } else {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
+    onScroll();
+  }
+
+  function flash(el) {
+    el.classList.remove('flash');
+    void el.offsetWidth;                 // restart the animation
+    el.classList.add('flash');
+    setTimeout(function () { el.classList.remove('flash'); }, 1800);
+  }
+
+  function onRoute(opts) {
+    var r = parseHash();
+    // normalise a legacy hash into the canonical route without adding history
+    var canonical = r.anchor ? '#/' + r.chapter + '/' + r.anchor : '#/' + r.chapter;
+    if (location.hash !== canonical) {
+      // replaceState can be restricted on file:// in some browsers; falling back to
+      // assigning the hash costs an extra history entry but always works
+      try { history.replaceState(null, '', canonical); }
+      catch (e) { location.hash = canonical; }
+    }
+    showChapter(r.chapter, r.anchor, opts);
+  }
+
+  window.addEventListener('hashchange', function () { onRoute({ smooth: false }); });
+
+  var BOOK_TITLE = document.title;
+
+  /* continuous-mode toggle: restores the single-scroll reading experience, which
+     is what makes Cmd+F work across the whole book */
+  var modeBtn = $('#mode-toggle');
+  function applyMode() {
+    if (modeBtn) {
+      modeBtn.textContent = continuous ? '▤ Continuous' : '▤ One chapter';
+      modeBtn.title = continuous
+        ? 'Showing every chapter — Cmd+F searches the whole book'
+        : 'Showing one chapter at a time';
+    }
+    document.body.classList.toggle('continuous', continuous);
+    showChapter(currentChapter || parseHash().chapter, null, { keepScroll: true });
+  }
+  if (modeBtn) {
+    modeBtn.addEventListener('click', function () {
+      continuous = !continuous;
+      try { localStorage.setItem(MODE_KEY, continuous ? 'continuous' : 'single'); } catch (e) {}
+      applyMode();
+    });
+  }
+
+  /* ----------------------------------------------------------------------
+     Search across every chapter, since one-chapter-at-a-time breaks Cmd+F
+     ---------------------------------------------------------------------- */
+
+  var searchBox = $('#toc-filter');
+  var searchResults = $('#search-results');
+  var tocEl = $('#toc');
+  var INDEX = window.__BOOK_INDEX__ || [];
+
+  function escapeHtml(t) {
+    return t.replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function runSearch(q) {
+    var terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.length) return [];
+    var hits = [];
+    for (var i = 0; i < INDEX.length && hits.length < 400; i++) {
+      var rec = INDEX[i];
+      var hay = (rec.x + ' ' + rec.h + ' ' + rec.t).toLowerCase();
+      var score = 0, ok = true;
+      for (var j = 0; j < terms.length; j++) {
+        var at = hay.indexOf(terms[j]);
+        if (at === -1) { ok = false; break; }
+        score += 1;
+        if (rec.h.toLowerCase().indexOf(terms[j]) !== -1) score += 3;   // heading match
+        if (rec.t.toLowerCase().indexOf(terms[j]) !== -1) score += 1;   // chapter title
+      }
+      if (ok) hits.push({ rec: rec, score: score });
+    }
+    hits.sort(function (a, b) { return b.score - a.score; });
+    return hits.slice(0, 30);
+  }
+
+  function snippet(text, terms) {
+    var lower = text.toLowerCase();
+    var at = -1;
+    for (var i = 0; i < terms.length && at === -1; i++) at = lower.indexOf(terms[i]);
+    if (at === -1) at = 0;
+    var start = Math.max(0, at - 40);
+    var frag = (start > 0 ? '…' : '') + text.slice(start, start + 150) +
+               (text.length > start + 150 ? '…' : '');
+    var out = escapeHtml(frag);
+    terms.forEach(function (t) {
+      out = out.replace(new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'),
+                        '<mark>$1</mark>');
+    });
+    return out;
+  }
+
+  function renderSearch(q) {
+    if (!searchResults) return;
+    var terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.length) {
+      searchResults.hidden = true;
+      if (tocEl) tocEl.hidden = false;
+      return;
+    }
+    var hits = runSearch(q);
+    if (tocEl) tocEl.hidden = true;
+    searchResults.hidden = false;
+    if (!hits.length) {
+      searchResults.innerHTML = '<p class="search-empty">No matches for “' +
+        escapeHtml(q) + '”.</p>';
+      return;
+    }
+    searchResults.innerHTML =
+      '<p class="search-count">' + hits.length + ' result' + (hits.length === 1 ? '' : 's') + '</p>' +
+      hits.map(function (h) {
+        var r = h.rec;
+        return '<a class="search-hit" href="' + routeFor(r.a) + '">' +
+               '<span class="search-chapter">' + escapeHtml(r.t) + '</span>' +
+               '<span class="search-heading">' + escapeHtml(r.h) + '</span>' +
+               '<span class="search-snippet">' + snippet(r.x, terms) + '</span></a>';
+      }).join('');
+  }
+
+  if (searchBox) {
+    var searchTimer = null;
+    searchBox.addEventListener('input', function () {
+      clearTimeout(searchTimer);
+      var q = searchBox.value.trim();
+      searchTimer = setTimeout(function () { renderSearch(q); }, 90);
+    });
+    searchBox.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { searchBox.value = ''; renderSearch(''); searchBox.blur(); }
+      if (e.key === 'Enter') {
+        var first = searchResults && searchResults.querySelector('.search-hit');
+        if (first) first.click();
+      }
+    });
+  }
+
+  // "/" focuses search, like every documentation site
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '/' && document.activeElement !== searchBox &&
+        !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) {
+      e.preventDefault();
+      if (searchBox) searchBox.focus();
+    }
+    if (continuous) return;
+    if (e.key === 'ArrowLeft' && e.altKey && prevLink && !prevLink.hidden) prevLink.click();
+    if (e.key === 'ArrowRight' && e.altKey && nextLink && !nextLink.hidden) nextLink.click();
+  });
 
   /* ======================================================================
      2. Math
@@ -179,7 +467,9 @@
       ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'option'],
       throwOnError: false
     });
-    onScroll();   // heights changed
+    markWidgetsStale();
+    redrawVisibleWidgets();   // KaTeX changed the layout, so canvas widths moved
+    onScroll();
   }
 
   /* ======================================================================
@@ -207,7 +497,7 @@
   function Plot(canvas, opts) {
     opts = opts || {};
     var dpr = window.devicePixelRatio || 1;
-    var cssW = canvas.clientWidth || 600;
+    var cssW = canvas.clientWidth || canvas.parentElement.clientWidth || 600;
     var cssH = opts.height || 220;
     canvas.width = cssW * dpr;
     canvas.height = cssH * dpr;
@@ -391,13 +681,21 @@
     }
 
     function draw() {
-      var plot = Plot(canvas, { height: spec.height || 220, pad: spec.pad, xrange: spec.xrange, yrange: spec.yrange });
+      // ranges may be functions of the current control values, so a widget can
+      // rescale its axes without rebuilding the plot inside its own draw()
+      var pick = function (r) { return typeof r === 'function' ? r(vals) : r; };
+      var plot = Plot(canvas, {
+        height: spec.height || 220, pad: spec.pad,
+        xrange: pick(spec.xrange), yrange: pick(spec.yrange)
+      });
       spec.draw(plot, vals, canvas);
       if (readout) readout.innerHTML = spec.readout(vals);
     }
 
-    widgets.push({ el: el, draw: draw });
-    draw();
+    var rec = { el: el, draw: draw, drawn: false, stale: false };
+    widgets.push(rec);
+    var sec = el.closest('.chapter');
+    if (!sec || !sec.hidden) { draw(); rec.drawn = true; }
     return draw;
   }
 
@@ -407,10 +705,26 @@
     });
   }
 
+  function redrawVisibleWidgets() {
+    widgets.forEach(function (w) {
+      var sec = w.el.closest('.chapter');
+      if (sec && sec.hidden) return;             // canvas has no width while hidden
+      if (w.drawn && !w.stale) return;
+      try { w.draw(); w.drawn = true; w.stale = false; } catch (e) {}
+    });
+  }
+
+  function markWidgetsStale() {
+    widgets.forEach(function (w) { w.stale = true; });
+  }
+
   var resizeTimer = null;
   window.addEventListener('resize', function () {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(redrawAllWidgets, 120);
+    resizeTimer = setTimeout(function () {
+      markWidgetsStale();
+      redrawVisibleWidgets();
+    }, 120);
   });
 
   /* ----------------------------------------------------------------------
@@ -483,7 +797,8 @@
     build(el, {
       title: 'MSE vs MAE vs Huber: how hard does an outlier pull?',
       height: 240,
-      xrange: [-3, 3], yrange: [0, 4.5],
+      xrange: [-3, 3],
+      yrange: function (v) { return v.grad ? [-3, 3] : [0, 4.5]; },
       controls: [
         { name: 'delta', label: 'Huber δ', type: 'range', min: 0.2, max: 2.5, step: 0.1, value: 1,
           fmt: function (v) { return v.toFixed(1); } },
@@ -499,12 +814,11 @@
         var dhub = function (e) { return Math.abs(e) <= d ? e : d * Math.sign(e); };
 
         if (v.grad) {
-          var g2 = Plot(el.querySelector('canvas'), { height: 240, xrange: [-3, 3], yrange: [-3, 3] });
-          g2.axes({ xticks: 6, yticks: 6, ydec: 0, xlabel: 'error  e = prediction − target' });
-          g2.curve(dmse, g2.p.warn, 2.5);
-          g2.curve(dmae, g2.p.concept, 2.5);
-          g2.curve(dhub, g2.p.accent, 2, [5, 4]);
-          g2.legend([['d/de MSE', g2.p.warn], ['d/de MAE', g2.p.concept], ['d/de Huber', g2.p.accent]]);
+          g.axes({ xticks: 6, yticks: 6, ydec: 0, xlabel: 'error  e = prediction − target' });
+          g.curve(dmse, g.p.warn, 2.5);
+          g.curve(dmae, g.p.concept, 2.5);
+          g.curve(dhub, g.p.accent, 2, [5, 4]);
+          g.legend([['d/de MSE', g.p.warn], ['d/de MAE', g.p.concept], ['d/de Huber', g.p.accent]]);
           return;
         }
         g.axes({ xticks: 6, yticks: 3, ydec: 1, xlabel: 'error  e = prediction − target' });
@@ -526,16 +840,19 @@
      ---------------------------------------------------------------------- */
 
   REGISTRY['activation'] = function (el) {
+    // the tanh approximation to GELU, named so its derivative can reference it
+    function gelu(x) {
+      return 0.5 * x * (1 + Math.tanh(0.7978845608 * (x + 0.044715 * x * x * x)));
+    }
     var fns = {
       sigmoid: [function (x) { return 1 / (1 + Math.exp(-x)); },
                 function (x) { var s = 1 / (1 + Math.exp(-x)); return s * (1 - s); }, 'σ(x) = 1/(1+e^−x)'],
       tanh:    [Math.tanh, function (x) { var t = Math.tanh(x); return 1 - t * t; }, 'tanh(x)'],
       relu:    [function (x) { return Math.max(0, x); }, function (x) { return x > 0 ? 1 : 0; }, 'max(0, x)'],
-      gelu:    [function (x) { return 0.5 * x * (1 + Math.tanh(0.7978845608 * (x + 0.044715 * x * x * x))); },
-                function (x) { var h = 1e-4; var f = REGISTRY._gelu; return (f(x + h) - f(x - h)) / (2 * h); },
+      gelu:    [gelu,
+                function (x) { var h = 1e-4; return (gelu(x + h) - gelu(x - h)) / (2 * h); },
                 'x·Φ(x), the transformer default']
     };
-    REGISTRY._gelu = fns.gelu[0];
 
     build(el, {
       title: 'Activation functions and their derivatives',
@@ -1565,7 +1882,10 @@
   }
 
   function init() {
-    mountWidgets();
+    applyMode();          // sets body class and shows the right chapters
+    onRoute({ smooth: false });
+    mountWidgets();       // after routing, so visible canvases have a width
+    redrawVisibleWidgets();
     onScroll();
   }
 

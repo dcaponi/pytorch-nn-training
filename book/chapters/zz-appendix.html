@@ -185,6 +185,21 @@ e.to('mps')(torch.tensor([200], device='mps'))    # mps : a row of zeros</code><
 <ul>
   <li><strong>float64 is unsupported.</strong> A stray
       <code>dtype=torch.float64</code> fails on transfer to MPS. Default to float32.</li>
+  <li><strong>Quantization needs an explicit engine.</strong>
+      <code>torch.backends.quantized.engine</code> is <code>'none'</code> by default
+      here, so <code>quantize_dynamic</code> fails with
+      <code>Didn't find engine for operation quantized::linear_prepack NoQEngine</code>
+      until you set it to <code>'qnnpack'</code>, the one supported backend on this
+      platform. Note also that <code>torch.ao.quantization</code> is deprecated in
+      favour of the separate <code>torchao</code> package.</li>
+  <li><strong>The FlashAttention backend is CUDA-only.</strong>
+      <code>F.scaled_dot_product_attention</code> is still the right call — it is
+      correct and never meaningfully slower — but on MPS it dispatches to a math or
+      memory-efficient fallback rather than a flash kernel, so do not expect the
+      published speedups. Chapter 10's notebook measures this: the fused path is not
+      measurably faster here, while the memory argument holds on every backend. The
+      general habit is worth keeping: when a library advertises a speedup, check
+      whether the fast path exists on your hardware before attributing anything to it.</li>
   <li><strong>Time it properly.</strong> MPS is asynchronous, so wall-clock timing
       around a forward pass measures queueing, not work. Call
       <code>torch.mps.synchronize()</code> before stopping the clock.</li>
@@ -246,7 +261,7 @@ wrong. The map:
     <tr><td>seq2seq model</td><td>09</td><td><code>nn.Transformer</code></td><td>both stacks, mask helpers</td></tr>
     <tr><td>training loop</td><td>08</td><td><code>accelerate</code>, Lightning</td><td>multi-GPU, mixed precision, checkpoint resume</td></tr>
     <tr><td>GPT + sampling + KV cache</td><td>10</td><td><code>transformers</code></td><td><code>generate()</code>, beam search, correct cache edges</td></tr>
-    <tr><td><code>quantize_symmetric</code></td><td>11</td><td><code>torch.ao.quantization</code></td><td>real int8 kernels — actual savings, not simulated</td></tr>
+    <tr><td><code>quantize_symmetric</code></td><td>11</td><td><code>torchao</code> (or legacy <code>torch.ao.quantization</code>)</td><td>real int8 kernels — actual savings, not simulated; needs an engine set</td></tr>
     <tr><td>per-channel scales</td><td>11</td><td><code>bitsandbytes</code> LLM.int8()</td><td>outlier channels kept in fp16</td></tr>
     <tr><td>4-bit fake quant</td><td>11</td><td>NF4, GPTQ, AWQ</td><td>non-uniform grids, activation-aware calibration</td></tr>
     <tr><td><code>LoRALinear</code></td><td>11</td><td><code>peft</code></td><td>save/load/merge, hot-swap, every layer type</td></tr>

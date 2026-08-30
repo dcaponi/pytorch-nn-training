@@ -21,13 +21,32 @@ data-centre GPU, no API keys, no multi-gigabyte downloads.
 ## The Book
 
 ```bash
-open book/index.html          # macOS
+open book/index.html          # macOS — works straight off the filesystem
 ```
 
-One self-contained page with a sticky table of contents, a chapter filter, dark mode,
-and a *back to where you were* button for following cross-references without losing
-your place. Mathematics renders offline via a vendored copy of KaTeX; the interactive
-figures are canvas widgets computing the same arithmetic as the text beside them.
+A single-page app: chapters are client-side routes (`#/ch06`, or `#/ch00/ch00-cross-entropy`
+to land on a heading), with prev/next navigation, full-text search across every chapter,
+dark mode, and a *back to where you were* button for following cross-references without
+losing your place. A **continuous mode** toggle shows the whole book as one scroll, which
+is what you want when you would rather Cmd+F than search.
+
+Everything is in one file with no fetches, so it behaves identically opened from
+`file://` and served over HTTP. Mathematics renders offline via a vendored KaTeX; the
+interactive figures are canvas widgets computing the same arithmetic as the text beside
+them. 802 KB, 225 KB gzipped.
+
+### Publishing it to GitHub Pages
+
+`.github/workflows/pages.yml` builds and deploys `book/` on every push to `main` that
+touches it. To turn it on: **Settings → Pages → Source → GitHub Actions**. The workflow
+rebuilds `index.html`, fails the run if any cross-reference is dangling, and publishes
+`index.html` plus `vendor/` with a `.nojekyll` marker.
+
+All asset paths are relative and nothing is fetched from a third party, so it works
+unchanged at a project URL like `https://<user>.github.io/pytorch_nn_training/`.
+
+The routing is hash-based rather than path-based, which means no 404 fallback trick is
+needed and deep links survive a refresh.
 
 Every chapter carries **By hand** exercises — small calculations you do on paper
 before writing code, with fully worked solutions folded up underneath. Chapter 00
@@ -56,7 +75,9 @@ python3 book/build.py           # regenerate book/index.html
 python3 book/build.py --check   # validate fragments and cross-references only
 ```
 
-The build script is standard-library only — no dependencies, no toolchain.
+The build script is standard-library only — no dependencies, no toolchain. It assigns
+stable heading anchors, checks every cross-reference, highlights Python code blocks, and
+emits the search index the router uses.
 
 ---
 

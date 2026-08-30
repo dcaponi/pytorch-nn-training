@@ -122,7 +122,8 @@ $1/\sqrt{2N}$ cancels it, keeping activations in the same range at layer 1 and l
   <span class="box-label">A one-line sanity check worth building the habit around</span>
   A correctly initialised model's first loss should be almost exactly
   $\ln(V)$ — the loss of a uniform distribution. The notebook's 73-character model
-  starts at 4.287 against $\ln 73 = 4.290$. A substantially higher initial loss means
+  starts within a few thousandths of $\ln 73 = 4.290$ (the exact figure moves a
+  little with the seed). A substantially higher initial loss means
   the model starts <em>confidently wrong</em> rather than uniformly uncertain, which
   almost always means the initialisation standard deviation is too large. This costs
   one forward pass and catches a whole class of bugs before you waste an hour
