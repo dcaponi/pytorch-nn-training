@@ -844,7 +844,74 @@ after Linear(64,3)   (32,  3)      64×3  +  3 =   195 params
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.2 · the chain rule as backpropagation</span>
+  <span class="box-label">By hand — exercise 00.2 · the geometry of the dot product</span>
+  <p>
+  This is the exercise that makes <a class="xref" href="#ch06">attention</a> feel
+  inevitable rather than arbitrary. Three "word embeddings" in two dimensions:
+  </p>
+  <div class="given">cat  = [ 1.0,  0.0 ]
+dog  = [ 0.8,  0.6 ]
+idea = [−0.6,  0.8 ]
+
+useful:  √1.00 = 1.00   0.8² + 0.6² = 1.00   (−0.6)² + 0.8² = 1.00</div>
+  <ol>
+    <li>Confirm all three vectors have length 1. (This makes the next part easier —
+        for unit vectors the dot product <em>is</em> the cosine.)</li>
+    <li>Compute all three pairwise dot products: cat·dog, cat·idea, dog·idea.</li>
+    <li>Rank the pairs by similarity. Does the ranking match your intuition about the
+        words?</li>
+    <li>A query vector $q = [0.9, 0.4]$ arrives. Compute its score against each of the
+        three keys, then apply softmax with no scaling. Which word does it attend to
+        most?</li>
+    <li>Now scale $q$ up to $[9, 4]$ — same direction, ten times longer. Recompute the
+        softmax. What happened, and which part of the attention formula exists to
+        prevent it?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $\|cat\| = \sqrt{1 + 0} = 1$;
+    $\|dog\| = \sqrt{0.64 + 0.36} = 1$; $\|idea\| = \sqrt{0.36 + 0.64} = 1$ ✓.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">cat · dog  = (1.0)(0.8) + (0.0)(0.6)  =  0.80
+cat · idea = (1.0)(−0.6) + (0.0)(0.8) = −0.60
+dog · idea = (0.8)(−0.6) + (0.6)(0.8) =  0.00</div>
+    <p><strong>3.</strong> cat–dog (0.80) &gt; dog–idea (0.00) &gt; cat–idea (−0.60).
+    Two concrete animals are similar; "idea" is perpendicular to "dog" (unrelated) and
+    points away from "cat" (actively opposed). This is what a learned embedding space
+    does — arrange vectors so that the dot product reports semantic similarity — and it
+    is why <em>every</em> attention score is a dot product.</p>
+    <p><strong>4.</strong></p>
+    <div class="given">q · cat  = (0.9)(1.0) + (0.4)(0.0)  = 0.90
+q · dog  = (0.9)(0.8) + (0.4)(0.6)  = 0.96
+q · idea = (0.9)(−0.6) + (0.4)(0.8) = −0.22
+
+e^0.90 = 2.460   e^0.96 = 2.612   e^{−0.22} = 0.803
+sum = 5.875
+
+softmax = [0.419, 0.445, 0.137]</div>
+    <p>It attends most to <strong>dog</strong>, but only just — 0.445 against 0.419.
+    The distribution is soft, which means gradients flow to all three.</p>
+    <p><strong>5.</strong> Scaling $q$ by 10 multiplies every score by 10:
+    $[9.0, 9.6, -2.2]$.</p>
+    <div class="given">e^9.0 = 8103    e^9.6 = 14765    e^{−2.2} = 0.111
+sum = 22868
+
+softmax = [0.354, 0.646, 0.0000049]</div>
+    <p>The <em>direction</em> of $q$ has not changed at all, so the ranking is
+    identical — but the distribution has become far peakier, and "idea" has been
+    annihilated to five parts in a million. Push the scaling further and the row goes
+    fully one-hot, at which point the softmax gradient is ~0 and the layer stops
+    learning entirely.</p>
+    <p>This is exactly what the <strong>$1/\sqrt{d_k}$ factor</strong> in
+    $\operatorname{softmax}(QK^\top/\sqrt{d_k})V$ prevents. Dot-product magnitude grows
+    with dimension — $\operatorname{Var}(q\cdot k) = d_k$ for unit-variance components —
+    so without the correction, simply making your model wider would saturate every
+    attention layer in it. See <a class="xref" href="#ch06">Chapter 06</a>.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.3 · the chain rule as backpropagation</span>
   <p>
   A one-neuron network, computed forwards and then backwards. This is a complete
   training step in miniature.
@@ -899,7 +966,7 @@ new L = −ln(0.849) = 0.164        was 0.288  ✓ decreased</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.3 · summing over paths</span>
+  <span class="box-label">By hand — exercise 00.4 · summing over paths</span>
   <p>
   A parameter used twice — the case that explains PyTorch's gradient accumulation.
   </p>
@@ -944,7 +1011,62 @@ path 2:      1 × 3 =  3
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.4 · binary cross-entropy on a batch</span>
+  <span class="box-label">By hand — exercise 00.5 · gradient descent, and the learning rate</span>
+  <p>Minimise $\mathcal{L}(w) = (w-4)^2$, starting from $w_0 = 1$.</p>
+  <ol>
+    <li>Write $d\mathcal{L}/dw$. What is it at $w = 1$?</li>
+    <li>Take three steps at $\eta = 0.1$, tabulating $w$ and $\mathcal{L}(w)$ each time.
+        Is the step size growing or shrinking, and why?</li>
+    <li>Take one step at $\eta = 1.0$. Where do you land, and what is the loss?</li>
+    <li>Take one step at $\eta = 1.5$, then a second. Describe the pattern.</li>
+    <li>Solve for the exact value of $\eta$ at which a step overshoots the minimum by
+        precisely as much as it started away from it — the boundary between converging
+        and diverging.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $d\mathcal{L}/dw = 2(w-4)$, which at $w=1$ is
+    $2(-3) = \mathbf{-6}$. Negative, so $w$ should increase — correct, since the
+    minimum is at 4.</p>
+    <p><strong>2.</strong> Each step is $w \leftarrow w - 0.1 \cdot 2(w-4)$:</p>
+    <div class="given">step  w        dL/dw     Δw = −η·grad    L(w)
+ 0    1.000    −6.000                    9.000
+ 1    1.600    −4.800    +0.600          5.760
+ 2    2.080    −3.840    +0.480          3.686
+ 3    2.464    −3.072    +0.384          2.359</div>
+    <p>The steps <strong>shrink</strong> (0.600 → 0.480 → 0.384), because the gradient
+    itself shrinks as $w$ approaches the minimum. Gradient descent slows down
+    automatically near an optimum — no schedule required. Note also that each step is
+    exactly 0.8× the previous one: the update is
+    $w_{t+1} - 4 = (1 - 2\eta)(w_t - 4)$, a geometric sequence with ratio
+    $1 - 2\eta = 0.8$.</p>
+    <p><strong>3.</strong> At $\eta = 1.0$: $w = 1 - 1.0(-6) = \mathbf{7}$, and
+    $\mathcal{L}(7) = 9$ — the <em>same loss it started with</em>, on the opposite side.
+    The ratio is $1 - 2(1.0) = -1$: it will oscillate between 1 and 7 forever, never
+    converging and never diverging.</p>
+    <p><strong>4.</strong> At $\eta = 1.5$, ratio $= 1 - 3 = -2$:</p>
+    <div class="given">w₀ = 1   (distance 3 from the optimum)   L = 9
+w₁ = 1 − 1.5(−6) = 10   (distance 6)          L = 36
+w₂ = 10 − 1.5(12) = −8  (distance 12)         L = 144</div>
+    <p>The distance <em>doubles</em> every step and the loss quadruples. Within ten
+    steps you are at $|w| \approx 3000$ and heading for <code>inf</code>, then
+    <code>nan</code>. This is what a loss that explodes in the first few iterations
+    looks like, and nothing about the problem is wrong — only $\eta$.</p>
+    <p><strong>5.</strong> From the recurrence above, the step preserves the distance
+    exactly when $|1 - 2\eta| = 1$, i.e. $\eta = 1$ (part 3). Convergence requires
+    $|1-2\eta| &lt; 1$, so $\mathbf{0 &lt; \eta &lt; 1}$, with the fastest possible
+    convergence at $\eta = 0.5$ where $1-2\eta = 0$ and a <em>single</em> step lands
+    exactly on the minimum.</p>
+    <p>The general result is that stable convergence needs $\eta &lt; 2/L$ where $L$ is
+    the curvature (here $\mathcal{L}'' = 2$, giving $\eta < 1$ ✓). Real loss surfaces
+    have wildly different curvature in different directions, and that is precisely the
+    problem <a class="xref" href="#ch02">Adam</a> solves by giving each parameter its
+    own effective step size.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.6 · binary cross-entropy on a batch</span>
   <div class="given">example   true y    predicted ŷ
    1         1         0.9
    2         0         0.2
@@ -978,7 +1100,7 @@ batch loss = (0.105 + 0.223 + 0.916)/3 = 1.244/3 = 0.415</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.5 · softmax, cross-entropy, and its gradient</span>
+  <span class="box-label">By hand — exercise 00.7 · softmax, cross-entropy, and its gradient</span>
   <div class="given">z = [2.0, 1.0, 0.0]        true class c = 1 (the middle one)
 
 e⁰ = 1.000    e¹ = 2.718    e² = 7.389</div>
@@ -1022,7 +1144,7 @@ e⁰ = 1.000    e¹ = 2.718    e² = 7.389</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.6 · entropy, cross-entropy, and KL</span>
+  <span class="box-label">By hand — exercise 00.8 · entropy, cross-entropy, and KL</span>
   <p>
   A weather model claims rain with probability $q = 0.25$ every day. It actually rains
   half the time, $p = 0.5$. Work in bits, with $\log_2 3 \approx 1.585$.
@@ -1064,7 +1186,7 @@ e⁰ = 1.000    e¹ = 2.718    e² = 7.389</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.7 · choosing the loss</span>
+  <span class="box-label">By hand — exercise 00.9 · choosing the loss</span>
   <p>No arithmetic. For each, name the loss and justify it from the distribution.</p>
   <ol>
     <li>Predicting apartment rents, where 2% of the dataset is luxury penthouses at
