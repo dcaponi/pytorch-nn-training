@@ -53,6 +53,30 @@ because it is what every deep network is doing at every layer.
   extra layer buys you nothing at all.
 </div>
 
+<div class="box example">
+  <span class="box-label">Example — watching the fold happen</span>
+  <p>
+  Take two hidden units with these weights, and push all four XOR inputs through
+  them. Unit 1 fires on "at least one input is on"; unit 2 fires on "both are on".
+  </p>
+  <div class="given">unit 1:  z = 20x₁ + 20x₂ − 10        unit 2:  z = 20x₁ + 20x₂ − 30
+
+ x₁ x₂ │  z₁    a₁=σ(z₁) │  z₂    a₂=σ(z₂) │  y
+ ──────┼─────────────────┼─────────────────┼────
+  0  0 │ −10     0.00    │ −30     0.00    │  0
+  0  1 │  10     1.00    │ −10     0.00    │  1
+  1  0 │  10     1.00    │ −10     0.00    │  1
+  1  1 │  30     1.00    │  10     1.00    │  0</div>
+  <p style="margin-bottom:0">
+  In the original coordinates the two classes sit on opposite diagonals and no line
+  separates them. In the new $(a_1, a_2)$ coordinates the three distinct points are
+  $(0,0)$ for label 0, $(1,0)$ for label 1, and $(1,1)$ for label 0 — and the line
+  $a_1 - a_2 = 0.5$ separates them cleanly. The hidden layer did not classify
+  anything; it <strong>moved the points</strong> until a straight line sufficed. That
+  is what every hidden layer in every network is doing.
+  </p>
+</div>
+
 <h2>Architecture and shapes</h2>
 
 <p>

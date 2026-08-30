@@ -1,0 +1,235 @@
+<section class="chapter" id="appendix">
+
+<p class="chapter-meta">Back matter</p>
+<h1>Appendix</h1>
+
+<p class="lede">
+Reference material, collected so it is in one place: notation, tensor-shape
+conventions, a glossary, the failure modes you will actually hit, and the
+Apple-silicon specifics that this curriculum depends on.
+</p>
+
+<h2>Notation</h2>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Symbol</th><th>Meaning</th><th>In code</th></tr></thead>
+  <tbody>
+    <tr><td>$x$, $\mathbf{x}$, $X$</td><td>scalar, vector, matrix/batch</td><td><code>x</code>, <code>X</code></td></tr>
+    <tr><td>$W$, $b$</td><td>weight matrix, bias vector</td><td><code>layer.weight</code>, <code>layer.bias</code></td></tr>
+    <tr><td>$z$</td><td>pre-activation, "logit": $z = Wx + b$</td><td><code>logits</code>, <code>z</code></td></tr>
+    <tr><td>$a$, $h$</td><td>post-activation, hidden state</td><td><code>a</code>, <code>h</code></td></tr>
+    <tr><td>$\hat{y}$</td><td>prediction</td><td><code>pred</code>, <code>out</code></td></tr>
+    <tr><td>$y$</td><td>ground-truth target</td><td><code>y</code>, <code>target</code></td></tr>
+    <tr><td>$\mathcal{L}$</td><td>loss (always a scalar)</td><td><code>loss</code></td></tr>
+    <tr><td>$\delta$</td><td>$\partial\mathcal{L}/\partial z$ at a layer</td><td>—  (autograd holds it)</td></tr>
+    <tr><td>$\eta$</td><td>learning rate</td><td><code>lr</code></td></tr>
+    <tr><td>$\sigma(\cdot)$</td><td>sigmoid</td><td><code>torch.sigmoid</code></td></tr>
+    <tr><td>$\odot$</td><td>elementwise (Hadamard) product</td><td><code>a * b</code></td></tr>
+    <tr><td>$A^\top$</td><td>transpose</td><td><code>A.T</code>, <code>A.transpose(0,1)</code></td></tr>
+    <tr><td>$\|\mathbf{a}\|$</td><td>Euclidean norm</td><td><code>a.norm()</code></td></tr>
+    <tr><td>$\nabla f$</td><td>gradient (vector of partials)</td><td><code>p.grad</code></td></tr>
+    <tr><td>$Q, K, V$</td><td>queries, keys, values</td><td><code>q, k, v</code></td></tr>
+    <tr><td>$d_k$</td><td>per-head key/query dimension</td><td><code>self.d_k</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Tensor shapes</h2>
+
+<p>
+The batch dimension is always first and always passes through untouched. Layers
+transform features, never the batch.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Letter</th><th>Dimension</th><th>Typical</th></tr></thead>
+  <tbody>
+    <tr><td>$B$</td><td>batch size</td><td>32–128</td></tr>
+    <tr><td>$L$, $T$, $S$</td><td>sequence length (input / target / source)</td><td>16–512</td></tr>
+    <tr><td>$C$, $d$</td><td>channels / features / model width</td><td>64–768</td></tr>
+    <tr><td>$V$</td><td>vocabulary size</td><td>60–50,000</td></tr>
+    <tr><td>$H$</td><td>number of attention heads</td><td>4–16</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Shapes through each architecture</h3>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Layer</th><th>In</th><th>Out</th><th>Watch for</th></tr></thead>
+  <tbody>
+    <tr><td><code>nn.Linear(i, o)</code></td><td><span class="shape">(B, …, i)</span></td><td><span class="shape">(B, …, o)</span></td><td>weight is stored <span class="shape">(o, i)</span></td></tr>
+    <tr><td><code>nn.Embedding(V, d)</code></td><td><span class="shape">(B, L)</span> ints</td><td><span class="shape">(B, L, d)</span></td><td>set <code>padding_idx</code></td></tr>
+    <tr><td><code>nn.Conv1d(c, f, k)</code></td><td><span class="shape">(B, c, L)</span></td><td><span class="shape">(B, f, L−k+1)</span></td><td>channels <em>before</em> length — transpose</td></tr>
+    <tr><td><code>nn.LSTM(i, h)</code></td><td><span class="shape">(B, L, i)</span></td><td><span class="shape">(B, L, h)</span>, $(h_n, c_n)$</td><td>needs <code>batch_first=True</code></td></tr>
+    <tr><td>Multi-head attention</td><td><span class="shape">(B, L, d)</span></td><td><span class="shape">(B, L, d)</span></td><td>internally <span class="shape">(B, H, L, d/H)</span></td></tr>
+    <tr><td>Attention weights</td><td>—</td><td><span class="shape">(B, H, L, L)</span></td><td>quadratic in $L$ — the memory hog</td></tr>
+    <tr><td><code>nn.LayerNorm(d)</code></td><td><span class="shape">(…, d)</span></td><td><span class="shape">(…, d)</span></td><td>normalises the last dim only</td></tr>
+    <tr><td><code>CrossEntropyLoss</code></td><td><span class="shape">(N, C)</span>, <span class="shape">(N,)</span></td><td>scalar</td><td>reshape sequences to <span class="shape">(B·L, V)</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>The output-size formula</h3>
+
+$$L_{\text{out}} = \left\lfloor\frac{L_{\text{in}} + 2p - k}{s}\right\rfloor + 1$$
+
+<p>
+For padding $p$, kernel $k$, stride $s$. With $p = 0$, $s = 1$ it is $L - k + 1$.
+Setting $p = (k-1)/2$ with odd $k$ and $s = 1$ preserves length exactly — "same"
+padding.
+</p>
+
+<h2>Glossary</h2>
+
+<div class="table-wrap">
+<table>
+  <tbody>
+    <tr><td><strong>Autograd</strong></td><td>PyTorch's automatic differentiation. Records operations into a graph during the forward pass, traverses it in reverse on <code>backward()</code>. <a class="xref" href="#ch02">Ch. 02</a></td></tr>
+    <tr><td><strong>Backpropagation</strong></td><td>The chain rule applied layer by layer, caching intermediate results. Not a separate algorithm from the chain rule. <a class="xref" href="#ch01">Ch. 01</a></td></tr>
+    <tr><td><strong>BLEU</strong></td><td>$n$-gram overlap metric for translation, with a brevity penalty. Blunt but comparable. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
+    <tr><td><strong>Broadcasting</strong></td><td>Automatic stretching of size-1 dimensions to match. Convenient; a rich source of silent bugs. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
+    <tr><td><strong>Causal mask</strong></td><td>Upper-triangular $-\infty$ added before the softmax so position $t$ cannot see the future. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
+    <tr><td><strong>Cross-attention</strong></td><td>Q from the decoder, K and V from encoder memory. The bridge in a seq2seq model. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
+    <tr><td><strong>Cross-entropy</strong></td><td>$-\sum p\log q$; the negative log-likelihood of a categorical model. <a class="xref" href="#ch00-cross-entropy">Ch. 00</a></td></tr>
+    <tr><td><strong>Dropout</strong></td><td>Randomly zero activations during training, scaling survivors. Off at eval. <a class="xref" href="#ch03">Ch. 03</a></td></tr>
+    <tr><td><strong>Embedding</strong></td><td>Learned dense vector per token; a lookup table equivalent to a linear layer on a one-hot. <a class="xref" href="#ch03">Ch. 03</a></td></tr>
+    <tr><td><strong>Exposure bias</strong></td><td>A model trained on perfect prefixes has never seen its own mistakes and cannot recover from them. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
+    <tr><td><strong>Gradient clipping</strong></td><td>Rescale the gradient vector if its norm exceeds a threshold. Fixes explosion, not vanishing. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
+    <tr><td><strong>KV cache</strong></td><td>Stored keys and values so each generation step processes one token instead of $t$. <a class="xref" href="#ch10-kv-cache">Ch. 10</a></td></tr>
+    <tr><td><strong>Layer norm</strong></td><td>Normalise across features within one token. Batch-size independent, unlike batch norm. <a class="xref" href="#ch07">Ch. 07</a></td></tr>
+    <tr><td><strong>Logit</strong></td><td>A raw unbounded score before softmax or sigmoid. Pass these to the loss, not probabilities. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
+    <tr><td><strong>LoRA</strong></td><td>Freeze $W$, train a low-rank $BA$ alongside it. $B$ starts at zero. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
+    <tr><td><strong>Nucleus (top-p)</strong></td><td>Sample from the smallest set of tokens whose cumulative probability exceeds $p$. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
+    <tr><td><strong>Perplexity</strong></td><td>$e^{\mathcal{L}}$: the effective number of choices the model is deciding between. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
+    <tr><td><strong>Positional encoding</strong></td><td>Position information added to embeddings, because attention is order-blind. <a class="xref" href="#ch07">Ch. 07</a></td></tr>
+    <tr><td><strong>Pre-norm / post-norm</strong></td><td>Whether LayerNorm sits inside or outside the residual path. Pre-norm trains deeper, more stably. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
+    <tr><td><strong>Quantization</strong></td><td>Representing weights on a coarse integer grid. Error is bounded by half the step size. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
+    <tr><td><strong>Residual connection</strong></td><td>$x + F(x)$. Gives gradients an unobstructed additive path to every layer. <a class="xref" href="#ch07">Ch. 07</a></td></tr>
+    <tr><td><strong>Softmax</strong></td><td>Logits to a distribution. Invariant to adding a constant — which is why you subtract the max. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
+    <tr><td><strong>Teacher forcing</strong></td><td>Feed the ground-truth prefix during training rather than the model's own output. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
+    <tr><td><strong>Temperature</strong></td><td>Divide logits before softmax: below 1 sharpens, above 1 flattens. Never changes the ranking. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
+    <tr><td><strong>Vanishing gradient</strong></td><td>A product of many sub-1 factors decaying geometrically with depth or time. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
+    <tr><td><strong>Weight tying</strong></td><td>Sharing the embedding matrix with the output head. Saves parameters, usually improves quality. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Debugging: symptom to cause</h2>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Symptom</th><th>Likely cause</th><th>First thing to try</th></tr></thead>
+  <tbody>
+    <tr><td><code>nan</code> at step 1–5</td><td>learning rate too high</td><td>drop it 10×</td></tr>
+    <tr><td><code>nan</code> later</td><td>exploding gradients; $\log 0$</td><td><code>clip_grad_norm_</code>; clip probabilities</td></tr>
+    <tr><td><code>nan</code> in attention only</td><td>a fully-masked row</td><td>check for empty/all-pad sequences</td></tr>
+    <tr><td>Loss stuck at $\ln(K)$</td><td>no gradient reaching the weights</td><td>print <code>p.grad.norm()</code></td></tr>
+    <tr><td>Loss decreases then plateaus high</td><td>underfitting, or bad lr</td><td>overfit 8 examples first</td></tr>
+    <tr><td>Train ↓, val ↑</td><td>overfitting</td><td>best-checkpoint restore, then regularise</td></tr>
+    <tr><td>Val better than train</td><td>dropout left on at eval</td><td><code>model.eval()</code></td></tr>
+    <tr><td>Loss near zero in 2 epochs, output garbage</td><td>missing teacher-forcing shift</td><td>check <code>tgt[:, :-1]</code> / <code>tgt[:, 1:]</code></td></tr>
+    <tr><td>Great val, poor in the wild</td><td>train/test leakage</td><td>rebuild the vocabulary from train only</td></tr>
+    <tr><td>Generation loops forever</td><td>greedy decoding; <code>&lt;EOS&gt;</code> never learned</td><td>sample with top-p; check EOS is in targets</td></tr>
+    <tr><td>Output fluent then suddenly garbage</td><td>ran past <code>block_size</code></td><td>see the MPS note below</td></tr>
+    <tr><td>Out of memory at long sequences</td><td>the $L^2$ attention matrix</td><td>shorten the sequence — it is a quadratic saving</td></tr>
+    <tr><td>Results differ every run</td><td>normal seed variance</td><td>three seeds, report the deviation</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Apple silicon notes</h2>
+
+<p>
+Everything in this curriculum was built for and runs on an M4 MacBook Air with 24 GB
+of unified memory. The specifics below all cost time to discover.
+</p>
+
+<div class="box warn">
+  <span class="box-label">MPS silently returns zeros for out-of-range embedding indices</span>
+  <p>
+  This is the sharpest edge in the backend, and it produced a real bug while writing
+  Chapter 10 — cached generation ran past <code>block_size</code>, so
+  <code>pos_emb</code> was indexed out of range.
+  </p>
+<pre><code class="language-python">e = nn.Embedding(128, 8)
+e(torch.tensor([200]))                            # cpu : IndexError
+e.to('mps')(torch.tensor([200], device='mps'))    # mps : a row of zeros</code></pre>
+  <p style="margin-bottom:0">
+  The model kept running with a zero position embedding and produced fluent text for
+  a hundred tokens before collapsing into noise. No error, no warning, and nothing in
+  the loss because it happens at inference time. <strong>When MPS output looks wrong
+  in a way CPU output does not, re-run on CPU</strong> — it is the fastest way to turn
+  a silent corruption into a stack trace.
+  </p>
+</div>
+
+<ul>
+  <li><strong>float64 is unsupported.</strong> A stray
+      <code>dtype=torch.float64</code> fails on transfer to MPS. Default to float32.</li>
+  <li><strong>Time it properly.</strong> MPS is asynchronous, so wall-clock timing
+      around a forward pass measures queueing, not work. Call
+      <code>torch.mps.synchronize()</code> before stopping the clock.</li>
+  <li><strong>MPS can be slower than CPU on tiny models.</strong> Kernel-launch
+      overhead dominates when there are only a handful of examples. The benefit
+      appears from <a class="xref" href="#ch03">Chapter 03</a> onwards.</li>
+  <li><strong>Watch for silent CPU fallback.</strong> With
+      <code>PYTORCH_ENABLE_MPS_FALLBACK=1</code> an unsupported op runs on CPU —
+      correct, but each occurrence forces a synchronisation. One such op in an inner
+      loop can cost more than everything else combined.</li>
+  <li><strong><code>num_workers=0</code> is often fastest in notebooks.</strong> macOS
+      spawns rather than forks, so each worker re-imports your module.</li>
+  <li><strong><code>pin_memory=True</code> does nothing useful</strong> on unified
+      memory.</li>
+  <li><strong><code>torch.compile</code> is not worth it here.</strong> MPS support
+      lags CUDA, and at these model sizes it usually costs more in compile time than
+      it returns.</li>
+</ul>
+
+<h2>Rules of thumb</h2>
+
+<div class="table-wrap">
+<table>
+  <tbody>
+    <tr><td>Initial loss</td><td>should be $\approx \ln(\text{n classes})$</td></tr>
+    <tr><td>Training memory</td><td>16 bytes per parameter with Adam in fp32</td></tr>
+    <tr><td>Inference memory</td><td>4 (fp32) / 2 (fp16) / 0.5 (int4) bytes per parameter</td></tr>
+    <tr><td>Adam learning rate</td><td>1e-3 for small models; 1e-4–3e-4 for transformers, with warmup</td></tr>
+    <tr><td>Transformer FFN width</td><td>$4 \times d_{\text{model}}$</td></tr>
+    <tr><td>Attention heads</td><td>8 or 16; free in parameters, nearly free in compute</td></tr>
+    <tr><td>Gradient clipping</td><td><code>max_norm=1.0</code> for any sequence model</td></tr>
+    <tr><td>Sampling defaults</td><td>temperature 0.8, top-p 0.9</td></tr>
+    <tr><td>LoRA rank</td><td>4–8 covers most adaptation; higher buys little</td></tr>
+    <tr><td>Quantization</td><td>8-bit is free; 4-bit per-channel is usable; below that, per-tensor collapses</td></tr>
+    <tr><td>Seeds before believing a result</td><td>three, minimum</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>About this book</h2>
+
+<p>
+Built from per-chapter HTML fragments in <code>book/chapters/</code> by
+<code>book/build.py</code>, a standard-library-only script that concatenates them,
+assigns stable heading anchors, checks every cross-reference, and highlights the
+code blocks. Mathematics is rendered by a vendored copy of KaTeX, so nothing here
+needs a network connection. The interactive figures are hand-written canvas widgets
+in <code>book/book.js</code>, each computing the same arithmetic as the text beside
+it — nothing is drawn to look convincing.
+</p>
+
+<pre><code class="language-python">python3 book/build.py           # rebuild book/index.html
+python3 book/build.py --check   # validate fragments and cross-references only</code></pre>
+
+<p>
+To add or edit a chapter, change a file in <code>book/chapters/</code> and rebuild.
+Filenames sort into reading order; each fragment is one
+<code>&lt;section class="chapter" id="…"&gt;</code> with an <code>&lt;h1&gt;</code>.
+Headings without an explicit <code>id</code> get a stable generated one, so
+cross-references between chapters do not go stale when you rewrite a heading.
+</p>
+
+</section>

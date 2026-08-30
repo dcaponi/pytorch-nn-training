@@ -75,6 +75,27 @@ renormalise to sum to 1.
   and it is the reason transformers train orders of magnitude faster than RNNs.
 </div>
 
+<div class="box example">
+  <span class="box-label">Example — counting the forward passes</span>
+  <div class="given">A batch of 64 sentences, each 18 tokens long.
+
+WITHOUT masking you would have to run the decoder once per output
+position, feeding it a progressively longer prefix each time:
+    18 sequential forward passes per batch.
+
+WITH the causal mask, all 18 positions go through in ONE pass. Row t
+of the attention matrix sees exactly tokens 1..t — the same prefix
+that pass number t would have supplied.
+
+    64 × 18 = 1,152 supervised predictions, one forward pass.</div>
+  <p style="margin-bottom:0">
+  The mask is not a restriction bolted onto attention; it is the device that lets a
+  fundamentally sequential objective be computed in parallel. Generation is still
+  sequential and always will be — but <em>training</em>, which is where the compute
+  goes, is not.
+  </p>
+</div>
+
 <h2>Cross-attention</h2>
 
 <p>

@@ -97,6 +97,28 @@ layer, however deep the stack.
   specific to recurrence.
 </div>
 
+<div class="box example">
+  <span class="box-label">Example — 24 layers, with and without the skip</span>
+  <p>
+  Suppose each sub-layer's Jacobian has typical magnitude $f' = 0.8$ — not a
+  pathological value, just slightly contractive.
+  </p>
+  <div class="given">WITHOUT residuals:  the gradient scales as  0.8²⁴ = 0.0047
+                    layer 1 receives 0.5% of the signal.
+
+WITH residuals:     each factor is (1 + f′) instead of f′.
+                    Even if every f′ were exactly 0, the product of
+                    the 1-terms is 1 — layer 1 still receives 100%.</div>
+  <p style="margin-bottom:0">
+  The point is not the exact arithmetic but the structure: the additive term makes
+  <strong>1 the floor rather than the ceiling</strong>. Without it, depth multiplies
+  the signal away; with it, depth cannot starve any layer. This is why networks
+  stalled around 20 layers before residual connections and went past 150 immediately
+  after, with nothing else about the training changed.
+  </p>
+</div>
+
+
 <p>
 There is a second reading. Each sub-layer computes a <em>correction</em> to the running
 representation rather than replacing it. A block that has learned nothing useful can output

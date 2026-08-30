@@ -1,0 +1,229 @@
+<section class="chapter" id="ch12">
+
+<p class="chapter-meta">Chapter 12 · notebook <code>12_capstone_projects</code></p>
+<h1>Capstone Projects</h1>
+
+<p class="lede">
+Every chapter so far handed you an architecture and asked you to complete it. This
+one gives you four specifications and no solutions. The gap between "I finished the
+tutorial" and "I can build this" is exactly the gap these projects exist to close.
+</p>
+
+<h2>How to choose, and how to scope</h2>
+
+<p>
+Pick <strong>one</strong> and finish it properly. A completed translator teaches more
+than four half-built prototypes, because the last 20% — evaluation, error analysis,
+the honest write-up — is where the learning that survives actually happens.
+</p>
+
+<p>
+Each project below has a <strong>minimum viable version</strong> and a set of
+extensions. Get the minimum working end to end before touching an extension. This is
+not merely good discipline: a working baseline is the only thing that lets you tell
+whether an extension helped.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept — scoping</span>
+  <p>
+  The most common way these projects fail is not difficulty. It is building three
+  components, never connecting them, and having nothing to show. Build the ugliest
+  possible end-to-end pipeline first — hard-coded hyperparameters, a tiny subset of
+  the data, no evaluation — and get one bad output out of the far end. Then improve
+  it.
+  </p>
+  <p style="margin-bottom:0">
+  A specific version of this for anything that generates: get <em>one</em> sequence
+  out, however terrible, before you tune anything. Generation bugs (the teacher-forcing
+  shift, an <code>&lt;EOS&gt;</code> that never fires, an off-by-one in position
+  indexing) hide completely behind a good-looking loss curve, and finding them after
+  a long training run is dispiriting.
+  </p>
+</div>
+
+<h2>Project 1 — A translator</h2>
+
+<p><em>Builds on <a class="xref" href="#ch06">06</a>,
+<a class="xref" href="#ch07">07</a>, <a class="xref" href="#ch09">09</a>.</em></p>
+
+<p>
+Beat the Chapter 09 baseline on English→French, and be able to say why with a number
+rather than an impression. The minimum is an encoder–decoder transformer trained with
+teacher forcing, greedy decoding, and a corpus BLEU score against a held-out set.
+</p>
+
+<p>
+The highest-value extensions, roughly in order: <strong>beam search</strong> (worth
+1–3 BLEU, and remember length normalisation or the model will prefer short outputs);
+<strong>subword tokenisation</strong>, which attacks the real problem — a word-level
+vocabulary produces endless <code>&lt;UNK&gt;</code>s on French morphology;
+<strong>label smoothing</strong> at 0.1, standard in translation for a reason; and
+<strong>length bucketing</strong> from <a class="xref" href="#ch08-padding">Chapter
+08</a>, which is free speed.
+</p>
+
+<p>
+Expect overfitting — the filtered corpus is under 10,000 pairs — so use
+best-checkpoint restore from the first run rather than adding it after you notice.
+</p>
+
+<h2>Project 2 — A text generator</h2>
+
+<p><em>Builds on <a class="xref" href="#ch04">04</a>,
+<a class="xref" href="#ch10">10</a>.</em></p>
+
+<p>
+Train a language model on an author of your choice and generate text recognisably in
+their style. The minimum is a decoder-only transformer, a recorded validation
+perplexity, and four sampling configurations compared side by side.
+</p>
+
+<p>
+The character-versus-word decision is the first real judgement call, and the notebook
+gives you a corpus survey to make it on. Under about 200k characters, word-level
+vocabularies overfit almost immediately; over about 1M, word-level trains much faster
+because each token carries more information.
+</p>
+
+<div class="box note">
+  <span class="box-label">Evaluating a generator honestly</span>
+  Perplexity measures next-token prediction, not quality — a model can have excellent
+  perplexity and generate tedious text, and the two come apart most at exactly the
+  settings you would want to ship. Use three signals together: perplexity for
+  calibration, <code>distinct_n</code> for repetition, and your own reading of twenty
+  samples. The third is not optional and cannot be automated away.
+</div>
+
+<h2>Project 3 — A domain-adapted assistant</h2>
+
+<p><em>Builds on <a class="xref" href="#ch10">10</a>,
+<a class="xref" href="#ch11">11</a>.</em></p>
+
+<p>
+Train one base model, then produce several specialised variants as LoRA adapters, and
+demonstrate hot-swapping: load the base once, attach adapter A, generate, detach,
+attach adapter B. This is how adapter-based deployment actually works, and building
+it once makes the whole approach concrete in a way reading about it does not.
+</p>
+
+<p>
+One design decision matters more than the rest: <strong>train the base on a corpus
+outside all three target domains</strong>. Training the base on the same data you
+adapt to makes the adapters look better than they are, and the notebook suggests a
+neutral corpus for exactly this reason.
+</p>
+
+<p>
+The most interesting extension is the <strong>forgetting matrix</strong> — every
+adapter's perplexity on every domain, including the ones it was not trained on. It
+makes catastrophic forgetting visible as a number rather than a warning, and it is
+the clearest justification for keeping adapters separate rather than merging them.
+</p>
+
+<div class="box concept">
+  <span class="box-label">The question worth sitting with</span>
+  An adapter is a few hundred kilobytes against a multi-megabyte base. If a full
+  fine-tune stores an entire model per task and LoRA stores a rounding error, what
+  exactly is in those few hundred kilobytes — and why is it enough? The honest answer
+  connects back to <a class="xref" href="#ch11">Chapter 11</a>'s rank sweep: almost
+  all of what the model knows is already in the base, and adaptation is a small
+  low-rank rotation of capabilities it already has.
+</div>
+
+<h2>Project 4 — An architecture bake-off</h2>
+
+<p><em>Builds on <a class="xref" href="#ch03">03</a>–<a class="xref" href="#ch07">07</a>.</em></p>
+
+<p>
+Compare CNN, LSTM, and transformer on one task under conditions fair enough that the
+result means something. This project is not technically the hardest; it is the most
+demanding about rigour, and that is the point.
+</p>
+
+<p>
+Two requirements make it worth doing. <strong>Matched parameter counts</strong> —
+within about 10% — because otherwise you are comparing capacity, not architecture,
+and the notebook provides a binary-search helper for exactly this. And
+<strong>three random seeds</strong> with the standard deviation reported.
+</p>
+
+<div class="box warn">
+  <span class="box-label">Why three seeds is the minimum</span>
+  On 2,000 movie reviews, seed variance alone is often ±2% accuracy. If architecture
+  A beats B by 1% on a single run, you have measured noise and written it up as a
+  finding. This is not a hypothetical failure — it is the single most common flaw in
+  informal ML comparisons, and it is nearly free to avoid.
+</div>
+
+<p>
+The most instructive extension is the <strong>learning-curve study</strong>: retrain
+each architecture at 10%, 25%, 50%, and 100% of the training data. The ranking will
+probably change with dataset size, and understanding <em>why</em> — the transformer
+has the weakest inductive bias and therefore needs the most data, while the CNN's
+translation invariance is a strong prior that pays off when data is scarce — ties
+together <a class="xref" href="#ch03">Chapter 03</a> and
+<a class="xref" href="#ch07">Chapter 07</a> better than either chapter does alone.
+</p>
+
+<h2>The checklist</h2>
+
+<p>
+Most of the items below are failures that <em>look like successes</em>, which is why
+they are worth checking deliberately rather than trusting that you would notice.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Stage</th><th>Check</th><th>Why it matters</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="3">Data</td><td>Vocabulary built from the training split only</td><td>the classic leak; inflates every number</td></tr>
+    <tr><td>Ten examples decoded from the tensors and read</td><td>catches encoding bugs nothing else will</td></tr>
+    <tr><td><code>&lt;UNK&gt;</code> rate measured</td><td>a high rate caps quality regardless of model</td></tr>
+    <tr><td rowspan="2">Model</td><td>Initial loss ≈ $\ln(\text{n classes})$</td><td>one forward pass; catches bad init</td></tr>
+    <tr><td>Eight examples overfitted to ~zero loss</td><td>proves the pipeline can learn at all</td></tr>
+    <tr><td rowspan="2">Training</td><td>Best checkpoint restored, not the last</td><td>val loss often turns up long before the end</td></tr>
+    <tr><td>Learning rate printed for the first epochs</td><td>schedulers fail silently</td></tr>
+    <tr><td rowspan="3">Evaluation</td><td>Test set touched exactly once</td><td>repeated peeking is slow-motion overfitting</td></tr>
+    <tr><td>Three seeds, standard deviation reported</td><td>otherwise you are reporting noise</td></tr>
+    <tr><td>A baseline to compare against</td><td>"80% accuracy" means nothing alone</td></tr>
+    <tr><td>Reporting</td><td>A statement of what you <em>cannot</em> conclude</td><td>the difference between a result and a claim</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>After this</h2>
+
+<p>
+The curriculum ends here, but the material has obvious continuations, and you are now
+equipped for all of them.
+</p>
+
+<ul>
+  <li><strong>Subword tokenisation.</strong> Implement BPE from scratch — the last
+      major component of a modern language model this curriculum does not build.</li>
+  <li><strong>RLHF and DPO.</strong> How a base language model becomes an assistant.
+      Conceptually distinct from everything here, and the natural sequel to
+      <a class="xref" href="#ch10">Chapter 10</a>.</li>
+  <li><strong>Retrieval augmentation.</strong> Embed a corpus, retrieve by nearest
+      neighbour, condition generation on what you retrieved.</li>
+  <li><strong>MLX.</strong> Apple's array framework, designed around unified memory.
+      Reimplementing Chapter 10's GPT in it is an excellent way to see what PyTorch
+      abstracts away.</li>
+  <li><strong>The papers.</strong> <em>Attention Is All You Need</em> (2017),
+      <em>LoRA</em> (2021), and <em>QLoRA</em> (2023) are all readable now in a way
+      they would not have been before Chapter 00 — you have implemented most of what
+      they describe.</li>
+</ul>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>12_capstone_projects/prompt.ipynb</code>. Unlike every other lesson there
+  is no solution notebook, because there is no single right answer. What it does
+  provide is real, runnable scaffolding: a <code>Vocab</code> class, a generic
+  training loop with warmup, cosine decay, gradient clipping and best-checkpoint
+  restore, BLEU and <code>distinct_n</code> metrics, fixed data splits for each
+  project, and a parameter-matching helper for Project 4. The architecture is yours.
+</div>
+
+</section>

@@ -1,0 +1,463 @@
+<section class="chapter" id="ch11">
+
+<p class="chapter-meta">Chapter 11 · notebook <code>11_quantization_and_lora</code></p>
+<h1>Quantization, LoRA, and Fitting in Memory</h1>
+
+<p class="lede">
+Every chapter so far assumed the model fits. This one is about what to do when it
+does not — and the two techniques here are the reason a laptop can run and adapt
+models it has no business running at all.
+</p>
+
+<h2>The number that decides everything</h2>
+
+<p>
+Before any technique, the arithmetic. Training one parameter with Adam in float32
+costs four tensors:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Tensor</th><th>Bytes per parameter</th></tr></thead>
+  <tbody>
+    <tr><td>weight</td><td>4</td></tr>
+    <tr><td>gradient</td><td>4</td></tr>
+    <tr><td>Adam first moment $m$</td><td>4</td></tr>
+    <tr><td>Adam second moment $v$</td><td>4</td></tr>
+    <tr><td><strong>total</strong></td><td><strong>16</strong></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Sixteen bytes per parameter, plus activations. A one-billion-parameter model needs
+16 GB before a single activation exists. On 24 GB of unified memory shared with the
+operating system, full fine-tuning tops out around a billion parameters with nothing
+else running.
+</p>
+
+<p>
+Inference is a different world: 4 bytes per parameter in fp32, 2 in fp16, 0.5 at
+4-bit. The gap between those two columns is the entire subject of this chapter.
+</p>
+
+<div class="widget" data-widget="memory-budget"></div>
+
+<p>
+Drag the parameter count to 7B and switch between modes. Full fine-tuning is
+hopeless by two orders of magnitude; 4-bit inference is comfortable. Quantization
+plus LoRA is how you get from one to the other.
+</p>
+
+<h2>Quantization</h2>
+
+<p>
+Represent a tensor of floats with a small set of evenly spaced integer levels.
+Symmetric quantization, the simplest scheme:
+</p>
+
+$$s = \frac{\max|W|}{2^{b-1}-1} \qquad q = \operatorname{round}(W/s) \qquad \hat{W} = q\cdot s$$
+
+<div class="box example">
+  <span class="box-label">Example — 8-bit, worked</span>
+  <div class="given">w = [0.00, 0.15, −0.42, 0.98, −0.07, 0.31]
+
+max|w| = 0.98,  and at 8 bits qmax = 2⁷ − 1 = 127
+s = 0.98 / 127 = 0.007717
+
+  w       w/s        q      q·s        error
+  0.00     0.0        0     0.0000     0.0000
+  0.15    19.44      19     0.1466     0.0034
+ −0.42   −54.42     −54    −0.4167     0.0033
+  0.98   127.00     127     0.9800     0.0000
+ −0.07    −9.07      −9    −0.0694     0.0006
+  0.31    40.17      40     0.3087     0.0013
+
+every error is below s/2 = 0.00386  ✓</div>
+  <p style="margin-bottom:0">
+  Six floats (24 bytes) became six int8 values plus one float scale (10 bytes). The
+  largest weight is represented exactly, because it defines the scale.
+  </p>
+</div>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  The error is bounded by $s/2$, and $s$ is set by the single largest magnitude in
+  the tensor. <strong>One outlier weight stretches the grid for every other weight
+  it shares a scale with.</strong> That one sentence motivates essentially every
+  technique in modern quantization research.
+</div>
+
+<div class="widget" data-widget="quantize"></div>
+
+<p>
+Turn the outlier on with a wide clip range and watch the ordinary weights get
+coarser. Turn it off, or clip it, and the error collapses.
+</p>
+
+<h3>Per-channel scales</h3>
+
+<p>
+The direct fix: instead of one scale per tensor, use one per output row. An outlier
+then degrades only its own row.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example — what the overhead actually costs</span>
+  <div class="given">a 4096 × 4096 weight matrix = 16,777,216 weights
+
+per-tensor  : 1 scale     = 4 bytes of metadata
+per-channel : 4096 scales = 16,384 bytes  →  0.1% overhead
+
+In the notebook's 64 × 128 test with one outlier, per-channel cuts RMSE
+by roughly 5x for 256 bytes on 8,192 weights (3% overhead).</div>
+  <p style="margin-bottom:0">
+  A large accuracy gain for essentially nothing, which is why per-channel is the
+  default everywhere. The production refinement of the same idea — keeping a handful
+  of outlier <em>channels</em> in fp16 while quantizing everything else — is
+  LLM.int8().
+  </p>
+</div>
+
+<h3>Where quality actually breaks</h3>
+
+<p>
+The notebook sweeps bit-widths across the whole model and measures validation loss.
+The shape of the result is consistent across models and worth knowing before you
+start tuning:
+</p>
+
+<ul>
+  <li><strong>8-bit</strong> is essentially free. The loss increase is in the third
+      decimal place, and this is why int8 inference is routine rather than
+      remarkable.</li>
+  <li><strong>4-bit per-channel</strong> costs something real but usable — the basis
+      of every "runs on a laptop" quantized model you have seen.</li>
+  <li><strong>Below 4 bits</strong>, per-tensor quantization collapses entirely while
+      per-channel degrades gracefully for another bit or two. The gap between the two
+      schemes widens exactly where you most need it.</li>
+</ul>
+
+<div class="box note">
+  <span class="box-label">Fake quantization</span>
+  The notebook quantizes weights to integers and immediately converts back to float.
+  This measures the <em>accuracy</em> cost exactly — the numerical error is
+  reproduced faithfully — while delivering neither of the practical benefits, since
+  the tensors are still float32 and the arithmetic is still float32. Getting real
+  memory and speed savings needs integer kernels that keep weights packed
+  (<code>torch.ao.quantization</code>, GGML, MLX). Fake quantization is the standard
+  way to answer "is this worth doing?" before doing the engineering, and it is what
+  research papers report.
+</div>
+
+<h2>LoRA</h2>
+
+<p>
+Fine-tuning computes $W' = W + \Delta W$, where $\Delta W$ is a full-size matrix.
+LoRA's premise is that $\Delta W$ — the <em>change</em> needed to adapt a pretrained
+model — has far lower intrinsic rank than $W$ itself. So parameterise it as a product
+of two thin matrices:
+</p>
+
+$$W' = W + \frac{\alpha}{r}BA \qquad B \in \mathbb{R}^{d\times r},\ A \in \mathbb{R}^{r\times d},\ r \ll d$$
+
+<p>
+Freeze $W$ entirely; train only $A$ and $B$.
+</p>
+
+<div class="widget" data-widget="lora"></div>
+
+<div class="box example">
+  <span class="box-label">Example — the parameter arithmetic</span>
+  <div class="given">d = 4096, r = 8
+
+full fine-tune  : d²    = 16,777,216 parameters per matrix
+LoRA            : 2dr   =     65,536 parameters per matrix
+                            256x fewer
+
+and the optimizer state shrinks by the same factor:
+  full : 16.8M × 12 bytes (grad + m + v) = 201 MB per matrix
+  LoRA :  65k  × 12 bytes                = 786 KB per matrix</div>
+  <p style="margin-bottom:0">
+  That second block is what actually makes this fit in memory. LoRA removes 12 of
+  the 16 bytes per parameter; the weights themselves still have to be stored.
+  </p>
+</div>
+
+<h3>Three details that make it work</h3>
+
+<p>
+<strong>$B$ is initialised to zero.</strong> So $BA = 0$ at step 0 and the adapted
+model is <em>exactly</em> the base model. Fine-tuning starts from the pretrained
+behaviour rather than from a random perturbation of it — which would throw away part
+of what pretraining bought before the first gradient step.
+</p>
+
+<p>
+<strong>$A$ is initialised randomly.</strong> If both were zero, each one's gradient
+would be proportional to the other and both would stay zero forever. Exactly one of
+them may start at zero, and it must be the one on the output side.
+</p>
+
+<p>
+<strong>The $\alpha/r$ scaling</strong> keeps the update magnitude roughly constant
+as $r$ changes, so retuning the rank does not force retuning the learning rate.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  The adapter is a separate, tiny file. The base model never changes, so one copy of
+  it serves every task, and switching task means loading a few hundred kilobytes
+  rather than a few gigabytes. This is why adapter-based deployment won: it turns
+  "one fine-tuned model per customer" from a storage problem into a non-problem.
+</div>
+
+<h3>The rank sweep, and what it tests</h3>
+
+<p>
+LoRA's central claim is empirical, not proven, so it is worth testing. The notebook
+adapts a model trained on Carroll to Shakespeare at ranks 1, 2, 4, 8, 16, and 32,
+and the curve flattens fast — most of the benefit arrives by $r = 4$ or $8$, with
+higher ranks buying little.
+</p>
+
+<p>
+That flattening <em>is</em> the claim: if adaptation genuinely required a full-rank
+update, quality would keep climbing with $r$. It does not, which means the update
+really does live in a low-dimensional subspace.
+</p>
+
+<h3>Catastrophic forgetting</h3>
+
+<p>
+The notebook measures something easy to skip past: after adapting to Shakespeare,
+the model is <em>worse</em> on Alice than it was. Adapting to a new domain costs
+performance on the old one, and this is not a LoRA-specific defect — full
+fine-tuning forgets harder.
+</p>
+
+<p>
+It is, though, a strong argument for keeping adapters as separate swappable files
+rather than merging them permanently. Merged, you have traded one capability for
+another. Kept separate, you have both.
+</p>
+
+<h2>QLoRA: both at once</h2>
+
+<ol>
+  <li>Quantize the frozen base to 4 bits.</li>
+  <li>Keep the LoRA adapters in full precision.</li>
+  <li>Let gradients flow <em>through</em> the quantized weights to the adapters.</li>
+</ol>
+
+<div class="box concept">
+  <span class="box-label">Key concept — why quantizing a frozen base is safe</span>
+  Quantization error in a frozen base is a <strong>fixed bias</strong>: the model is
+  simply a slightly different, slightly worse fixed function, and the adapters train
+  on top of <em>that</em> function and can partly compensate for its errors. In a
+  full fine-tune the weights change every step, so quantization error would be
+  re-introduced at each step and interact with the optimizer state, accumulating
+  rather than staying put. Frozen-and-quantized is stable in a way that
+  trainable-and-quantized is not, and that asymmetry is the whole reason QLoRA works.
+</div>
+
+<p>
+Nothing needs to backpropagate <em>into</em> the quantized values, only through them.
+At the notebook's scale the memory saving is a rounding error; at 7B parameters it is
+28 GB versus 3.5 GB, which is the difference between impossible and routine on the
+machine this curriculum targets.
+</p>
+
+<h2>What actually runs you out of memory</h2>
+
+<p>
+A result from the notebook worth internalising, because it contradicts most people's
+intuition. For a 0.8M-parameter model, activation memory at various sequence lengths:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Sequence length</th><th>Hidden states</th><th>Attention matrices</th><th>Total</th></tr></thead>
+  <tbody>
+    <tr><td>128</td><td>16 MB</td><td>17 MB</td><td>33 MB</td></tr>
+    <tr><td>512</td><td>67 MB</td><td>268 MB</td><td>335 MB</td></tr>
+    <tr><td>2048</td><td>268 MB</td><td>4.3 GB</td><td>4.6 GB</td></tr>
+    <tr><td>4096</td><td>537 MB</td><td>17.2 GB</td><td>17.7 GB</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Hidden states grow linearly; attention grows quadratically and takes over completely.
+At 4096 tokens this <em>0.8-million-parameter</em> model needs more memory than the
+whole machine has — and the model itself is 3 MB. <strong>The parameter count is
+irrelevant to the memory problem.</strong>
+</p>
+
+<p>
+That is why flash attention (which tiles the computation so the $L \times L$ matrix
+is never materialised) and sliding-window attention exist, and why they matter more
+than any weight-compression technique for long-context work.
+</p>
+
+<h2>The rest of the toolkit</h2>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Technique</th><th>Saves</th><th>Costs</th></tr></thead>
+  <tbody>
+    <tr><td>Mixed precision (bf16)</td><td>~50% memory, faster matmuls</td><td>less mature on MPS than CUDA</td></tr>
+    <tr><td>Gradient checkpointing</td><td>activations by ~√N</td><td>~30% extra compute</td></tr>
+    <tr><td>Gradient accumulation</td><td>effective batch size</td><td>wall-clock time</td></tr>
+    <tr><td>Flash attention</td><td>the $L^2$ matrix entirely</td><td>nothing — use it</td></tr>
+    <tr><td>Distillation</td><td>everything, permanently</td><td>a full training run</td></tr>
+    <tr><td>Structured pruning</td><td>real dense speedup</td><td>accuracy, and retraining</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Prefer <code>F.scaled_dot_product_attention</code> over a hand-written attention in
+production code — it dispatches to a flash implementation where one exists. Writing
+it by hand, as <a class="xref" href="#ch06">Chapter 06</a> does, is for
+understanding; shipping it by hand is leaving performance on the table.
+</p>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 11.1 · quantize a vector</span>
+  <div class="given">w = [0.10, −0.30, 0.80, −0.05, 0.45]
+
+Quantize symmetrically to 4 bits, so qmax = 2³ − 1 = 7.</div>
+  <ol>
+    <li>Compute the scale $s$.</li>
+    <li>Compute $q$ for each weight (round to nearest).</li>
+    <li>Dequantize and compute the error on each.</li>
+    <li>Verify every error is at most $s/2$.</li>
+    <li>Now append an outlier of 8.0 and recompute $s$. What is the new
+        quantized value of the <em>original</em> 0.10, and how much worse is its
+        error?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $\max|w| = 0.80$, so $s = 0.80/7 = \mathbf{0.11429}$.</p>
+    <p><strong>2 &amp; 3.</strong></p>
+    <div class="given">   w      w/s      q      q·s       error
+ 0.10    0.875    1     0.1143    0.0143
+−0.30   −2.625   −3    −0.3429    0.0429
+ 0.80    7.000    7     0.8000    0.0000
+−0.05   −0.437    0     0.0000    0.0500
+ 0.45    3.937    4     0.4571    0.0071</div>
+    <p><strong>4.</strong> $s/2 = 0.0571$, and the largest error is 0.0500 ✓. Note
+    that $-0.05$ quantized to <strong>zero</strong> — at 4 bits, small weights vanish
+    entirely. With many such weights this is a real loss of information, and it is one
+    reason 4-bit needs per-channel scales to work at all.</p>
+    <p><strong>5.</strong> With the outlier, $\max|w| = 8.0$ and
+    $s = 8.0/7 = 1.1429$ — <strong>ten times larger</strong>.</p>
+    <div class="given">0.10 / 1.1429 = 0.0875  →  rounds to q = 0  →  ŵ = 0.0000
+error = 0.10, up from 0.0143 — 7x worse
+
+and −0.30, 0.45 also collapse to 0. Four of the five original
+weights are now identically zero.</div>
+    <p>One unrelated weight has destroyed the representation of every other. This is
+    the outlier problem at its most extreme, and it is exactly why per-channel scales
+    (which would isolate the outlier in its own row) are not optional at low
+    bit-widths.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 11.2 · LoRA budgets</span>
+  <p>A transformer with 12 layers, $d_{\text{model}} = 768$. You adapt the four
+  attention projections ($W^Q, W^K, W^V, W^O$) in every layer.</p>
+  <ol>
+    <li>How many parameters are in those projections in total?</li>
+    <li>With LoRA at $r = 8$, how many parameters do you train? What percentage?</li>
+    <li>Compare the optimizer memory (gradient + $m$ + $v$, 12 bytes per trainable
+        parameter) for full fine-tuning versus LoRA.</li>
+    <li>You want to serve 50 customers, each with their own adapter. How much storage
+        for 50 full fine-tunes versus 50 adapters, at 4 bytes per parameter? (Take the
+        full model as 110M parameters.)</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Each projection is $768 \times 768 = 589{,}824$; four per
+    layer over 12 layers:</p>
+    <div class="given">589,824 × 4 × 12 = 28,311,552 ≈ 28.3M parameters</div>
+    <p><strong>2.</strong> Each LoRA pair is $2dr = 2(768)(8) = 12{,}288$:</p>
+    <div class="given">12,288 × 4 × 12 = 589,824 trainable parameters
+589,824 / 28,311,552 = 2.08% of the adapted projections
+589,824 / 110,000,000 = 0.54% of the whole model</div>
+    <p><strong>3.</strong></p>
+    <div class="given">full : 28.3M × 12 bytes = 340 MB
+LoRA : 0.59M × 12 bytes =   7 MB        48x less</div>
+    <p>Note this is only the optimizer state. The frozen weights still occupy their
+    440 MB in fp32, which is what QLoRA then attacks.</p>
+    <p><strong>4.</strong></p>
+    <div class="given">50 full fine-tunes : 50 × 110M × 4 bytes = 22.0 GB
+50 LoRA adapters   : 1 × 110M × 4 = 440 MB (shared base)
+                   + 50 × 0.59M × 4 = 118 MB
+                   = 558 MB                     39x less</div>
+    <p>And the practical difference is larger than the ratio suggests: with adapters
+    the base model stays resident in memory and switching customers costs a 2.4 MB
+    load, whereas 50 full models cannot be held in memory at once and every switch is
+    a 440 MB load. This is the real reason adapter-based serving won.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 11.3 · will it fit?</span>
+  <p>No calculator needed beyond multiplication. You have 17 GB of usable memory.</p>
+  <ol>
+    <li>Can you full fine-tune a 1.5B-parameter model with Adam in fp32?</li>
+    <li>Can you run inference on it in fp16?</li>
+    <li>Can you LoRA fine-tune it with an fp16 frozen base and $r=8$ adapters on 1% of
+        the weights? (Assume activations add 30% of the base weight size.)</li>
+    <li>Which single change buys the most: 4-bit base, gradient checkpointing, or
+        halving the sequence length? State what you would need to know to answer
+        properly.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $1.5\text{B} \times 16 = \mathbf{24\text{ GB}}$ of optimizer
+    state alone, before activations. <strong>No</strong> — and not marginally.</p>
+    <p><strong>2.</strong> $1.5\text{B} \times 2 = 3\text{ GB}$ of weights, plus KV
+    cache and activations, call it 3.5 GB. <strong>Comfortably yes.</strong></p>
+    <p><strong>3.</strong></p>
+    <div class="given">frozen base fp16   : 1.5B × 2      = 3.00 GB
+LoRA weights       : 15M × 4       = 0.06 GB
+LoRA grad + m + v  : 15M × 12      = 0.18 GB
+activations (~30%) :               = 0.90 GB
+                                     ───────
+                                     4.14 GB      yes, easily</div>
+    <p>From 24 GB (impossible) to 4.1 GB (routine), by freezing the base and shrinking
+    the optimizer state.</p>
+    <p><strong>4.</strong> It depends on which term dominates, and you cannot answer
+    without knowing the sequence length and batch size. In part 3 the weights dominate
+    at 3.0 GB against 0.9 GB of activations, so <strong>4-bit</strong> is the best
+    single change (3.0 → 0.75 GB). But at a long sequence length the attention
+    matrices dominate everything — recall the table above, where a 3 MB model needed
+    17 GB of activations at 4096 tokens — and there halving the sequence length gives a
+    <em>quadratic</em> saving that nothing else can match. <strong>Measure before
+    optimising</strong>: the right answer inverts depending on a number you have not
+    been told.</p>
+  </details>
+</div>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>11_quantization_and_lora/prompt.ipynb</code>. You will implement
+  symmetric and per-channel quantization, sweep bit-widths across a trained model,
+  implement <code>LoRALinear</code> and verify its zero-init property, adapt a
+  Carroll-trained model to Shakespeare while training under 2% of its parameters, run
+  a rank sweep, and combine both into QLoRA. Everything is plain PyTorch — no
+  <code>bitsandbytes</code>, no <code>peft</code> — because building it is the point.
+</div>
+
+<div class="box note">
+  <span class="box-label">Where this goes next</span>
+  <a class="xref" href="#ch12">Chapter 12</a> is the end of the curriculum: four
+  open-ended projects with specifications and no solutions, combining everything from
+  Chapter 00 onwards.
+</div>
+
+</section>

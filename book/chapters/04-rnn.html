@@ -34,6 +34,29 @@ per-position parameter to run out of.
   source of both the RNN's elegance and its failure.
 </div>
 
+<div class="box example">
+  <span class="box-label">Example — what the bottleneck costs</span>
+  <div class="given">"The keys that I left on the kitchen table this morning are ___"
+
+To choose "there" over "here", or to get subject-verb agreement right
+("keys ... are", not "keys ... is"), the model needs "keys" at step 12.
+
+A 256-unit hidden state must therefore hold, simultaneously:
+  - the subject and its number (plural)
+  - the location already mentioned
+  - the tense
+  - the syntactic state (inside a relative clause)
+  - everything else it might still need
+
+...in 256 numbers, rewritten from scratch at every one of 12 steps.</div>
+  <p style="margin-bottom:0">
+  Compare a transformer, which simply <a class="xref" href="#ch06">looks back at
+  "keys" directly</a> when it needs it. The RNN has to have <em>predicted</em>, at
+  step 2, that "keys" would matter later — and to have protected it through ten
+  rounds of overwriting. That is a much harder learning problem than it first looks.
+  </p>
+</div>
+
 <h3>Character-level language modelling</h3>
 
 <p>

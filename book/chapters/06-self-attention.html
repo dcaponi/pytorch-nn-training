@@ -33,6 +33,30 @@ words between them — or six hundred.
   below gets dense.
 </div>
 
+<div class="box example">
+  <span class="box-label">Example — the same dependency, two architectures</span>
+  <div class="given">"The animal didn't cross the road because it was too tired."
+    ^^^^^^                                  ^^
+    position 1                              position 7
+
+RNN   : information travels 1 → 2 → 3 → 4 → 5 → 6 → 7
+        the gradient is multiplied by ~6 Jacobians on the way back.
+        At a typical factor of 0.5 per step: 0.5⁶ ≈ 0.016
+        — 98% of the signal is gone before it arrives.
+
+Attention : position 7 computes q₇ · k₁ directly.
+        One dot product. One step. No attenuation.
+        The distance between them appears nowhere in the computation.</div>
+  <p style="margin-bottom:0">
+  Now stretch the sentence to 60 words between "animal" and "it". The RNN's factor
+  becomes $0.5^{60} \approx 10^{-18}$ — indistinguishable from zero. The attention
+  computation is <em>character-for-character identical</em>; only the size of the
+  score matrix changes. That is the whole trade: attention pays $O(L^2)$ compute to
+  buy $O(1)$ path length.
+  </p>
+</div>
+
+
 <h2>Queries, keys, and values</h2>
 
 <p>

@@ -1,64 +1,172 @@
 # PyTorch Neural Network Training
 
-A hands-on curriculum for building intuition with neural networks and PyTorch. Each lesson is a pair of Jupyter notebooks: a **prompt** (guided exercises with TODOs) and a **solution** (complete, executed code).
+A hands-on curriculum for building intuition with neural networks and PyTorch, from
+the probability behind a loss function to quantizing and LoRA-adapting a transformer
+you trained yourself.
+
+Two halves that are meant to be used together:
+
+- **The notebooks** — thirteen lessons, each a pair of Jupyter notebooks: a
+  **prompt** with guided `TODO`s and a **solution** that is complete and already
+  executed, so you can read its outputs without running anything.
+- **[The book](book/index.html)** — a single long-form companion volume you keep open
+  beside the notebooks. It derives the mathematics, contains interactive figures, and
+  sets pencil-and-paper exercises with worked solutions.
+
+Everything runs on a MacBook Air with an M4 chip and 24 GB of memory. No
+data-centre GPU, no API keys, no multi-gigabyte downloads.
+
+---
+
+## The Book
+
+```bash
+open book/index.html          # macOS
+```
+
+One self-contained page with a sticky table of contents, a chapter filter, dark mode,
+and a *back to where you were* button for following cross-references without losing
+your place. Mathematics renders offline via a vendored copy of KaTeX; the interactive
+figures are canvas widgets computing the same arithmetic as the text beside them.
+
+Every chapter carries a **By hand** exercise — a small calculation you do on paper
+before you write any code, with a fully worked solution folded up underneath. That
+step is the one people skip and the one that does the work: a gradient you have
+computed once with a pencil stops being a symbol and becomes a number you know how to
+check.
+
+To edit it, change a fragment in `book/chapters/` and rebuild:
+
+```bash
+python3 book/build.py           # regenerate book/index.html
+python3 book/build.py --check   # validate fragments and cross-references only
+```
+
+The build script is standard-library only — no dependencies, no toolchain.
 
 ---
 
 ## What's Covered
 
-### 01 — Neural Network from Scratch
-Build a 2-layer network (XOR problem) using **only NumPy**. Every operation — forward pass, loss, backpropagation, gradient descent — is implemented by hand so you understand exactly what frameworks do for you.
+### 00 — Mathematical Foundations
+The three areas of mathematics the rest of the curriculum runs on, verified in code
+rather than asserted. Trains no model; it is entirely about the mathematics.
 
-- Matrix multiplications and sigmoid activation
-- Binary cross-entropy loss
-- Chain rule and backpropagation derivations
-- Gradient descent parameter updates
-- Network architecture visualization
+- Dot products as similarity, matrix multiplication, shape rules, broadcasting
+- Derivatives by finite differences, gradient checking, the chain rule
+- Summing over paths — and the missing-`zero_grad()` bug it explains
+- Likelihood, and why every loss is a negative log-likelihood
+- BCE, softmax, and cross-entropy implemented from their definitions
+- The `ŷ - y` gradient, verified analytically, numerically, and by autograd
+- Entropy, KL divergence, and perplexity
+
+### 01 — Neural Network from Scratch
+Build a 2-layer network (XOR) using **only NumPy**. Every operation — forward pass,
+loss, backpropagation, gradient descent — implemented by hand.
+
+- Why XOR needs a hidden layer, and why depth without non-linearity buys nothing
+- Chain-rule derivations for every gradient in the network
+- The `a2 - y` cancellation, and what MSE would have cost instead
+- Saturation, and where the vanishing-gradient problem starts
 
 ### 02 — Neural Networks with PyTorch
-Rebuild the same XOR network using PyTorch's core abstractions. Learn the idioms you'll use in every subsequent lesson.
+Rebuild the same network with PyTorch's abstractions. Learn the idioms used in every
+later lesson.
 
-- `torch.Tensor` vs NumPy arrays
-- `nn.Module` and `nn.Linear`
-- Autograd: how `loss.backward()` computes all gradients
-- The 5-step training loop (forward → loss → zero_grad → backward → step)
-- SGD vs Adam optimizers
+- `torch.Tensor`, autograd, and the dynamic computational graph
+- `nn.Module`, parameter registration, and buffers
+- The five-step training loop
+- SGD vs Adam, and the 16-bytes-per-parameter rule
 - Apple Silicon GPU (MPS) acceleration
 
 ### 03 — CNN for Sentiment Analysis
-Train a convolutional network on the **NLTK movie_reviews corpus** (2,000 real film reviews). CNNs detect local phrase patterns regardless of position — the same idea that makes them work on images applies to sequences of words.
+Train a convolutional network on the NLTK movie_reviews corpus (2,000 real reviews).
 
-- `nn.Embedding`: learned word representations
-- `nn.Conv1d` with multiple kernel sizes (bigrams, trigrams, 4-grams)
-- Global max pooling and dropout regularization
-- Vocabulary building and sequence encoding
-- Evaluating on a held-out test set (~80%+ accuracy)
+- `nn.Embedding` and why one-hot vectors are a bad encoding
+- `nn.Conv1d` with multiple kernel widths, and the transpose everyone gets wrong
+- Global max pooling, dropout, and the train/test split
+- ~80% test accuracy, and where the architecture's ceiling comes from
 
 ### 04 — RNN for Character-Level Text Generation
-Train a recurrent network on *Alice's Adventures in Wonderland* (Lewis Carroll, via NLTK Gutenberg) to generate new text one character at a time.
+Train a recurrent network on *Alice's Adventures in Wonderland*.
 
-- Hidden state and temporal dependencies
-- Efficient batched training with overlapping sequence windows
-- `nn.Embedding` as a replacement for one-hot encoding
-- Truncated backpropagation through time and gradient clipping
-- Sampling with temperature to control creativity
-- Unrolled RNN architecture diagram
+- Hidden state, weight sharing, backpropagation through time
+- The vanishing gradient, derived and then measured
+- Gradient clipping, and why it fixes explosion but not vanishing
+- Temperature sampling
 
 ### 05 — LSTM for Time-Series Prediction
-Use an LSTM to predict a sine wave from sliding windows of past values, then compare against a vanilla RNN to see why gated memory matters.
+Predict a sine wave from sliding windows, then compare against the RNN.
 
-- Cell state vs hidden state (long-term vs short-term memory)
-- Forget, input, output, and cell-update gates
-- `nn.LSTM` vs `nn.RNN` API differences
-- Regression with MSELoss
-- Stacked layers and inter-layer dropout
-- LSTM cell architecture diagram
+- Cell state vs hidden state, and the additive gradient path
+- Forget, input, and output gates read as behaviour
+- `nn.LSTM` API details: `batch_first`, `out` vs `h_n`, inter-layer dropout
+- Comparing architectures fairly at matched parameter counts
+
+### 06 — Self-Attention from Scratch
+Implement scaled dot-product and multi-head attention, applied to the movie reviews
+from lesson 03 for a direct comparison.
+
+- Queries, keys, and values as a soft dictionary lookup
+- Why the `√d_k` scaling exists, shown by removing it
+- Multi-head reshaping, and why `.contiguous()` is not optional
+- Masking before the softmax, and the all-masked row that produces `nan`
+
+### 07 — Transformers with PyTorch
+Assemble a full encoder: positional encoding, residuals, layer norm, feed-forward.
+
+- Attention is permutation-equivariant — the gap positional encoding fills
+- Sinusoidal encodings, and why `PE(pos+k)` is linear in `PE(pos)`
+- Residual connections as the same idea as the LSTM cell state
+- Layer norm vs batch norm; post-norm vs pre-norm
+
+### 08 — PyTorch in Practice
+The craft that separates code that trains from code that trains reliably.
+
+- Reusable `train_one_epoch` / `evaluate`, and the `.item()` memory leak
+- Warmup and cosine schedules; why transformers need warmup
+- Checkpointing state dicts, and keeping the *best* epoch rather than the last
+- Length bucketing, reproducibility, and a symptom-to-cause debugging table
+- Overfit eight examples first — the single best debugging move
+
+### 09 — Encoder–Decoder Transformer for Translation
+English→French on the NLTK comtrans corpus.
+
+- Causal masking, and how it makes parallel training of a sequential model possible
+- Cross-attention as learned alignment, visualised
+- Teacher forcing, the shift, and the exposure bias it creates
+- Autoregressive decoding, greedy vs beam search, BLEU
+
+### 10 — GPT from Scratch
+A decoder-only transformer trained on the same corpus as lesson 04.
+
+- Why deleting the encoder is all it takes, and why supervision becomes free
+- Pre-norm blocks, learned positions, weight tying, depth-scaled init
+- Temperature, top-k, and nucleus sampling compared side by side
+- A KV cache with a wall-clock measurement *and* an operation count — including why
+  the two disagree at this scale
+
+### 11 — Quantization, LoRA, and Fitting in Memory
+Both techniques implemented from scratch — no `bitsandbytes`, no `peft`.
+
+- Symmetric and per-channel quantization, and the outlier problem measured
+- A bit-width sweep showing exactly where quality breaks
+- LoRA, including why `B` starts at zero and `A` does not
+- Adapting a Carroll-trained model to Shakespeare with under 2% of its parameters
+- A rank sweep testing LoRA's low-rank claim empirically
+- QLoRA, and why sequence length rather than parameter count exhausts your memory
+
+### 12 — Capstone Projects
+Four open-ended projects with specifications and no solutions: a translator, a text
+generator, a multi-adapter assistant, and a rigorous architecture comparison. Ships
+real scaffolding — vocabulary, training harness, BLEU, parameter matching — and
+leaves the architecture to you.
 
 ---
 
 ## Getting Started
 
-**Requirements:** Python 3.10+, [uv](https://docs.astral.sh/uv/)
+**Requirements:** Python 3.13+, [uv](https://docs.astral.sh/uv/)
 
 ### 1. Install dependencies
 
@@ -69,41 +177,67 @@ uv sync
 
 This creates a `.venv` with PyTorch, NumPy, Matplotlib, NLTK, and Jupyter.
 
-### 2. Download NLTK data (lessons 03 and 04)
+### 2. Download NLTK data
 
 ```bash
 uv run python -c "
 import nltk
 nltk.download('movie_reviews')
 nltk.download('gutenberg')
+nltk.download('comtrans')
 nltk.download('punkt')
 "
 ```
 
-### 3. Open Jupyter
+Corpora cache in `~/nltk_data/` and are downloaded automatically on first use, so
+this step is optional — it just front-loads the wait.
+
+### 3. Open the book and a notebook, side by side
 
 ```bash
+open book/index.html
 uv run jupyter notebook
 ```
 
-Then navigate to a lesson folder and open `prompt.ipynb` to work through the exercises, or `solution.ipynb` to see the complete working code.
-
 ### 4. Recommended order
 
-Work through the lessons in numbered order — each one builds on the vocabulary of the last.
+Work through the lessons in numbered order — each builds on the previous one's
+vocabulary. Read the book chapter first, do its by-hand exercise, then open the
+notebook.
 
-| Lesson | Notebook | Time estimate |
-|--------|----------|---------------|
-| 01 | `01_nn_from_scratch/prompt.ipynb` | 45–60 min |
-| 02 | `02_nn_pytorch/prompt.ipynb` | 30–45 min |
-| 03 | `03_cnn_sentiment/prompt.ipynb` | 45–60 min |
-| 04 | `04_rnn_pytorch/prompt.ipynb` | 60–90 min |
-| 05 | `05_lstm_pytorch/prompt.ipynb` | 60–90 min |
+| Lesson | Notebook | Book chapter | Time |
+|--------|----------|--------------|------|
+| 00 | `00_math_foundations/prompt.ipynb` | Mathematical Foundations | 45–60 min |
+| 01 | `01_nn_from_scratch/prompt.ipynb` | A Neural Network from Scratch | 45–60 min |
+| 02 | `02_nn_pytorch/prompt.ipynb` | The Same Network in PyTorch | 30–45 min |
+| 03 | `03_cnn_sentiment/prompt.ipynb` | Convolutions over Text | 45–60 min |
+| 04 | `04_rnn_pytorch/prompt.ipynb` | Recurrence and Its Limits | 60–90 min |
+| 05 | `05_lstm_pytorch/prompt.ipynb` | LSTMs: Gated Memory | 60–90 min |
+| 06 | `06_self_attention/prompt.ipynb` | Self-Attention from Scratch | 60–90 min |
+| 07 | `07_transformer_pytorch/prompt.ipynb` | The Transformer Encoder | 90 min |
+| 08 | `08_pytorch_in_practice/prompt.ipynb` | PyTorch in Practice | 45–60 min |
+| 09 | `09_seq2seq_translation/prompt.ipynb` | Encoder–Decoder Translation | 90 min |
+| 10 | `10_gpt_from_scratch/prompt.ipynb` | GPT: A Decoder-Only Model | 90 min |
+| 11 | `11_quantization_and_lora/prompt.ipynb` | Quantization, LoRA, and Memory | 90 min |
+| 12 | `12_capstone_projects/prompt.ipynb` | Capstone Projects | open-ended |
+
+Chapters 00–07 are a single argument and should be read in order. From 08 onward they
+are more independent: 08 is practical craft you can read any time once you have
+trained something, and 11 stands alone if you already know what a transformer is.
 
 ---
 
 ## Notes
 
-- All lessons automatically use the **Apple Silicon GPU (MPS)** when available. On CPU the training times will be longer but all notebooks still complete.
-- The solution notebooks have already been executed — you can read the outputs without running anything.
-- NLTK corpora are downloaded to `~/nltk_data/` the first time and cached for subsequent runs.
+- All lessons use the **Apple Silicon GPU (MPS)** when available and fall back to CPU
+  otherwise, so everything runs unchanged on other hardware — just slower. For the
+  smallest models MPS is actually *slower* than CPU; the benefit starts at lesson 03.
+- Solution notebooks have already been executed. Lesson 12 has no solution notebook,
+  because its projects have no single right answer.
+- The book vendors KaTeX (`book/vendor/`, ~600 KB, woff2 only) so mathematics renders
+  with no network connection.
+- The largest training run in the curriculum is lesson 10, at about four minutes on an
+  M4. Nothing here needs to run overnight.
+- Apple-silicon gotchas — including MPS silently returning zeros for out-of-range
+  embedding indices where CPU raises `IndexError` — are collected in the book's
+  Appendix.

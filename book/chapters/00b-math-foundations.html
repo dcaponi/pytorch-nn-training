@@ -1,0 +1,1119 @@
+<section class="chapter" id="ch00">
+
+<p class="chapter-meta">Chapter 00 · notebook <code>00_math_foundations</code></p>
+<h1>Mathematical Foundations</h1>
+
+<p class="lede">
+Three areas of mathematics carry all the weight in this book. Linear algebra is what
+a network computes. Calculus is how it learns. Probability is what its outputs
+<em>mean</em>, and where every loss function comes from. This chapter covers exactly
+as much of each as the rest of the book needs — and no more — with a worked example
+beside every idea.
+</p>
+
+<p>
+If you have seen this material before, skim to the by-hand exercises and check
+whether you can do them cold. That is a better test of readiness than a feeling of
+familiarity, because the specific things a network needs from these subjects are
+narrow and sometimes surprising: shapes matter more than proofs, the chain rule
+matters more than integration, and one distribution does most of the work.
+</p>
+
+<hr>
+
+<h2>Part 1 · Linear Algebra: What a Network Computes</h2>
+
+<p>
+A neural network is, mechanically, a sequence of matrix multiplications with
+non-linear functions squeezed between them. So the operations below are not
+background material — they <em>are</em> the forward pass.
+</p>
+
+<h3>Vectors, and the dot product as similarity</h3>
+
+<p>
+A vector is an ordered list of numbers. In this book a vector almost always
+represents one thing: a word's embedding, a token's hidden state, one example's
+features.
+</p>
+
+<p>
+The single most important operation on two vectors is the <strong>dot product</strong>:
+</p>
+
+$$\mathbf{a} \cdot \mathbf{b} = \sum_{i=1}^{n} a_i b_i$$
+
+<div class="box example">
+  <span class="box-label">Example</span>
+  <div class="given">a = [2, 0, 1]      b = [3, 4, −2]
+
+a · b = (2)(3) + (0)(4) + (1)(−2)
+      = 6 + 0 − 2
+      = 4</div>
+</div>
+
+<p>
+The formula is trivial; the interpretation is what matters. The dot product also
+equals
+</p>
+
+$$\mathbf{a}\cdot\mathbf{b} = \|\mathbf{a}\|\,\|\mathbf{b}\|\cos\theta$$
+
+<p>
+where $\|\mathbf{a}\| = \sqrt{\sum a_i^2}$ is the length and $\theta$ the angle
+between them. So the dot product is <strong>large and positive when two vectors
+point the same way, zero when they are perpendicular, and negative when they
+oppose</strong>. It is a similarity score.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example — the same fact, three ways</span>
+  <div class="given">[1, 0] · [1, 0]  =  1     same direction        → large
+[1, 0] · [0, 1]  =  0     perpendicular         → zero
+[1, 0] · [−1, 0] = −1     opposite              → negative</div>
+  <p style="margin-bottom:0">
+  This is not a curiosity. When <a class="xref" href="#ch06">attention</a> computes
+  $QK^\top$, every entry is a dot product asking "how relevant is this position to
+  that one?" — and the answer is literally an angle between two learned vectors. The
+  entire attention mechanism is this one geometric fact, applied to every pair.
+  </p>
+</div>
+
+<h3>Matrix multiplication is a grid of dot products</h3>
+
+<p>
+For $A$ of shape <span class="shape">(m, n)</span> and $B$ of shape
+<span class="shape">(n, p)</span>, the product $C = AB$ has shape
+<span class="shape">(m, p)</span> with
+</p>
+
+$$C_{ij} = \sum_{k=1}^{n} A_{ik}B_{kj} = (\text{row } i \text{ of } A) \cdot (\text{column } j \text{ of } B)$$
+
+<div class="box example">
+  <span class="box-label">Example</span>
+  <div class="given">    A (2×3)              B (3×2)              C (2×2)
+[ 1  2  0 ]        [ 1   0 ]
+[ 0  1  3 ]   @    [ 2  −1 ]      =    [ ?   ? ]
+                   [ 0   1 ]           [ ?   ? ]
+
+C₁₁ = row1 · col1 = (1)(1) + (2)(2) + (0)(0) = 5
+C₁₂ = row1 · col2 = (1)(0) + (2)(−1) + (0)(1) = −2
+C₂₁ = row2 · col1 = (0)(1) + (1)(2) + (3)(0) = 2
+C₂₂ = row2 · col2 = (0)(0) + (1)(−1) + (3)(1) = 2
+
+C = [ 5  −2 ]
+    [ 2   2 ]</div>
+</div>
+
+<div class="widget" data-widget="matmul"></div>
+
+<p>
+Two rules are worth more than any amount of theory here.
+</p>
+
+<p>
+<strong>The inner dimensions must match, and they vanish.</strong>
+<span class="shape">(m, n)</span> @ <span class="shape">(n, p)</span> →
+<span class="shape">(m, p)</span>. If they do not match, you get an error — and this
+is the error you will see most often in this book. Reading a shape mismatch is a
+skill: <code>mat1 and mat2 shapes cannot be multiplied (64x128 and 256x512)</code>
+means you produced 128 features and something expected 256.
+</p>
+
+<p>
+<strong>Matrix multiplication does not commute.</strong> $AB \ne BA$ in general —
+often the shapes do not even permit both. Order is meaning.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  <p>
+  A linear layer <code>nn.Linear(n_in, n_out)</code> computes $XW^\top + b$. Reading
+  the shapes tells you what it does:
+  </p>
+  <div class="given">X       (batch, n_in)      one row per example
+Wᵀ      (n_in, n_out)      one column per output unit
+XWᵀ     (batch, n_out)     one row per example, one column per unit
++ b     (n_out,)           broadcast across every row</div>
+  <p style="margin-bottom:0">
+  Output unit $j$'s value for example $i$ is the dot product of example $i$'s
+  features with unit $j$'s weights: <em>a weighted vote over all inputs</em>. Every
+  linear layer in the book is that sentence.
+  </p>
+</div>
+
+<h3>Elementwise operations, and the $\odot$ symbol</h3>
+
+<p>
+$A \odot B$ multiplies corresponding entries and requires identical shapes. It is
+completely different from $AB$, and the book uses it constantly — in
+<a class="xref" href="#ch01">backpropagation through activations</a>, in
+<a class="xref" href="#ch05">LSTM gates</a>, and in masking.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example — the distinction that matters</span>
+  <div class="given">a = [1, 2, 3]        b = [4, 5, 6]
+
+a · b  (dot)         = 4 + 10 + 18 = 32          a scalar
+a ⊙ b  (elementwise) = [4, 10, 18]               a vector, same shape</div>
+  <p style="margin-bottom:0">
+  When an LSTM's forget gate does $f_t \odot c_{t-1}$, each memory slot is scaled by
+  its own gate value independently. A dot product would collapse the whole memory
+  into one number, destroying it.
+  </p>
+</div>
+
+<h3>Transpose</h3>
+
+<p>
+$A^\top$ swaps rows and columns: $(A^\top)_{ij} = A_{ji}$, so
+<span class="shape">(m, n)</span> becomes <span class="shape">(n, m)</span>. It shows
+up in every backward pass, for a reason that is worth understanding rather than
+memorising: if the forward pass sent information through $W$ from $n$ inputs to $m$
+outputs, the backward pass must send gradient the other way, from $m$ back to $n$ —
+and $W^\top$ is the operator with the right shape to do it.
+</p>
+
+<h3>Broadcasting</h3>
+
+<p>
+When shapes differ, NumPy and PyTorch stretch dimensions of size 1 to match. Align
+shapes from the right; each dimension must be equal, or one of them must be 1.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example — including the one that bites</span>
+  <div class="given">(4, 3) + (3,)      → (4, 3)   the vector is added to every row      ✓
+(4, 3) + (4, 1)    → (4, 3)   the column is added to every column   ✓
+(4, 3) + (4,)      → ERROR    3 and 4 are neither equal nor 1
+
+(4, 1) + (1, 3)    → (4, 3)   BOTH stretch — and this one is the trap</div>
+  <p style="margin-bottom:0">
+  The last case is legal, silent, and almost never what you meant. A
+  <span class="shape">(4, 1)</span> where you intended <span class="shape">(1, 4)</span>
+  produces a 4×4 grid of nonsense rather than an error. When a loss looks wrong for
+  no visible reason, print your shapes.
+  </p>
+</div>
+
+<hr>
+
+<h2>Part 2 · Calculus: How a Network Learns</h2>
+
+<p>
+Training means adjusting parameters to reduce a loss. The derivative is the only
+tool that tells you which way to adjust, so this section covers derivatives,
+partial derivatives, and — above all — the chain rule, which <em>is</em>
+backpropagation.
+</p>
+
+<h3>The derivative as a rate of change</h3>
+
+<p>
+$f'(x)$ is the slope of $f$ at $x$: how much $f$ changes per unit change in $x$.
+</p>
+
+$$f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}$$
+
+<div class="box example">
+  <span class="box-label">Example — verify a rule numerically</span>
+  <p>Take $f(x) = x^2$, whose derivative is $2x$. At $x = 3$, so $f'(3) = 6$.
+  Check with a small $h$:</p>
+  <div class="given">h = 0.001
+
+(f(3.001) − f(3)) / 0.001
+  = (9.006001 − 9) / 0.001
+  = 0.006001 / 0.001
+  = 6.001        ≈ 6   ✓</div>
+  <p style="margin-bottom:0">
+  This is more than a sanity check — it is <strong>gradient checking</strong>, the
+  standard way to verify a hand-written backward pass. If your analytic gradient and
+  a finite-difference estimate disagree, your analytic gradient is wrong. The
+  notebook uses exactly this to verify the softmax gradient.
+  </p>
+</div>
+
+<p>
+The four rules this book uses, and nothing else:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Rule</th><th>Statement</th><th>Where it appears</th></tr></thead>
+  <tbody>
+    <tr><td>Power</td><td>$\frac{d}{dx}x^n = nx^{n-1}$</td><td>MSE: $\frac{d}{de}e^2 = 2e$</td></tr>
+    <tr><td>Exponential</td><td>$\frac{d}{dx}e^x = e^x$</td><td>softmax, sigmoid</td></tr>
+    <tr><td>Logarithm</td><td>$\frac{d}{dx}\ln x = \frac{1}{x}$</td><td>every cross-entropy loss</td></tr>
+    <tr><td>Chain</td><td>$\frac{d}{dx}f(g(x)) = f'(g(x))\,g'(x)$</td><td>all of backpropagation</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>The chain rule, which is the whole of backpropagation</h3>
+
+<p>
+When functions are composed, multiply their derivatives. If $y = f(u)$ and
+$u = g(x)$, then
+</p>
+
+$$\frac{dy}{dx} = \frac{dy}{du}\cdot\frac{du}{dx}$$
+
+<div class="box example">
+  <span class="box-label">Example — a two-link chain</span>
+  <p>Let $y = (3x + 1)^2$. Set $u = 3x+1$, so $y = u^2$.</p>
+  <div class="given">dy/du = 2u = 2(3x + 1)
+du/dx = 3
+
+dy/dx = 2(3x + 1) × 3 = 6(3x + 1) = 18x + 6
+
+check at x = 2:  dy/dx = 42
+  numerically: ((3(2.001)+1)² − (3(2)+1)²) / 0.001
+             = (49.042 − 49) / 0.001 = 42.0   ✓</div>
+</div>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  <p>
+  A neural network is a composition of many functions:
+  $\mathcal{L}(a_2(z_2(a_1(z_1(x)))))$. The chain rule says the derivative of the
+  whole with respect to anything inside is the <strong>product of the derivatives
+  along the path</strong>.
+  </p>
+  <div class="given">∂L/∂z₁ = ∂L/∂a₂ · ∂a₂/∂z₂ · ∂z₂/∂a₁ · ∂a₁/∂z₁
+          └──────────── one factor per layer crossed ───────────┘</div>
+  <p style="margin-bottom:0">
+  Backpropagation is nothing more than evaluating that product from left to right,
+  caching each partial result so the shared prefix is not recomputed for every
+  parameter. Two consequences follow immediately, and they explain most of the
+  architectural history in this book: if the factors are typically below 1 the
+  product decays geometrically with depth (<a class="xref" href="#ch04">vanishing
+  gradients</a>), and if above 1 it explodes.
+  </p>
+</div>
+
+<h3>Partial derivatives and the gradient</h3>
+
+<p>
+With several inputs, $\partial f/\partial x$ measures the change in $f$ per unit
+change in $x$ <em>while holding everything else fixed</em>. The
+<strong>gradient</strong> $\nabla f$ collects them into a vector.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example</span>
+  <p>Let $f(x, y) = x^2y + 3y$.</p>
+  <div class="given">∂f/∂x:  treat y as a constant  →  2xy
+∂f/∂y:  treat x as a constant  →  x² + 3
+
+∇f = [2xy,  x² + 3]
+
+at (x, y) = (2, 1):   ∇f = [4, 7]</div>
+  <p style="margin-bottom:0">
+  Read that: at this point, moving $y$ changes $f$ almost twice as fast as moving
+  $x$. The gradient points in the direction of <em>steepest increase</em>, which is
+  why gradient <em>descent</em> steps in the direction $-\nabla f$.
+  </p>
+</div>
+
+<h3>When a variable has several paths, sum them</h3>
+
+<p>
+This is the multivariable chain rule, and it is the one rule people most often get
+wrong. If $x$ influences $L$ through more than one route, the total derivative is
+the <strong>sum over all paths</strong>.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example — a variable used twice</span>
+  <div class="given">a = w · x
+b = a + w          ← w reaches b directly AND through a
+L = b²
+
+with w = 3, x = 2:   a = 6,  b = 9,  L = 81
+
+∂L/∂b = 2b = 18
+
+path 1  (w → a → b → L):   ∂a/∂w · ∂b/∂a · ∂L/∂b = 2 × 1 × 18 = 36
+path 2  (w → b → L):                    ∂b/∂w · ∂L/∂b = 1 × 18 = 18
+                                                  total  ∂L/∂w = 54</div>
+  <p style="margin-bottom:0">
+  This is exactly why PyTorch <em>accumulates</em> into <code>.grad</code> rather than
+  overwriting: a parameter used at several points in the graph must collect a
+  contribution from each. It is also why <code>zero_grad()</code> is mandatory — the
+  accumulation has no idea where one backward pass ends and the next begins. The same
+  summation is what makes weight sharing work in
+  <a class="xref" href="#ch03">convolutions</a> and
+  <a class="xref" href="#ch04">recurrent networks</a>.
+  </p>
+</div>
+
+<h3>Gradient descent</h3>
+
+$$\theta \leftarrow \theta - \eta\,\frac{\partial \mathcal{L}}{\partial \theta}$$
+
+<div class="box example">
+  <span class="box-label">Example — one step, by hand</span>
+  <div class="given">L(w) = (w − 4)²        current w = 1        learning rate η = 0.1
+
+dL/dw = 2(w − 4) = 2(1 − 4) = −6
+
+w ← 1 − 0.1(−6) = 1 + 0.6 = 1.6
+
+check:  L(1.0) = 9.00      L(1.6) = 5.76      ↓ better
+
+next step:  dL/dw = 2(1.6 − 4) = −4.8  →  w = 2.08   L = 3.69
+then:       dL/dw = −3.84              →  w = 2.464  L = 2.36</div>
+  <p style="margin-bottom:0">
+  Notice the steps shrink as the slope flattens — descent slows down automatically
+  near a minimum. Notice also what would happen at $\eta = 1.0$: the step would be
+  $+6$, landing at $w = 7$, which is <em>further</em> from 4 than where it started.
+  That is divergence, and it is a property of the learning rate, not of the problem.
+  </p>
+</div>
+
+<div class="widget" data-widget="gradient-descent"></div>
+
+<hr>
+
+<h2>Part 3 · Probability: What the Output Means</h2>
+
+<p>
+With the machinery in place, the question becomes what a network should
+<em>output</em>, and how to score it. The answer to both is probability.
+</p>
+
+<h3>Why a model must output a belief, not an answer</h3>
+
+<p>
+Consider a classifier reading a film review. The naive design outputs a decision:
+<em>positive</em> or <em>negative</em>. That is a dead end, for a reason that has
+nothing to do with neural networks — a discrete answer cannot be improved by a small
+amount, and a step function has zero derivative everywhere it is defined. Section 2
+just established that a zero derivative offers no advice about which direction to
+move.
+</p>
+
+<p>
+So the model outputs a <strong>belief</strong>: $\hat{y} \in (0,1)$, read as "the
+probability this review is positive". Now wrongness has degrees, and degrees have
+derivatives.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example — why degrees matter</span>
+  <div class="given">true label: positive (y = 1)
+
+model A says 0.51   →  correct decision, barely
+model B says 0.99   →  correct decision, confidently
+model C says 0.10   →  wrong
+
+A discrete "positive/negative" output cannot distinguish A from B at all,
+and gives no signal for how far C must move. A probability does both.</div>
+</div>
+
+<h3>The three distributions that cover this book</h3>
+
+<p><strong>Bernoulli</strong> — one yes/no outcome with probability $p$ of being 1:</p>
+
+$$P(y \mid p) = p^{y}(1-p)^{1-y}$$
+
+<div class="box example">
+  <span class="box-label">Example — the exponent trick</span>
+  <div class="given">p = 0.7
+
+y = 1:   P = 0.7¹ × 0.3⁰ = 0.7 × 1 = 0.7
+y = 0:   P = 0.7⁰ × 0.3¹ = 1 × 0.3 = 0.3</div>
+  <p style="margin-bottom:0">
+  The exponents are an <code>if</code> statement written as an expression. Whichever
+  branch does not apply is raised to the power 0 and becomes 1, dropping out of the
+  product. This matters because an <code>if</code> is not differentiable and this is.
+  </p>
+</div>
+
+<p><strong>Categorical</strong> — one outcome from $K$ classes:</p>
+
+$$P(y \mid p) = \prod_{k=1}^{K} p_k^{\,y_k}$$
+
+<div class="box example">
+  <span class="box-label">Example</span>
+  <div class="given">3 classes, model says p = [0.2, 0.5, 0.3]
+true class is 1 (the middle), so one-hot y = [0, 1, 0]
+
+P = 0.2⁰ × 0.5¹ × 0.3⁰ = 1 × 0.5 × 1 = 0.5</div>
+  <p style="margin-bottom:0">
+  Same trick, generalised: the product collapses to the single probability assigned
+  to the true class. This is the distribution behind
+  <a class="xref" href="#ch03">sentiment classification</a> and behind every token a
+  <a class="xref" href="#ch10">language model</a> predicts.
+  </p>
+</div>
+
+<p><strong>Gaussian</strong> — a real-valued measurement with noise:</p>
+
+$$P(y \mid \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp\!\left(-\frac{(y-\mu)^2}{2\sigma^2}\right)$$
+
+<p>
+Used when the target is a number rather than a label — the
+<a class="xref" href="#ch05">sine-wave regression</a>, for instance. The model
+predicts $\mu$; $\sigma$ is assumed fixed and, as we will see, disappears entirely.
+</p>
+
+<h3>Likelihood: reading a distribution backwards</h3>
+
+<p>
+Here is the pivot the chapter turns on. $P(y \mid \theta)$ is normally read
+forwards: parameters known, outcome uncertain. Training reverses it. You
+<em>observed</em> the data; the parameters are what you do not know.
+</p>
+
+<p>
+The same expression with $y$ fixed and $\theta$ varying is the
+<strong>likelihood</strong> of $\theta$. It is not a distribution over $\theta$ — it
+does not integrate to 1 and is not trying to. It is a score: <em>how well does this
+setting of the parameters explain what I saw?</em>
+</p>
+
+<div class="box example">
+  <span class="box-label">Example — the same numbers, read two ways</span>
+  <p>You flip a coin 3 times and see heads, heads, tails.</p>
+  <div class="given">FORWARD (p known, outcome uncertain), with p = 0.5:
+    P(HHT) = 0.5 × 0.5 × 0.5 = 0.125
+
+BACKWARD (outcome known, p uncertain) — score candidate values of p:
+    p = 0.2 :  0.2 × 0.2 × 0.8 = 0.032
+    p = 0.5 :  0.5 × 0.5 × 0.5 = 0.125
+    p = 0.67:  0.67 × 0.67 × 0.33 = 0.148   ← highest
+    p = 0.9 :  0.9 × 0.9 × 0.1 = 0.081</div>
+  <p style="margin-bottom:0">
+  The best explanation of "2 heads in 3 flips" is $p = 2/3$ — which is exactly the
+  observed frequency. That is <strong>maximum likelihood estimation</strong>, and
+  the fact that it recovers the obvious answer on an easy problem is what licenses
+  trusting it on a hard one.
+  </p>
+</div>
+
+<p>
+For $N$ independent examples the likelihood of the dataset is the product:
+</p>
+
+$$\mathcal{l}(\theta) = \prod_{i=1}^{N} P(y_i \mid x_i, \theta)$$
+
+<h3>Why the logarithm is not optional</h3>
+
+<p>
+That product is unusable as written, for two independent reasons.
+</p>
+
+<p>
+<strong>It underflows.</strong> A batch of 64 examples at probability 0.1 each gives
+$10^{-64}$. The smallest positive float32 is about $10^{-38}$. Your likelihood is not
+small — it is <em>exactly zero</em>, and so is its gradient.
+</p>
+
+<p>
+<strong>Products differentiate badly.</strong> The product rule compounds across all
+$N$ terms; sums differentiate term by term.
+</p>
+
+<p>
+The logarithm fixes both. It is strictly increasing, so the maximiser is unchanged,
+and it turns products into sums. Flip the sign to minimise and divide by $N$ to make
+batches comparable:
+</p>
+
+$$\mathcal{L}(\theta) = -\frac{1}{N}\sum_{i=1}^{N}\log P(y_i \mid x_i, \theta)$$
+
+<div class="box example">
+  <span class="box-label">Example — the underflow, concretely</span>
+  <div class="given">64 examples, each at probability 0.1
+
+  product     : 0.1⁶⁴ = 1e−64   → float32 stores this as exactly 0.0
+  sum of logs : 64 × ln(0.1) = 64 × (−2.303) = −147.4   → perfectly fine
+
+The second number is representable, differentiable, and carries the same
+ordering information. The first is a zero that stops training dead.</div>
+</div>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  Every loss in this book is that one formula with a different distribution
+  substituted in. Bernoulli gives binary cross-entropy. Categorical gives
+  cross-entropy. Gaussian gives mean squared error. They are not three unrelated
+  recipes — they are one recipe with three ingredients.
+</div>
+
+<hr>
+
+<h2 id="ch00-cross-entropy">Part 4 · Deriving the Losses</h2>
+
+<h3>Bernoulli → binary cross-entropy</h3>
+
+$$\mathcal{L} = -\frac{1}{N}\sum_i \log\!\big[\hat{y}_i^{\,y_i}(1-\hat{y}_i)^{1-y_i}\big]
+= -\frac{1}{N}\sum_i\big[y_i\log\hat{y}_i + (1-y_i)\log(1-\hat{y}_i)\big]$$
+
+<div class="box example">
+  <span class="box-label">Example</span>
+  <div class="given">y = 1,  ŷ = 0.9   →  −[1 · ln(0.9) + 0 · ln(0.1)] = −ln(0.9) = 0.105
+y = 0,  ŷ = 0.2   →  −[0 · ln(0.2) + 1 · ln(0.8)] = −ln(0.8) = 0.223</div>
+  <p style="margin-bottom:0">
+  One term is always multiplied by zero, so the loss is always just
+  $-\log(\text{probability assigned to the truth})$.
+  </p>
+</div>
+
+<h3>Categorical → cross-entropy</h3>
+
+$$\mathcal{L} = -\frac{1}{N}\sum_i\sum_{k} y_{ik}\log\hat{y}_{ik}
+             = -\frac{1}{N}\sum_i \log\hat{y}_{i,c_i}$$
+
+<p>
+The sum over classes collapses because $y$ is one-hot — which is why
+<code>nn.CrossEntropyLoss</code> takes integer class indices rather than one-hot
+vectors. The one-hot was only ever selecting a term.
+</p>
+
+<div class="widget" data-widget="surprisal"></div>
+
+<p>
+Two features of that curve determine how classifiers train. Near $p = 1$ it is flat,
+so a model that is already right receives almost no gradient and spends its capacity
+elsewhere. Near $p = 0$ it is unbounded, so confident wrongness is punished without
+limit. That asymmetry is deliberate.
+</p>
+
+<h3>Gaussian → mean squared error</h3>
+
+$$-\log P(y \mid \mu,\sigma^2) = \frac{(y-\mu)^2}{2\sigma^2} + \tfrac{1}{2}\log(2\pi\sigma^2)$$
+
+<p>
+The second term does not involve $\mu$, so it has zero gradient with respect to the
+model and cannot move the minimum — drop it. A fixed $\sigma$ is a constant scale
+absorbed into the learning rate. What survives is
+$\mathcal{L} = \frac{1}{N}\sum(y_i - \hat{y}_i)^2$.
+</p>
+
+<p>
+So MSE is not a neutral choice of "how far off am I". It asserts that your targets
+are the truth plus symmetric, constant-width, bell-shaped noise — and it misbehaves
+in exactly the ways that assumption predicts when it is wrong.
+</p>
+
+<h3>Why MSE fails on classification</h3>
+
+<p>
+This is where derivation pays off. With $\hat{y} = \sigma(z)$ and MSE loss, the chain
+rule from Part 2 gives
+</p>
+
+$$\frac{\partial\mathcal{L}}{\partial z} = 2(\hat{y}-y)\,\sigma'(z)$$
+
+<div class="box example">
+  <span class="box-label">Example — the failure, in numbers</span>
+  <div class="given">truth y = 1, and the model is confidently wrong: z = −8, ŷ = 0.000335
+
+MSE  :  2(0.000335 − 1) × σ′(−8)
+     =  2(−0.9997) × 0.000335
+     =  −0.00067          ← essentially no gradient
+
+BCE  :  ŷ − y = 0.000335 − 1
+     =  −0.9997           ← full-strength gradient
+
+ratio: about 1,500×</div>
+  <p style="margin-bottom:0">
+  <strong>Under MSE, the more confidently wrong the model is, the less it learns.</strong>
+  Training stalls precisely where it needs to move fastest. Cross-entropy is built so
+  the $\sigma'$ factor cancels exactly — see the boxed result below.
+  </p>
+</div>
+
+<div class="widget" data-widget="loss-shapes"></div>
+
+<p>
+The same reasoning sorts the regression losses. MSE's gradient is $2e$ and grows
+without bound, so one mislabelled point with error 50 contributes a gradient of 100
+and dominates the batch. MAE's is $\operatorname{sign}(e)$ — constant magnitude,
+completely indifferent to how bad an outlier is. Huber is quadratic near zero and
+linear in the tails. Tick <em>show gradients</em> above: the loss curves are pretty,
+but the gradients are what training feels.
+</p>
+
+<h2>Softmax and the gradient that makes it all work</h2>
+
+$$\hat{y}_k = \frac{e^{z_k}}{\sum_j e^{z_j}}$$
+
+<div class="box example">
+  <span class="box-label">Example — softmax by hand</span>
+  <div class="given">z = [2.0, 1.0, 0.0]
+
+exponentiate:  e² = 7.389,  e¹ = 2.718,  e⁰ = 1.000
+sum:           11.107
+
+ŷ = [7.389/11.107, 2.718/11.107, 1.000/11.107]
+  = [0.665, 0.245, 0.090]        sums to 1.000 ✓</div>
+  <p style="margin-bottom:0">
+  Now subtract 2 from every logit, giving $[0,-1,-2]$: $e^0 = 1$, $e^{-1} = 0.368$,
+  $e^{-2} = 0.135$, sum 1.503, and $\hat{y} = [0.665, 0.245, 0.090]$ — identical.
+  Softmax is invariant to adding a constant, because $e^c$ cancels between numerator
+  and denominator. That invariance is free insurance: subtract the maximum before
+  exponentiating and the largest exponent becomes $e^0 = 1$, so overflow is
+  impossible. Without it, a logit of 800 becomes <code>inf</code> and the whole
+  distribution becomes <code>nan</code>.
+  </p>
+</div>
+
+<div class="widget" data-widget="softmax"></div>
+
+<h3>The cancellation</h3>
+
+<p>
+Combine softmax with cross-entropy, differentiate with respect to the logits, and
+nearly everything cancels:
+</p>
+
+$$\boxed{\;\frac{\partial\mathcal{L}}{\partial z_k} = \hat{y}_k - y_k\;}$$
+
+<div class="box example">
+  <span class="box-label">Example</span>
+  <div class="given">ŷ = [0.665, 0.245, 0.090]     true class c = 1,  y = [0, 1, 0]
+
+∂L/∂z₀ = 0.665 − 0 = +0.665     push logit 0 DOWN hard
+∂L/∂z₁ = 0.245 − 1 = −0.755     push logit 1 UP hard
+∂L/∂z₂ = 0.090 − 0 = +0.090     push logit 2 down a little
+                        sum = 0</div>
+  <p style="margin-bottom:0">
+  Predicted probability minus true probability — no saturation factor, no
+  attenuation. And the gradients sum to zero necessarily, because adding a constant
+  to every logit changes nothing, so the gradient can have no component in that
+  direction. Only <em>relative</em> logits are learnable.
+  </p>
+</div>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  Softmax and cross-entropy are designed as a pair; their derivatives cancel to leave
+  the error itself. This is why you pass raw <strong>logits</strong> to
+  <code>nn.CrossEntropyLoss</code> and <code>nn.BCEWithLogitsLoss</code> rather than
+  applying softmax or sigmoid yourself. The fused implementation is numerically
+  stabler and faster, and doing it manually is a silent correctness bug — the loss
+  still runs, the numbers still go down, and the model trains worse than it should.
+</div>
+
+<details>
+  <summary>The derivation, in full</summary>
+  <p>Let $S = \sum_j e^{z_j}$, so $\hat{y}_k = e^{z_k}/S$. The diagonal case $k = c$,
+  by the quotient rule:</p>
+  $$\frac{\partial \hat{y}_c}{\partial z_c} = \frac{e^{z_c}S - e^{z_c}e^{z_c}}{S^2} = \hat{y}_c(1-\hat{y}_c)$$
+  <p>and the off-diagonal case $k \ne c$, where the numerator does not depend on $z_k$:</p>
+  $$\frac{\partial \hat{y}_c}{\partial z_k} = \frac{0 \cdot S - e^{z_c}e^{z_k}}{S^2} = -\hat{y}_c\hat{y}_k$$
+  <p>With $\mathcal{L} = -\log\hat{y}_c$ we have
+  $\partial\mathcal{L}/\partial\hat{y}_c = -1/\hat{y}_c$, so for $k = c$:</p>
+  $$\frac{\partial\mathcal{L}}{\partial z_c} = -\frac{1}{\hat{y}_c}\hat{y}_c(1-\hat{y}_c) = \hat{y}_c - 1$$
+  <p>and for $k \ne c$:</p>
+  $$\frac{\partial\mathcal{L}}{\partial z_k} = -\frac{1}{\hat{y}_c}(-\hat{y}_c\hat{y}_k) = \hat{y}_k$$
+  <p>Since $y_c = 1$ and $y_k = 0$, both cases are the single expression
+  $\hat{y}_k - y_k$.</p>
+</details>
+
+<h2>The information-theoretic reading</h2>
+
+<p>
+A second derivation reaches the same formula from a different direction, and explains
+the name.
+</p>
+
+<p>
+<strong>Surprisal</strong> of an event of probability $p$ is $-\log p$ — in base 2,
+literally the number of bits an optimal code spends on it.
+<strong>Entropy</strong> $H(p) = -\sum p_k\log p_k$ is its expectation under the
+truth. <strong>Cross-entropy</strong> $H(p,q) = -\sum p_k\log q_k$ is what you pay
+encoding reality $p$ with beliefs $q$. Their difference is the
+<strong>KL divergence</strong>, the pure penalty for being wrong:
+</p>
+
+$$D_{\mathrm{KL}}(p\parallel q) = H(p,q) - H(p) \ge 0$$
+
+<div class="box example">
+  <span class="box-label">Example — the cost of a wrong belief, in bits</span>
+  <div class="given">It rains half of all days:  p = [0.5, 0.5]
+Your model claims:          q = [0.25, 0.75]
+
+H(p)   = −(0.5 log₂0.5 + 0.5 log₂0.5) = 1.000 bits
+H(p,q) = −(0.5 log₂0.25 + 0.5 log₂0.75)
+       = −(0.5(−2) + 0.5(−0.415)) = 1.208 bits
+
+KL(p‖q) = 1.208 − 1.000 = 0.208 bits per day</div>
+  <p style="margin-bottom:0">
+  Over a year, 76 wasted bits — the price of a wrong model, in the currency of
+  message length.
+  </p>
+</div>
+
+<div class="widget" data-widget="entropy"></div>
+
+<p>
+The punchline: $H(p)$ depends only on the data, not on the model. So minimising
+cross-entropy <em>is</em> minimising KL divergence from the truth. The
+maximum-likelihood story and the information-theory story are the same story told
+twice.
+</p>
+
+<div class="box note">
+  <span class="box-label">Perplexity</span>
+  A language model's perplexity is $e^{\mathcal{L}}$ for cross-entropy in nats. A
+  perplexity of 40 means the model is as uncertain as if choosing uniformly among 40
+  words. When <a class="xref" href="#ch10">Chapter 10</a> reports a loss of 1.51 over
+  73 characters, that is a perplexity of 4.5 — the model has narrowed 73 possible
+  characters down to about four or five plausible ones. Loss curves are hard to read;
+  perplexity is not.
+</div>
+
+<h2>Choosing a loss in practice</h2>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Task</th><th>Final layer</th><th>Loss</th><th>PyTorch</th></tr></thead>
+  <tbody>
+    <tr><td>Binary classification</td><td>1 logit</td><td>BCE</td><td><code>BCEWithLogitsLoss</code></td></tr>
+    <tr><td>Multi-class, one label</td><td>$K$ logits</td><td>cross-entropy</td><td><code>CrossEntropyLoss</code></td></tr>
+    <tr><td>Multi-label (tags)</td><td>$K$ logits</td><td>BCE per class</td><td><code>BCEWithLogitsLoss</code></td></tr>
+    <tr><td>Regression, clean</td><td>1 linear</td><td>MSE</td><td><code>MSELoss</code></td></tr>
+    <tr><td>Regression, outliers</td><td>1 linear</td><td>MAE / Huber</td><td><code>L1Loss</code>, <code>SmoothL1Loss</code></td></tr>
+    <tr><td>Next-token prediction</td><td>$V$ logits</td><td>cross-entropy</td><td><code>CrossEntropyLoss</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Three rules cause more bugs than everything else combined. <strong>Pass logits, not
+probabilities.</strong> <strong>Ignore your padding</strong> with
+<code>ignore_index=PAD_IDX</code>, or the model spends its capacity learning to
+predict <code>&lt;PAD&gt;</code>, which it will do perfectly and which is worth
+nothing. <strong>Class imbalance is a likelihood problem</strong> — if 95% of labels
+are negative, always predicting negative genuinely is the maximum-likelihood answer,
+and reweighting changes the question rather than fixing a bug.
+</p>
+
+<hr>
+
+<h2>By-hand exercises</h2>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.1 · shapes and dot products</span>
+  <p>Nothing here needs a calculator, and every one of these shapes appears in
+  <a class="xref" href="#ch01">Chapter 01</a>.</p>
+  <div class="given">A is (4, 2)      B is (2, 3)      C is (3, 3)      v is (3,)</div>
+  <ol>
+    <li>Which of these are legal, and what shape does each produce?
+        <code>A@B</code>, <code>B@A</code>, <code>A@B@C</code>, <code>B@C</code>,
+        <code>C@B</code>.</li>
+    <li>What shape is <code>(A@B) + v</code>? Explain via the broadcasting rules.</li>
+    <li>Compute $\mathbf{a}\cdot\mathbf{b}$ for $\mathbf{a} = [3, -1, 2]$,
+        $\mathbf{b} = [1, 2, 4]$. Is the angle between them acute, right, or obtuse?</li>
+    <li>A batch of 32 examples with 10 features each passes through
+        <code>nn.Linear(10, 64)</code> then <code>nn.Linear(64, 3)</code>. Give every
+        intermediate shape and the total parameter count.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Inner dimensions must match and vanish.</p>
+    <div class="given">A@B    (4,2)@(2,3)      → (4, 3)     ✓  2 matches 2
+B@A    (2,3)@(4,2)      → ERROR      ✗  3 ≠ 4
+A@B@C  (4,3)@(3,3)      → (4, 3)     ✓  left-to-right
+B@C    (2,3)@(3,3)      → (2, 3)     ✓
+C@B    (3,3)@(2,3)      → ERROR      ✗  3 ≠ 2</div>
+    <p>Note that <code>A@B</code> is legal while <code>B@A</code> is not — the
+    clearest possible demonstration that matrix multiplication does not commute.</p>
+    <p><strong>2.</strong> <code>A@B</code> is <span class="shape">(4, 3)</span> and
+    <code>v</code> is <span class="shape">(3,)</span>. Aligning from the right, 3
+    matches 3; <code>v</code> has no second dimension, so it is treated as
+    <span class="shape">(1, 3)</span> and stretched across all 4 rows. Result:
+    <strong>(4, 3)</strong>. This is exactly how a bias vector is added to a batch —
+    every example gets the same bias.</p>
+    <p><strong>3.</strong> $(3)(1) + (-1)(2) + (2)(4) = 3 - 2 + 8 = \mathbf{9}$.
+    Positive, so $\cos\theta > 0$ and the angle is <strong>acute</strong> — the
+    vectors broadly agree in direction.</p>
+    <p><strong>4.</strong></p>
+    <div class="given">input           (32, 10)
+after Linear(10,64)  (32, 64)      10×64 + 64 =   704 params
+after Linear(64,3)   (32,  3)      64×3  +  3 =   195 params
+                                        total     899 params</div>
+    <p>The batch dimension 32 passes through untouched at every step. That is
+    universal: layers transform features, never the batch.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.2 · the chain rule as backpropagation</span>
+  <p>
+  A one-neuron network, computed forwards and then backwards. This is a complete
+  training step in miniature.
+  </p>
+  <div class="given">x = 2.0     w = 0.5     b = 0.1     true label y = 1
+
+z = wx + b            (linear)
+a = σ(z) = 1/(1+e⁻ᶻ)  (sigmoid)
+L = −ln(a)            (BCE, with y = 1)
+
+σ(1.1) = 0.750    ln(0.750) = −0.288</div>
+  <ol>
+    <li>Forward pass: compute $z$, $a$, and $\mathcal{L}$.</li>
+    <li>Compute $\partial\mathcal{L}/\partial a$.</li>
+    <li>Compute $\partial a/\partial z$ using $\sigma'(z) = a(1-a)$.</li>
+    <li>Chain them to get $\partial\mathcal{L}/\partial z$. Simplify, and compare with
+        $a - y$.</li>
+    <li>Compute $\partial\mathcal{L}/\partial w$ and $\partial\mathcal{L}/\partial b$,
+        then take one gradient-descent step at $\eta = 0.5$ and verify the loss
+        decreased.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $z = 0.5(2.0) + 0.1 = 1.1$; $a = \sigma(1.1) = 0.750$;
+    $\mathcal{L} = -\ln(0.750) = \mathbf{0.288}$.</p>
+    <p><strong>2.</strong> $\frac{d}{da}(-\ln a) = -1/a = -1/0.750 = \mathbf{-1.333}$.</p>
+    <p><strong>3.</strong> $a(1-a) = 0.750 \times 0.250 = \mathbf{0.1875}$.</p>
+    <p><strong>4.</strong> Multiplying the two:</p>
+    <div class="given">∂L/∂z = (−1.333)(0.1875) = −0.250
+
+and     a − y = 0.750 − 1 = −0.250     ← identical</div>
+    <p>Algebraically: $-\frac{1}{a}\cdot a(1-a) = -(1-a) = a - 1 = a - y$. The
+    $\sigma'$ factor cancels against the $1/a$ from the log <em>exactly</em>. This is
+    the cancellation from the boxed result above, appearing here in its simplest
+    possible instance — and it is why sigmoid pairs with BCE and not with MSE.</p>
+    <p><strong>5.</strong> Since $z = wx + b$, we have $\partial z/\partial w = x$ and
+    $\partial z/\partial b = 1$:</p>
+    <div class="given">∂L/∂w = (∂L/∂z)(∂z/∂w) = (−0.250)(2.0) = −0.500
+∂L/∂b = (∂L/∂z)(∂z/∂b) = (−0.250)(1.0) = −0.250
+
+w ← 0.5 − 0.5(−0.500) = 0.75
+b ← 0.1 − 0.5(−0.250) = 0.225
+
+new z = 0.75(2.0) + 0.225 = 1.725
+new a = σ(1.725) ≈ 0.849
+new L = −ln(0.849) = 0.164        was 0.288  ✓ decreased</div>
+    <p>Note that $\partial\mathcal{L}/\partial w$ is twice
+    $\partial\mathcal{L}/\partial b$, purely because $x = 2$. A larger input produces
+    a larger weight gradient — which is why unnormalised input features with wildly
+    different scales make training difficult, and why feature scaling helps.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.3 · summing over paths</span>
+  <p>
+  A parameter used twice — the case that explains PyTorch's gradient accumulation.
+  </p>
+  <div class="given">u = w²
+v = u + w
+L = 3v
+
+with w = 2</div>
+  <ol>
+    <li>Compute $u$, $v$, and $\mathcal{L}$.</li>
+    <li>Identify every path from $w$ to $\mathcal{L}$ in the computation graph.</li>
+    <li>Compute the derivative along each path, and sum.</li>
+    <li>Verify numerically with $h = 0.001$.</li>
+    <li>What would <code>w.grad</code> contain if you called <code>backward()</code>
+        twice without <code>zero_grad()</code>?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $u = 4$, $v = 4 + 2 = 6$, $\mathcal{L} = 18$.</p>
+    <p><strong>2.</strong> Two paths: $w \to u \to v \to \mathcal{L}$, and the direct
+    $w \to v \to \mathcal{L}$.</p>
+    <p><strong>3.</strong></p>
+    <div class="given">∂L/∂v = 3
+∂v/∂u = 1        ∂u/∂w = 2w = 4
+∂v/∂w = 1        (the direct edge)
+
+path 1:  4 × 1 × 3 = 12
+path 2:      1 × 3 =  3
+                     ───
+       ∂L/∂w =        15</div>
+    <p><strong>4.</strong> At $w = 2.001$: $u = 4.004001$, $v = 6.005001$,
+    $\mathcal{L} = 18.015003$. Then
+    $(18.015003 - 18)/0.001 = \mathbf{15.003} \approx 15$ ✓.</p>
+    <p><strong>5.</strong> It would contain <strong>30</strong> — the sum of two
+    independent backward passes, which is the derivative of nothing in particular.
+    Note how plausible 30 looks: nothing crashes, no warning is issued, and the model
+    trains steadily towards the wrong thing. This is why <code>zero_grad()</code> is
+    not optional, and why the accumulation default that causes this bug is also the
+    feature that makes <a class="xref" href="#ch08">gradient accumulation</a> and
+    weight sharing work.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.4 · binary cross-entropy on a batch</span>
+  <div class="given">example   true y    predicted ŷ
+   1         1         0.9
+   2         0         0.2
+   3         1         0.4
+
+ln 0.9 ≈ −0.105    ln 0.8 ≈ −0.223    ln 0.4 ≈ −0.916</div>
+  <ol>
+    <li>Write the per-example loss, simplifying away the term multiplied by zero.</li>
+    <li>Evaluate each and average to get the batch loss.</li>
+    <li>Which example contributes most, and by how much?</li>
+    <li>Example 2 is 0.2 away from perfect and example 3 is 0.6 away — three times
+        the error. Is the loss three times larger? What does the answer tell you about
+        how batches are dominated?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1 &amp; 2.</strong></p>
+    <div class="given">example 1:  y=1  →  −ln(0.9)       = 0.105
+example 2:  y=0  →  −ln(1 − 0.2)  = 0.223
+example 3:  y=1  →  −ln(0.4)      = 0.916
+
+batch loss = (0.105 + 0.223 + 0.916)/3 = 1.244/3 = 0.415</div>
+    <p><strong>3.</strong> Example 3, at 0.916, is <strong>74%</strong> of the total.</p>
+    <p><strong>4.</strong> No — it is <strong>4.1× larger</strong> for 3× the error.
+    The log makes the loss superlinear in the error, so a single badly-classified
+    example dominates the batch gradient. That is usually what you want (hard examples
+    deserve attention) and occasionally a disaster (a mislabelled example also
+    dominates). It is the same mechanism that makes MSE fragile to outliers, seen from
+    the classification side.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.5 · softmax, cross-entropy, and its gradient</span>
+  <div class="given">z = [2.0, 1.0, 0.0]        true class c = 1 (the middle one)
+
+e⁰ = 1.000    e¹ = 2.718    e² = 7.389</div>
+  <ol>
+    <li>Apply the max-subtraction trick and confirm it cannot change the answer.</li>
+    <li>Compute $\operatorname{softmax}(z)$ to three decimals.</li>
+    <li>Compute the loss $-\log\hat{y}_c$, and compare it with the loss of a uniform
+        guess.</li>
+    <li>Compute $\partial\mathcal{L}/\partial z_k$ for all three logits. Check they
+        sum to zero and explain why they must.</li>
+    <li>If you added 100 to every logit, what would change about the loss and the
+        gradients?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Subtracting 2 gives $[0, -1, -2]$. Since
+    $e^{z_k - m}/\sum_j e^{z_j - m} = (e^{-m}e^{z_k})/(e^{-m}\sum_j e^{z_j})$, the
+    $e^{-m}$ cancels and the distribution is identical.</p>
+    <p><strong>2.</strong> $\sum = 7.389 + 2.718 + 1.000 = 11.107$, so</p>
+    <div class="given">ŷ = [0.665, 0.245, 0.090]      sums to 1.000 ✓</div>
+    <p><strong>3.</strong> $\mathcal{L} = -\ln(0.245) = \mathbf{1.406}$ nats. A uniform
+    guess over 3 classes costs $-\ln(1/3) = 1.099$, so this model is
+    <em>worse than guessing</em> on this example — it put most of its mass on the
+    wrong class. That comparison is the cheapest possible sanity check on any
+    classifier's loss.</p>
+    <p><strong>4.</strong> With $y = [0,1,0]$:</p>
+    <div class="given">∂L/∂z₀ = 0.665 − 0 = +0.665
+∂L/∂z₁ = 0.245 − 1 = −0.755
+∂L/∂z₂ = 0.090 − 0 = +0.090
+                sum =  0.000</div>
+    <p>They must sum to zero because softmax outputs are constrained to sum to 1:
+    shifting every logit equally changes nothing, so the gradient can have no
+    component along that direction.</p>
+    <p><strong>5.</strong> <strong>Nothing at all.</strong> Both the loss and every
+    gradient are unchanged — this is the invariance from part 1, and part 4 is its
+    fingerprint in the gradients. What <em>would</em> change is the naive
+    implementation's behaviour: $e^{102}$ is fine, but at $+800$ it overflows to
+    <code>inf</code> and the distribution becomes <code>nan</code>. The mathematics is
+    invariant; the floating-point arithmetic is not.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.6 · entropy, cross-entropy, and KL</span>
+  <p>
+  A weather model claims rain with probability $q = 0.25$ every day. It actually rains
+  half the time, $p = 0.5$. Work in bits, with $\log_2 3 \approx 1.585$.
+  </p>
+  <ol>
+    <li>Compute $H(p)$.</li>
+    <li>Compute $H(p,q)$.</li>
+    <li>Compute $D_{\mathrm{KL}}(p\parallel q)$ and say what the number means
+        physically.</li>
+    <li>Compute $D_{\mathrm{KL}}(q\parallel p)$. Why is it different?</li>
+    <li>Training minimises $H(p,q)$, not $D_{\mathrm{KL}}$. Why does that make no
+        difference to where the minimum is?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $H(p) = -(0.5\log_2 0.5 + 0.5\log_2 0.5) = 1$ bit — a fair
+    coin, maximal uncertainty for a binary event.</p>
+    <p><strong>2.</strong> $\log_2 0.25 = -2$ and
+    $\log_2 0.75 = \log_2 3 - 2 \approx -0.415$, so
+    $H(p,q) = -(0.5(-2) + 0.5(-0.415)) = \mathbf{1.208}$ bits.</p>
+    <p><strong>3.</strong> $1.208 - 1 = \mathbf{0.208}$ bits. Physically: encoding real
+    weather using this model's beliefs costs 0.21 extra bits per day — about 76 wasted
+    bits a year. That is the concrete price of a wrong model, measured in message
+    length.</p>
+    <p><strong>4.</strong>
+    $D_{\mathrm{KL}}(q\parallel p) = 0.25\log_2(0.5) + 0.75\log_2(1.5)
+    = -0.25 + 0.75(0.585) = \mathbf{0.189}$ bits. Different because the two average
+    the discrepancy under different distributions — "how surprised will I be" depends
+    on who is doing the expecting. The asymmetry is a feature: forward and reverse KL
+    produce famously different behaviours (mass-covering versus mode-seeking) when
+    used as objectives.</p>
+    <p><strong>5.</strong> Because $D_{\mathrm{KL}}(p\parallel q) = H(p,q) - H(p)$ and
+    $H(p)$ depends only on the data, not on the model. Subtracting a constant shifts a
+    function without moving its minimum, so
+    $\arg\min_\theta H(p,q_\theta) = \arg\min_\theta D_{\mathrm{KL}}(p\parallel q_\theta)$.
+    Minimising cross-entropy <em>is</em> minimising divergence from the truth — you
+    simply cannot compute the constant, and do not need to.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.7 · choosing the loss</span>
+  <p>No arithmetic. For each, name the loss and justify it from the distribution.</p>
+  <ol>
+    <li>Predicting apartment rents, where 2% of the dataset is luxury penthouses at
+        30× the median.</li>
+    <li>Tagging a photo with any of 20 labels; a photo can have several.</li>
+    <li>Predicting the next word from a 50,000-word vocabulary.</li>
+    <li>Detecting a rare disease present in 0.5% of patients.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1. MAE or Huber.</strong> MSE is the Gaussian NLL, and this data has
+    heavy tails, so the assumption is simply false. Under MSE the penthouses'
+    squared errors dominate the gradient and distort predictions for ordinary
+    apartments. Huber is usually best: quadratic near zero for smooth convergence,
+    linear in the tail for robustness.</p>
+    <p><strong>2. BCE per label</strong> (<code>BCEWithLogitsLoss</code> over 20
+    logits), <em>not</em> cross-entropy. Cross-entropy assumes the categorical
+    distribution, in which exactly one class occurs — the softmax forces the 20
+    outputs to compete for a fixed probability budget. Multi-label means 20
+    independent Bernoulli events, so each gets its own sigmoid and its own BCE term.
+    This is a genuinely common mistake.</p>
+    <p><strong>3. Cross-entropy</strong> over 50,000 logits. Categorical: exactly one
+    word comes next. Report perplexity rather than raw loss — $e^{\mathcal{L}}$ is
+    interpretable, and the uniform baseline is $\ln(50000) = 10.8$ nats.</p>
+    <p><strong>4. BCE with <code>pos_weight</code></strong>. The loss itself is
+    correct — Bernoulli, one binary outcome — but with 0.5% positives the
+    maximum-likelihood solution really is "always predict negative", which achieves
+    99.5% accuracy and is useless. The loss is not malfunctioning; it is answering the
+    question you asked. Reweighting the positive class changes the question to one you
+    actually care about. Report precision and recall, never accuracy.</p>
+  </details>
+</div>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>00_math_foundations/prompt.ipynb</code>. You will verify the linear
+  algebra and broadcasting rules in code, check derivatives by finite differences,
+  implement BCE, softmax, and cross-entropy from their definitions, reproduce the
+  $\hat{y}-y$ gradient three independent ways, and watch a naive softmax overflow to
+  <code>nan</code> on a logit of 800 before fixing it. It is the only notebook here
+  that trains nothing — it is entirely about the mathematics.
+</div>
+
+<div class="box note">
+  <span class="box-label">Where this goes next</span>
+  <a class="xref" href="#ch01">Chapter 01</a> takes the BCE loss and the chain rule
+  from this chapter and works out, by hand and then in NumPy, the derivative of the
+  loss with respect to every weight in a two-layer network. That is backpropagation —
+  and with the foundations here, it introduces no new mathematics at all.
+</div>
+
+</section>

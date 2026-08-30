@@ -73,6 +73,25 @@ x = emb(token_ids)      # (B, L) -&gt; (B, L, 100)</code></pre>
   other row untouched. Words that do not appear in a batch receive no update.
 </div>
 
+<div class="box example">
+  <span class="box-label">Example — a lookup <em>is</em> a matrix multiply</span>
+  <p>A 4-word vocabulary with 3-dimensional embeddings:</p>
+  <div class="given">        E (4×3)                  one-hot for "good" (index 2)
+  the  [ 0.1,  0.0, −0.2 ]         h = [0, 0, 1, 0]
+  a    [ 0.3, −0.1,  0.1 ]
+  good [ 0.9,  0.8, −0.5 ]         h @ E = 0·row0 + 0·row1 + 1·row2 + 0·row3
+  bad  [−0.8, −0.7,  0.6 ]               = [0.9, 0.8, −0.5]
+
+which is exactly E[2] — the lookup, with 9 pointless multiplications.</div>
+  <p style="margin-bottom:0">
+  The equivalence also explains the backward pass. Since $h$ selects one row, the
+  gradient $h^\top\delta$ is zero everywhere except row 2, which receives $\delta$.
+  Only words that actually appeared get updated — and a word appearing three times in
+  a batch accumulates three contributions, exactly as
+  <a class="xref" href="#ch00">summing over paths</a> requires.
+  </p>
+</div>
+
 <p>
 Because the vectors are learned by gradient descent on <em>this</em> task, they arrange
 themselves according to what this task needs. Train on sentiment and "boring", "tedious", and
