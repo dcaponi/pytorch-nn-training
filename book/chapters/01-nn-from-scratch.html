@@ -431,6 +431,26 @@ new a2 = σ(1.0713) ≈ 0.745</div>
   </details>
 </div>
 
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  Nobody writes the six backward lines in production, and after this chapter you know
+  exactly what is being replaced:
+  </p>
+<pre><code class="language-python">model = nn.Sequential(nn.Linear(2, 4), nn.Sigmoid(),
+                      nn.Linear(4, 1))
+loss = nn.BCEWithLogitsLoss()(model(X), y)   # replaces the loss + clipping
+loss.backward()                              # replaces d2, dW2, db2, d1, dW1, db1
+optimizer.step()                             # replaces the four updates</code></pre>
+  <p style="margin-bottom:0">
+  What the framework buys: correct derivatives for arbitrary graphs, fused numerically
+  stable kernels, and GPU execution. What it hides: that $\delta_2$ is
+  <em>prediction minus target</em>, that a saturated unit receives nothing, and that a
+  dead input feature never updates. Those three facts are what let you debug a model
+  that trains but does not learn — and they are invisible from the framework side.
+  </p>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>01_nn_from_scratch/prompt.ipynb</code>. You will implement <code>sigmoid</code>

@@ -29,11 +29,25 @@ and a *back to where you were* button for following cross-references without los
 your place. Mathematics renders offline via a vendored copy of KaTeX; the interactive
 figures are canvas widgets computing the same arithmetic as the text beside them.
 
-Every chapter carries a **By hand** exercise — a small calculation you do on paper
-before you write any code, with a fully worked solution folded up underneath. That
-step is the one people skip and the one that does the work: a gradient you have
-computed once with a pencil stops being a symbol and becomes a number you know how to
-check.
+Every chapter carries **By hand** exercises — small calculations you do on paper
+before writing code, with fully worked solutions folded up underneath. Chapter 00
+alone has twenty-two. That step is the one people skip and the one that does the work:
+a gradient you have computed once with a pencil stops being a symbol and becomes a
+number you know how to check.
+
+Each chapter also ends with an **In the wild** box showing the production equivalent of
+whatever you just built by hand — `F.scaled_dot_product_attention` for your attention,
+`peft` for your LoRA, `transformers` for your GPT — with what the library adds and what
+it hides. Building it yourself is not an argument against the library; it is what lets
+you use the library well, and debug it when it misbehaves.
+
+The appendix goes past the end of the curriculum: a map from every hand-rolled
+component to its production API, a guide to reading papers (with the papers behind each
+chapter), and **the modern stack** — the roughly eight substitutions separating
+Chapter 07's transformer from a current frontier model. RMSNorm, SwiGLU, RoPE,
+GQA, latent attention, mixture-of-experts, FlashAttention, speculative decoding, and
+preference optimisation, each with the one-line idea and which resource it buys back.
+None of them needs mathematics beyond Chapter 00.
 
 To edit it, change a fragment in `book/chapters/` and rebuild:
 
@@ -49,16 +63,21 @@ The build script is standard-library only — no dependencies, no toolchain.
 ## What's Covered
 
 ### 00 — Mathematical Foundations
-The three areas of mathematics the rest of the curriculum runs on, verified in code
+The four areas of mathematics the rest of the curriculum runs on, verified in code
 rather than asserted. Trains no model; it is entirely about the mathematics.
 
-- Dot products as similarity, matrix multiplication, shape rules, broadcasting
-- Derivatives by finite differences, gradient checking, the chain rule
-- Summing over paths — and the missing-`zero_grad()` bug it explains
-- Likelihood, and why every loss is a negative log-likelihood
-- BCE, softmax, and cross-entropy implemented from their definitions
-- The `ŷ - y` gradient, verified analytically, numerically, and by autograd
-- Entropy, KL divergence, and perplexity
+- **Linear algebra** — dot products as similarity, the row *and column* readings of a
+  matrix–vector product, the transpose in the backward pass derived from shapes alone,
+  outer products and rank (the basis for LoRA), broadcasting traps
+- **Calculus** — finite differences and gradient checking, the chain rule, summing over
+  paths and the missing-`zero_grad()` bug it explains, the learning-rate convergence bound
+- **Statistics** — expectation and variance, why `σ'(z)` *is* a Bernoulli variance,
+  variance propagation through 20 layers (deriving Xavier and He initialisation, and
+  watching the wrong scale saturate a network before training starts), the dot-product
+  variance behind attention's `√d_k`, dropout's `1/(1-p)`, standard error over seeds
+- **Probability and loss** — likelihood, why every loss is a negative log-likelihood,
+  BCE / softmax / cross-entropy from their definitions, the `ŷ - y` gradient verified
+  three ways, entropy, KL divergence, and perplexity
 
 ### 01 — Neural Network from Scratch
 Build a 2-layer network (XOR) using **only NumPy**. Every operation — forward pass,
@@ -155,12 +174,16 @@ Both techniques implemented from scratch — no `bitsandbytes`, no `peft`.
 - Adapting a Carroll-trained model to Shakespeare with under 2% of its parameters
 - A rank sweep testing LoRA's low-rank claim empirically
 - QLoRA, and why sequence length rather than parameter count exhausts your memory
+- `torch.ao.quantization` measured against your fake quantization on real serialised
+  bytes, and the `peft` merge operation verified numerically (including the scaling bug
+  it catches)
 
 ### 12 — Capstone Projects
-Four open-ended projects with specifications and no solutions: a translator, a text
-generator, a multi-adapter assistant, and a rigorous architecture comparison. Ships
-real scaffolding — vocabulary, training harness, BLEU, parameter matching — and
-leaves the architecture to you.
+Five open-ended projects with specifications and no solutions: a translator, a text
+generator, a multi-adapter assistant, a rigorous architecture comparison, and a paper
+reproduction. Ships real scaffolding — vocabulary, training harness, BLEU, parameter
+matching, and an A/B harness that reports error bars and tells you when a difference is
+inside the noise — and leaves the architecture to you.
 
 ---
 

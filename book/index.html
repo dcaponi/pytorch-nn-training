@@ -31,6 +31,8 @@
   --notebook-soft: #e3f3e9;
   --warn:          #a8352f;
   --warn-soft:     #fbe9e7;
+  --library:       #6b4a9e;   /* the production-library equivalent */
+  --library-soft:  #f0ebfa;
 
   --code-bg:       #f4f1ec;
   --t-k:           #9b2fae;   /* keyword */
@@ -70,6 +72,8 @@
     --notebook-soft: #14301f;
     --warn:          #f08a80;
     --warn-soft:     #3a1d1b;
+    --library:       #c0a8f0;
+    --library-soft:  #241d33;
 
     --code-bg:       #121116;
     --t-k:           #d78ce6;
@@ -102,6 +106,8 @@
   --notebook-soft: #14301f;
   --warn:          #f08a80;
   --warn-soft:     #3a1d1b;
+  --library:       #c0a8f0;
+  --library-soft:  #241d33;
 
   --code-bg:       #121116;
   --t-k:           #d78ce6;
@@ -477,6 +483,12 @@ pre code {
 
 .warn { border-left: 3px solid var(--warn); background: var(--warn-soft); }
 .warn .box-label { color: var(--warn); }
+
+/* the production-library equivalent of something just built by hand */
+.library { border-left: 3px solid var(--library); background: var(--library-soft); }
+.library .box-label { color: var(--library); }
+.library pre { background: rgba(127,127,127,.10); border-color: var(--rule); margin: 0.7rem 0; }
+.library table { font-size: 0.76rem; }
 
 /* by-hand exercise internals */
 .byhand ol { padding-left: 1.2rem; }
@@ -1130,6 +1142,11 @@ a.xref:hover { background: var(--accent-soft); }
 <a class="toc-link toc-l2" href="#ch12-project-4-an-architecture-bake-off">Project 4 — An architecture bake-off</a>
 <ol class="toc-subsubs">
 </ol></li>
+<li class="toc-sec" data-sec="ch12-project-5-reproduce-a-paper">
+<a class="toc-link toc-l2" href="#ch12-project-5-reproduce-a-paper">Project 5 — Reproduce a paper</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch12-the-method">The method</a></li>
+</ol></li>
 <li class="toc-sec" data-sec="ch12-the-checklist">
 <a class="toc-link toc-l2" href="#ch12-the-checklist">The checklist</a>
 <ol class="toc-subsubs">
@@ -1169,6 +1186,32 @@ a.xref:hover { background: var(--accent-soft); }
 <a class="toc-link toc-l2" href="#appendix-rules-of-thumb">Rules of thumb</a>
 <ol class="toc-subsubs">
 </ol></li>
+<li class="toc-sec" data-sec="appendix-from-scratch-to-the-library">
+<a class="toc-link toc-l2" href="#appendix-from-scratch-to-the-library">From scratch to the library</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="appendix-reading-the-literature">
+<a class="toc-link toc-l2" href="#appendix-reading-the-literature">Reading the literature</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#appendix-a-reading-order">A reading order</a></li>
+<li><a class="toc-link toc-l3" href="#appendix-the-papers-behind-these-chapters">The papers behind these chapters</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="appendix-the-modern-stack-what-changed-after-2017">
+<a class="toc-link toc-l2" href="#appendix-the-modern-stack-what-changed-after-2017">The modern stack: what changed after 2017</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#appendix-normalisation-layernorm-rmsnorm">Normalisation: LayerNorm → RMSNorm</a></li>
+<li><a class="toc-link toc-l3" href="#appendix-activation-relu-swiglu">Activation: ReLU → SwiGLU</a></li>
+<li><a class="toc-link toc-l3" href="#appendix-position-learned-sinusoidal-rope">Position: learned/sinusoidal → RoPE</a></li>
+<li><a class="toc-link toc-l3" href="#appendix-kv-cache-mha-gqa-mqa-latent-attention">KV cache: MHA → GQA/MQA → latent attention</a></li>
+<li><a class="toc-link toc-l3" href="#appendix-capacity-dense-mixture-of-experts">Capacity: dense → mixture of experts</a></li>
+<li><a class="toc-link toc-l3" href="#appendix-attention-kernels-flashattention">Attention kernels: FlashAttention</a></li>
+<li><a class="toc-link toc-l3" href="#appendix-decoding-speculative-and-multi-token">Decoding: speculative and multi-token</a></li>
+<li><a class="toc-link toc-l3" href="#appendix-post-training-sft-then-preference-optimisation">Post-training: SFT, then preference optimisation</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="appendix-making-work-others-will-trust">
+<a class="toc-link toc-l2" href="#appendix-making-work-others-will-trust">Making work others will trust</a>
+<ol class="toc-subsubs">
+</ol></li>
 <li class="toc-sec" data-sec="appendix-about-this-book">
 <a class="toc-link toc-l2" href="#appendix-about-this-book">About this book</a>
 <ol class="toc-subsubs">
@@ -1205,7 +1248,18 @@ that gap from both ends: every idea appears three times, in three different regi
   <li><strong>As arithmetic you do yourself,</strong> in the <em>By hand</em> exercises — small
       enough for paper, large enough to be real.</li>
   <li><strong>As code,</strong> in the notebook for that chapter, which you complete and run.</li>
+  <li><strong>As the library call it becomes,</strong> in the <em>In the wild</em> boxes —
+      what production code writes instead, what it adds, and what it hides.</li>
 </ol>
+
+<p>
+That fourth register matters more than it looks. The goal is not to avoid libraries; it
+is to reach the point where you can read a paper, recognise which of its equations is
+the contribution, implement it, and check a library's version against your own. The
+<a class="xref" href="#appendix">Appendix</a> is built for that transition — it maps
+every component here to its production API, explains how to read the literature, and
+surveys what has changed in the field since 2017.
+</p>
 
 <p>
 The by-hand step is the one people skip, and it is the one that does the work. A gradient
@@ -3657,6 +3711,26 @@ new a2 = σ(1.0713) ≈ 0.745</div>
   </details>
 </div>
 
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  Nobody writes the six backward lines in production, and after this chapter you know
+  exactly what is being replaced:
+  </p>
+<pre><code class="language-python">model = nn.Sequential(nn.Linear(<span class="t-n">2</span>, <span class="t-n">4</span>), nn.Sigmoid(),
+                      nn.Linear(<span class="t-n">4</span>, <span class="t-n">1</span>))
+loss = nn.BCEWithLogitsLoss()(model(X), y)   <span class="t-cm"># replaces the loss + clipping</span>
+loss.backward()                              <span class="t-cm"># replaces d2, dW2, db2, d1, dW1, db1</span>
+optimizer.step()                             <span class="t-cm"># replaces the four updates</span></code></pre>
+  <p style="margin-bottom:0">
+  What the framework buys: correct derivatives for arbitrary graphs, fused numerically
+  stable kernels, and GPU execution. What it hides: that $\delta_2$ is
+  <em>prediction minus target</em>, that a saturated unit receives nothing, and that a
+  dead input feature never updates. Those three facts are what let you debug a model
+  that trains but does not learn — and they are invisible from the framework side.
+  </p>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>01_nn_from_scratch/prompt.ipynb</code>. You will implement <code>sigmoid</code>
@@ -4305,6 +4379,32 @@ k=5:  100 × 501 =  50,100
     entirely. Tuning the convolutions, which hold 11% of the parameters, would be attacking
     the wrong end of the model.</p>
   </details>
+</div>
+
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  Word-level vocabularies with an <code>&lt;UNK&gt;</code> bucket are a teaching device.
+  Production text pipelines use <strong>subword tokenisation</strong>, which has no
+  unknown tokens at all — every string decomposes into pieces that are in the vocabulary:
+  </p>
+<pre><code class="language-python"><span class="t-k">from</span> tokenizers <span class="t-k">import</span> Tokenizer, models, trainers, pre_tokenizers
+
+tok = Tokenizer(models.BPE(unk_token=<span class="t-c">None</span>))
+tok.pre_tokenizer = pre_tokenizers.ByteLevel()
+tok.train_from_iterator(corpus, trainers.BpeTrainer(vocab_size=<span class="t-n">8000</span>))
+
+tok.encode(<span class="t-s">"antidisestablishmentarianism"</span>).tokens
+<span class="t-cm"># ['anti', 'dis', 'establish', 'ment', 'arian', 'ism']  — nothing is <UNK></span></code></pre>
+  <p style="margin-bottom:0">
+  The consequences run deeper than coverage. A byte-level BPE vocabulary can encode
+  <em>any</em> byte string, which is why a modern model handles code, emoji, and
+  languages it never saw in training. It also decouples vocabulary size from
+  corpus vocabulary, which is what makes the embedding table a design choice rather
+  than a consequence of your data. Building BPE from scratch is the first extension in
+  <a class="xref" href="#ch12">Chapter 12</a>, and it is the single largest gap between
+  this curriculum and a production language model.
+  </p>
 </div>
 
 <div class="box nbref">
@@ -5211,6 +5311,30 @@ after W^O          (32, 128, 256)</div>
     partition a fixed budget rather than adding to it. Adding heads is free in parameters and
     nearly free in compute, which is why 8 or 16 is standard.</p>
   </details>
+</div>
+
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  Everything in this chapter is one call in production:
+  </p>
+<pre><code class="language-python">out = F.scaled_dot_product_attention(q, k, v, is_causal=<span class="t-c">True</span>)</code></pre>
+  <p>
+  It computes exactly the formula you just implemented — you can and should verify that
+  numerically, as the notebook does — but dispatches to a fused
+  <strong>FlashAttention</strong> kernel where one is available. The difference is not
+  speed alone. The naive implementation materialises the
+  <span class="shape">(B, H, L, L)</span> score matrix in memory; the fused kernel
+  computes attention in tiles and <em>never materialises it at all</em>, so memory grows
+  linearly in $L$ rather than quadratically.
+  </p>
+  <p style="margin-bottom:0">
+  That is the difference between a 4k context and a 128k one, and it came from a
+  systems insight rather than a modelling one — which is a useful thing to notice about
+  where progress in this field actually comes from. <code>nn.MultiheadAttention</code>
+  wraps the projections too, and <code>nn.TransformerEncoderLayer</code> wraps the whole
+  block from <a class="xref" href="#ch07">Chapter 07</a>.
+  </p>
 </div>
 
 <div class="box nbref">
@@ -6227,6 +6351,28 @@ e^0 = 1.000   e^0.5 = 1.649   e^1 = 2.718</div>
   </details>
 </div>
 
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  PyTorch ships the entire architecture of this chapter:
+  </p>
+<pre><code class="language-python">model = nn.Transformer(d_model=<span class="t-n">256</span>, nhead=<span class="t-n">8</span>,
+                       num_encoder_layers=<span class="t-n">3</span>, num_decoder_layers=<span class="t-n">3</span>,
+                       batch_first=<span class="t-c">True</span>, norm_first=<span class="t-c">True</span>)
+
+out = model(src_emb, tgt_emb,
+            tgt_mask=nn.Transformer.generate_square_subsequent_mask(T),
+            src_key_padding_mask=(src == PAD_IDX))</code></pre>
+  <p style="margin-bottom:0">
+  Note what you still have to supply: the embeddings, the positional encoding, the
+  causal mask, the padding masks, the output projection, the teacher-forcing shift, and
+  the decode loop. The module is the easy half. Every bug in this chapter —
+  the shift, the padding mask, <code>ignore_index</code>, the <code>&lt;EOS&gt;</code>
+  that never fires — lives in the half the library does not cover, which is exactly why
+  building it once by hand is worth the afternoon.
+  </p>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>09_seq2seq_translation/prompt.ipynb</code>. You will build the causal mask, the
@@ -6608,6 +6754,36 @@ one    0.10   excluded</div>
     regardless, which either admits near-impossible tokens or discards genuine ones
     depending on the distribution it happens to meet.</p>
   </details>
+</div>
+
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  The same model, in the ecosystem you will actually be handed:
+  </p>
+<pre><code class="language-python"><span class="t-k">from</span> transformers <span class="t-k">import</span> GPT2Config, GPT2LMHeadModel
+
+model = GPT2LMHeadModel(GPT2Config(
+    vocab_size=<span class="t-n">50257</span>, n_positions=<span class="t-n">1024</span>,
+    n_embd=<span class="t-n">768</span>, n_head=<span class="t-n">12</span>, n_layer=<span class="t-n">12</span>))
+
+out = model(input_ids, labels=input_ids)   <span class="t-cm"># out.loss is the shift, done for you</span>
+model.generate(ids, do_sample=<span class="t-c">True</span>, temperature=<span class="t-n">0.8</span>, top_p=<span class="t-n">0.9</span>,
+               use_cache=<span class="t-c">True</span>)             <span class="t-cm"># your sampling loop and KV cache</span></code></pre>
+  <p>
+  Map it onto what you built: <code>GPT2Block</code> is your <code>Block</code>,
+  <code>use_cache</code> is your <code>CachedAttention</code>, <code>labels=</code>
+  performs the same one-token shift, and the config fields are the hyperparameters you
+  chose by hand. GPT-2 is <em>this notebook at 124M parameters</em>, which is worth
+  sitting with — the gap is scale, data, and a BPE tokenizer, not architecture.
+  </p>
+  <p style="margin-bottom:0">
+  The library earns its place at inference: batched generation, beam search, stopping
+  criteria, quantized loading, and a KV cache that is correct at the boundaries yours is
+  not (see the <code>block_size</code> assertion in the notebook). Use it — and know
+  what every argument does, because that is what separates configuring a model from
+  understanding one.
+  </p>
 </div>
 
 <div class="box nbref">
@@ -7107,6 +7283,45 @@ activations (~30%) :               = 0.90 GB
   </details>
 </div>
 
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  You implemented both techniques from their definitions. Here is what the same two
+  ideas look like as one-liners, and what each library adds beyond your version.
+  </p>
+<pre><code class="language-python"><span class="t-cm"># quantization — PyTorch native, works today on CPU</span>
+<span class="t-k">import</span> torch.ao.quantization <span class="t-k">as</span> tq
+qmodel = tq.quantize_dynamic(model, {nn.Linear}, dtype=torch.qint8)
+
+<span class="t-cm"># LoRA — the peft library, the de facto standard</span>
+<span class="t-k">from</span> peft <span class="t-k">import</span> LoraConfig, get_peft_model
+model = get_peft_model(base, LoraConfig(
+    r=<span class="t-n">8</span>, lora_alpha=<span class="t-n">16</span>, target_modules=[<span class="t-s">"qkv"</span>, <span class="t-s">"proj"</span>], lora_dropout=<span class="t-n">0.05</span>))
+model.print_trainable_parameters()   <span class="t-cm"># your `trainable / total` line</span>
+model.save_pretrained(<span class="t-s">"adapter/"</span>)    <span class="t-cm"># a few hundred KB, not a few GB</span></code></pre>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Yours</th><th>Production</th><th>What it adds</th></tr></thead>
+    <tbody>
+      <tr><td><code>quantize_symmetric</code></td><td><code>torch.ao.quantization</code></td><td>real int8 kernels, so the memory and speed savings are actual rather than simulated</td></tr>
+      <tr><td>per-channel scales</td><td>bitsandbytes <code>LLM.int8()</code></td><td>keeps outlier channels in fp16 — the production form of your outlier experiment</td></tr>
+      <tr><td>4-bit fake quant</td><td>NF4 (QLoRA), GPTQ, AWQ</td><td>a non-uniform grid matched to a normal distribution; calibration on real activations</td></tr>
+      <tr><td><code>LoRALinear</code></td><td><code>peft</code></td><td>adapter save/load/merge, hot-swapping, and every layer type</td></tr>
+      <tr><td>fake quant + LoRA</td><td>QLoRA in <code>bitsandbytes</code>+<code>peft</code></td><td>paged optimizers and double quantization of the scales themselves</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-bottom:0">
+  Two honest notes. <code>bitsandbytes</code> is CUDA-first and will not give you 4-bit
+  kernels on Apple silicon — on this machine, <strong>MLX</strong> and
+  <strong>llama.cpp/GGUF</strong> are the ones that actually deliver quantized speedups,
+  and both are worth an afternoon. And the reason to have built these by hand is not
+  purity: it is that when a 4-bit model degrades, the useful question is "which tensor
+  has the outlier, and is my grid per-channel?" — and that question is unaskable if
+  quantization is a flag you passed.
+  </p>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>11_quantization_and_lora/prompt.ipynb</code>. You will implement
@@ -7133,7 +7348,7 @@ activations (~30%) :               = 0.90 GB
 
 <p class="lede">
 Every chapter so far handed you an architecture and asked you to complete it. This
-one gives you four specifications and no solutions. The gap between "I finished the
+one gives you five specifications and no solutions. The gap between "I finished the
 tutorial" and "I can build this" is exactly the gap these projects exist to close.
 </p>
 
@@ -7294,6 +7509,70 @@ together <a class="xref" href="#ch03">Chapter 03</a> and
 <a class="xref" href="#ch07">Chapter 07</a> better than either chapter does alone.
 </p>
 
+<h2 id="ch12-project-5-reproduce-a-paper">Project 5 — Reproduce a paper<a class="anchor-link" href="#ch12-project-5-reproduce-a-paper" aria-label="Link to this section">#</a></h2>
+
+<p><em>Builds on everything, plus the
+<a class="xref" href="#appendix-reading-the-literature">reading guide</a>.</em></p>
+
+<p>
+The project that most directly builds the capability the others only approach: take a
+published result, reimplement it, and write up what you found. It is also the single
+most legible thing you can show someone evaluating your work, because it demonstrates
+the three skills at once — reading, implementing, and reporting honestly.
+</p>
+
+<p>
+Pick something small and self-contained that this curriculum has prepared you for. Good
+candidates, roughly in order of effort:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Paper</th><th>Claim to reproduce</th><th>Why it is tractable here</th></tr></thead>
+  <tbody>
+    <tr><td>Kim (2014), CNN for sentences</td><td>the multi-width CNN beats a bag-of-words baseline</td><td>you already built it in <a class="xref" href="#ch03">Ch. 03</a></td></tr>
+    <tr><td>Holtzman et al. (2019), nucleus sampling</td><td>top-p beats beam search on repetition metrics</td><td>your Ch. 10 model plus <code>distinct_n</code></td></tr>
+    <tr><td>LoRA (2021), §4.1</td><td>low rank suffices; rank beyond a point adds little</td><td>the rank sweep in <a class="xref" href="#ch11">Ch. 11</a>, extended</td></tr>
+    <tr><td>Xiong et al. (2020), pre-norm</td><td>post-norm needs warmup; pre-norm does not</td><td>one flag in your Ch. 07/10 block, two training runs</td></tr>
+    <tr><td>Press &amp; Wolf (2017), weight tying</td><td>tying improves perplexity, not just size</td><td>one line in your Ch. 10 GPT</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="ch12-the-method">The method<a class="anchor-link" href="#ch12-the-method" aria-label="Link to this section">#</a></h3>
+
+<ol>
+  <li><strong>State the claim as a number before you start.</strong> "Pre-norm trains
+      stably at a learning rate where post-norm diverges" is testable; "pre-norm is
+      better" is not.</li>
+  <li><strong>Reimplement from the paper, not from someone's code.</strong> If you get
+      stuck, that is the interesting part — note exactly which detail was
+      underspecified. Every paper has several.</li>
+  <li><strong>Reproduce at your scale, not theirs.</strong> You are testing whether the
+      <em>mechanism</em> holds, not matching a number produced on a thousand GPUs. Say
+      so explicitly in the write-up.</li>
+  <li><strong>Run three seeds and report the spread.</strong> Half of reproduction
+      failures are really seed variance.</li>
+  <li><strong>Write it up in two pages</strong>: the claim, your setup, the result with
+      error bars, where you diverged from the paper, and what you could not test.</li>
+</ol>
+
+<div class="box concept">
+  <span class="box-label">Key concept — the most valuable outcome is not "it worked"</span>
+  <p>
+  A reproduction that confirms the claim is fine. A reproduction that finds the claim
+  holds <em>only under conditions the paper did not state</em> is considerably more
+  valuable, and it is common — sensitivity to learning rate, to initialisation, to
+  dataset size, or to a preprocessing detail buried in an appendix.
+  </p>
+  <p style="margin-bottom:0">
+  That is a genuine contribution, it is publishable as a blog post or a workshop note,
+  and it is exactly the kind of work that demonstrates judgement rather than throughput.
+  Write it up carefully and generously — the goal is to inform, not to score a point off
+  the authors.
+  </p>
+</div>
+
 <h2 id="ch12-the-checklist">The checklist<a class="anchor-link" href="#ch12-the-checklist" aria-label="Link to this section">#</a></h2>
 
 <p>
@@ -7363,8 +7642,14 @@ equipped for all of them.
 
 <p class="lede">
 Reference material, collected so it is in one place: notation, tensor-shape
-conventions, a glossary, the failure modes you will actually hit, and the
-Apple-silicon specifics that this curriculum depends on.
+conventions, a glossary, and the failure modes you will actually hit — followed by
+three sections aimed past the end of the curriculum. <a class="xref" href="#appendix-from-scratch-to-the-library">From
+scratch to the library</a> maps every hand-rolled component to its production
+equivalent. <a class="xref" href="#appendix-reading-the-literature">Reading the
+literature</a> is how to get at a paper's actual contribution.
+<a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">The modern
+stack</a> covers the roughly eight substitutions that separate Chapter 07's transformer
+from a current frontier model — all of them readable with the mathematics you now have.
 </p>
 
 <h2 id="appendix-notation">Notation<a class="anchor-link" href="#appendix-notation" aria-label="Link to this section">#</a></h2>
@@ -7467,6 +7752,15 @@ padding.
     <tr><td><strong>Pre-norm / post-norm</strong></td><td>Whether LayerNorm sits inside or outside the residual path. Pre-norm trains deeper, more stably. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
     <tr><td><strong>Quantization</strong></td><td>Representing weights on a coarse integer grid. Error is bounded by half the step size. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
     <tr><td><strong>Residual connection</strong></td><td>$x + F(x)$. Gives gradients an unobstructed additive path to every layer. <a class="xref" href="#ch07">Ch. 07</a></td></tr>
+    <tr><td><strong>FlashAttention</strong></td><td>Tiled attention with an online softmax; the $L\times L$ matrix is never materialised, so memory is linear in $L$. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>GQA / MQA</strong></td><td>Heads share key/value projections, in groups or entirely. Shrinks the KV cache, which is what limits concurrent users. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>GRPO</strong></td><td>Group Relative Policy Optimization: preference optimisation without a value network, normalising advantages within a sampled group. Used for reasoning training. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>MLA</strong></td><td>Multi-head latent attention: cache a low-rank latent instead of full K and V. Chapter 11's factorisation, applied to the cache. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>MoE</strong></td><td>Mixture of experts: many feed-forward blocks, a router picking top-$k$ per token. Total parameters grow; active parameters do not. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>RMSNorm</strong></td><td>LayerNorm without the mean subtraction or shift — scale only. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>RoPE</strong></td><td>Rotary position embedding: rotate $q$ and $k$ by an angle proportional to position, making the dot product depend on relative offset. <a class="xref" href="#ch07">Ch. 07</a></td></tr>
+    <tr><td><strong>Speculative decoding</strong></td><td>A small draft model proposes tokens; the large model verifies them in one parallel pass. Same output distribution, faster. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>SwiGLU</strong></td><td>A gated feed-forward block — the LSTM gating idea applied to the MLP. Better per parameter. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>Softmax</strong></td><td>Logits to a distribution. Invariant to adding a constant — which is why you subtract the max. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
     <tr><td><strong>Teacher forcing</strong></td><td>Feed the ground-truth prefix during training rather than the model's own output. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
     <tr><td><strong>Temperature</strong></td><td>Divide logits before softmax: below 1 sharpens, above 1 flattens. Never changes the ranking. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
@@ -7566,6 +7860,291 @@ e.to(<span class="t-s">'mps'</span>)(torch.tensor([<span class="t-n">200</span>]
   </tbody>
 </table>
 </div>
+
+<h2 id="appendix-from-scratch-to-the-library">From scratch to the library<a class="anchor-link" href="#appendix-from-scratch-to-the-library" aria-label="Link to this section">#</a></h2>
+
+<p>
+Every component this curriculum builds by hand has a production equivalent. Building
+it yourself is not an argument against the library — it is what lets you use the
+library well, because you know what each argument does and what fails when it is
+wrong. The map:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>You built</th><th>Ch.</th><th>Production equivalent</th><th>What the library adds</th></tr></thead>
+  <tbody>
+    <tr><td>manual backward pass</td><td>01</td><td><code>loss.backward()</code></td><td>arbitrary graphs, fused stable kernels</td></tr>
+    <tr><td>manual SGD update</td><td>01</td><td><code>optim.AdamW</code></td><td>per-parameter step sizes, decoupled decay</td></tr>
+    <tr><td>word vocabulary + <code>&lt;UNK&gt;</code></td><td>03</td><td><code>tokenizers</code> (BPE)</td><td>no unknown tokens; any byte string encodes</td></tr>
+    <tr><td>scaled dot-product attention</td><td>06</td><td><code>F.scaled_dot_product_attention</code></td><td>FlashAttention — the $L^2$ matrix is never materialised</td></tr>
+    <tr><td><code>MultiHeadAttention</code></td><td>06</td><td><code>nn.MultiheadAttention</code></td><td>fused projections, key-padding masks</td></tr>
+    <tr><td>encoder block</td><td>07</td><td><code>nn.TransformerEncoderLayer</code></td><td><code>norm_first</code>, nested-tensor fast paths</td></tr>
+    <tr><td>seq2seq model</td><td>09</td><td><code>nn.Transformer</code></td><td>both stacks, mask helpers</td></tr>
+    <tr><td>training loop</td><td>08</td><td><code>accelerate</code>, Lightning</td><td>multi-GPU, mixed precision, checkpoint resume</td></tr>
+    <tr><td>GPT + sampling + KV cache</td><td>10</td><td><code>transformers</code></td><td><code>generate()</code>, beam search, correct cache edges</td></tr>
+    <tr><td><code>quantize_symmetric</code></td><td>11</td><td><code>torch.ao.quantization</code></td><td>real int8 kernels — actual savings, not simulated</td></tr>
+    <tr><td>per-channel scales</td><td>11</td><td><code>bitsandbytes</code> LLM.int8()</td><td>outlier channels kept in fp16</td></tr>
+    <tr><td>4-bit fake quant</td><td>11</td><td>NF4, GPTQ, AWQ</td><td>non-uniform grids, activation-aware calibration</td></tr>
+    <tr><td><code>LoRALinear</code></td><td>11</td><td><code>peft</code></td><td>save/load/merge, hot-swap, every layer type</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box warn">
+  <span class="box-label">On Apple silicon specifically</span>
+  <code>bitsandbytes</code> is CUDA-first and will not give you 4-bit kernels here.
+  The stacks that actually deliver quantized inference on an M-series Mac are
+  <strong>MLX</strong> (Apple's own array framework, designed around unified memory)
+  and <strong>llama.cpp / GGUF</strong>. Both are worth an afternoon, and reimplementing
+  <a class="xref" href="#ch10">Chapter 10</a>'s GPT in MLX is an unusually good way to
+  see what PyTorch abstracts away.
+</div>
+
+<h2 id="appendix-reading-the-literature">Reading the literature<a class="anchor-link" href="#appendix-reading-the-literature" aria-label="Link to this section">#</a></h2>
+
+<p>
+The point of doing the mathematics by hand is that papers become readable. Most
+machine-learning papers are short, and the contribution is usually one equation
+surrounded by experiments. What follows is how to get at it.
+</p>
+
+<h3 id="appendix-a-reading-order">A reading order<a class="anchor-link" href="#appendix-a-reading-order" aria-label="Link to this section">#</a></h3>
+
+<ol>
+  <li><strong>Abstract, then figures, then conclusions.</strong> The figures usually
+      carry the actual claim. If you cannot state the claim in one sentence after
+      this, the paper may not be worth the full read.</li>
+  <li><strong>Find the one equation.</strong> Nearly every architecture paper has a
+      single new expression; the rest is scaffolding you already know. Locate it and
+      write down its <em>shapes</em>. If the shapes do not compose, you have
+      misread it — which is more common than papers being wrong.</li>
+  <li><strong>Ask what resource it saves.</strong> Almost every modern contribution
+      trades one of: parameters, activation memory, KV-cache memory, FLOPs per token,
+      wall-clock, or data. Naming which one usually explains the whole design.</li>
+  <li><strong>Read the ablations before the headline table.</strong> The headline
+      compares against other people's models and is confounded by scale and data. The
+      ablation compares against the authors' own model with one thing removed, which
+      is the only controlled comparison in the paper.</li>
+  <li><strong>Check what is not reported.</strong> Missing seeds, missing error bars,
+      a baseline tuned less carefully than the method, and evaluation on the set used
+      for model selection are all common and all decisive.</li>
+</ol>
+
+<div class="box concept">
+  <span class="box-label">Key concept — the shape check</span>
+  <p>
+  When notation defeats you, translate to shapes. Paper notation is inconsistent
+  between authors; tensor shapes are not. "Project the input to a latent of dimension
+  $d_c$, then up-project per head" is ambiguous prose and unambiguous once written as
+  <span class="shape">(B, L, d)</span> → <span class="shape">(B, L, d_c)</span> →
+  <span class="shape">(B, H, L, d_h)</span>.
+  </p>
+  <p style="margin-bottom:0">
+  Then count parameters and memory for each shape. If the paper claims a saving, your
+  count should reproduce it — and if it does not, you have either misread the method
+  or found something worth asking about. Both are useful outcomes, and the second is
+  how people build reputations.
+  </p>
+</div>
+
+<h3 id="appendix-the-papers-behind-these-chapters">The papers behind these chapters<a class="anchor-link" href="#appendix-the-papers-behind-these-chapters" aria-label="Link to this section">#</a></h3>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Ch.</th><th>Paper</th><th>What to take from it</th></tr></thead>
+  <tbody>
+    <tr><td>01</td><td>Rumelhart, Hinton &amp; Williams (1986), <em>Learning representations by back-propagating errors</em></td><td>backprop stated in four pages; still the clearest description</td></tr>
+    <tr><td>02</td><td>Kingma &amp; Ba (2014), <em>Adam</em></td><td>read §2 and the bias-correction derivation; skip the convergence proof (later shown flawed)</td></tr>
+    <tr><td>03</td><td>Kim (2014), <em>CNNs for Sentence Classification</em></td><td>the whole architecture of Chapter 03, in six pages</td></tr>
+    <tr><td>05</td><td>Hochreiter &amp; Schmidhuber (1997), <em>LSTM</em></td><td>hard going; Olah's "Understanding LSTMs" is the better entry point</td></tr>
+    <tr><td>06–07</td><td>Vaswani et al. (2017), <em>Attention Is All You Need</em></td><td>§3 is the entire architecture; note how little justification the $\sqrt{d_k}$ gets — you derived it in exercise 00.13</td></tr>
+    <tr><td>07</td><td>Xiong et al. (2020), <em>On Layer Normalization in the Transformer</em></td><td>why pre-norm removes the need for warmup</td></tr>
+    <tr><td>10</td><td>Radford et al. (2019), <em>Language Models are Unsupervised Multitask Learners</em> (GPT-2)</td><td>the architecture is your notebook; the contribution is the framing</td></tr>
+    <tr><td>10</td><td>Holtzman et al. (2019), <em>The Curious Case of Neural Text Degeneration</em></td><td>where nucleus sampling comes from, and why likelihood ≠ quality</td></tr>
+    <tr><td>11</td><td>Hu et al. (2021), <em>LoRA</em></td><td>§4.1 is the low-rank claim you tested with the rank sweep</td></tr>
+    <tr><td>11</td><td>Dettmers et al. (2023), <em>QLoRA</em></td><td>NF4, double quantization, paged optimizers</td></tr>
+    <tr><td>11</td><td>Dao et al. (2022), <em>FlashAttention</em></td><td>a systems paper that changed modelling; read it for the tiling argument</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="appendix-the-modern-stack-what-changed-after-2017">The modern stack: what changed after 2017<a class="anchor-link" href="#appendix-the-modern-stack-what-changed-after-2017" aria-label="Link to this section">#</a></h2>
+
+<p>
+Chapter 07's transformer is the 2017 design. A current frontier model is recognisably
+the same block with roughly eight substitutions, each of which is a small, readable
+idea. Knowing all eight is most of what separates "can implement a transformer" from
+"can read a frontier model's technical report and reimplement it".
+</p>
+
+<p>
+Each entry below gives what it replaces, the idea, and which resource it buys back.
+None of them requires mathematics beyond <a class="xref" href="#ch00">Chapter 00</a>.
+</p>
+
+<h3 id="appendix-normalisation-layernorm-rmsnorm">Normalisation: LayerNorm → RMSNorm<a class="anchor-link" href="#appendix-normalisation-layernorm-rmsnorm" aria-label="Link to this section">#</a></h3>
+
+$$\operatorname{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_i x_i^2 + \epsilon}}\odot\gamma$$
+
+<p>
+Drop the mean subtraction and the $\beta$ shift; keep only the scaling. Empirically
+the re-centring contributes little, and removing it saves a pass over the features and
+a set of parameters. <em>Buys: wall-clock, marginally.</em> Used by Llama, Mistral,
+DeepSeek, and essentially everything current.
+</p>
+
+<h3 id="appendix-activation-relu-swiglu">Activation: ReLU → SwiGLU<a class="anchor-link" href="#appendix-activation-relu-swiglu" aria-label="Link to this section">#</a></h3>
+
+$$\operatorname{SwiGLU}(x) = \big(\operatorname{Swish}(xW_1) \odot xV\big)W_2
+\qquad \operatorname{Swish}(z) = z\,\sigma(z)$$
+
+<p>
+A <em>gated</em> feed-forward block: one projection produces content, a second produces
+a multiplicative gate, exactly as an <a class="xref" href="#ch05">LSTM gate</a> does.
+It needs three weight matrices instead of two, so implementations shrink the hidden
+width to $\tfrac{2}{3}\cdot 4d$ to keep the parameter count fixed. Consistently better
+per parameter. <em>Buys: quality at equal size.</em>
+</p>
+
+<h3 id="appendix-position-learned-sinusoidal-rope">Position: learned/sinusoidal → RoPE<a class="anchor-link" href="#appendix-position-learned-sinusoidal-rope" aria-label="Link to this section">#</a></h3>
+
+<p>
+Instead of adding a position vector to the embedding, <strong>rotate</strong> $q$ and
+$k$ by an angle proportional to position, in 2-D pairs of dimensions. Because a dot
+product depends only on the <em>relative</em> angle, $q_m \cdot k_n$ ends up depending
+on $m - n$ rather than on $m$ and $n$ separately — relative position, for free, inside
+the attention operation.
+</p>
+
+<p>
+This directly fixes the hard context limit from <a class="xref" href="#ch10">Chapter
+10</a>: there is no position-embedding table to run out of, and interpolating or
+rescaling the frequencies extends the context of an already-trained model.
+<em>Buys: length generalisation.</em>
+</p>
+
+<h3 id="appendix-kv-cache-mha-gqa-mqa-latent-attention">KV cache: MHA → GQA/MQA → latent attention<a class="anchor-link" href="#appendix-kv-cache-mha-gqa-mqa-latent-attention" aria-label="Link to this section">#</a></h3>
+
+<p>
+<a class="xref" href="#ch10-kv-cache">Chapter 10</a> showed the KV cache is what limits
+concurrent users. Three successive attacks on it:
+</p>
+
+<ul>
+  <li><strong>Multi-query attention (MQA)</strong> — all heads share <em>one</em> key
+      and value head. Cache shrinks by a factor of $H$; quality drops somewhat.</li>
+  <li><strong>Grouped-query attention (GQA)</strong> — heads share keys and values in
+      groups of, say, 8. Most of the saving, almost none of the loss. This is the
+      current default.</li>
+  <li><strong>Multi-head latent attention (MLA)</strong>, introduced in DeepSeek-V2 —
+      compress keys and values into a low-rank latent vector and cache <em>that</em>,
+      reconstructing per-head projections on the fly. It is
+      <a class="xref" href="#ch11">Chapter 11's low-rank factorisation</a> applied to
+      the cache instead of to the weights, and it is a good example of an idea you
+      already own being moved to a new place.</li>
+</ul>
+
+<p><em>Buys: KV-cache memory, which is to say serving throughput.</em></p>
+
+<h3 id="appendix-capacity-dense-mixture-of-experts">Capacity: dense → mixture of experts<a class="anchor-link" href="#appendix-capacity-dense-mixture-of-experts" aria-label="Link to this section">#</a></h3>
+
+<p>
+Replace the feed-forward block with $N$ expert blocks and a router that sends each
+token to the top-$k$ of them (typically $k = 1$ or 2). Total parameters grow by
+roughly $N$; <em>active</em> parameters per token do not. A model can hold far more
+knowledge than it spends compute on at any one token.
+</p>
+
+<p>
+The engineering problem is load balancing: a router left alone collapses onto a few
+experts. Classic MoE adds an auxiliary balancing loss, which competes with the language
+modelling objective; DeepSeek-V3 instead adjusts a per-expert routing <em>bias</em>
+based on observed load, achieving balance without an auxiliary loss term. DeepSeekMoE
+also splits experts finer and keeps a few always-on shared experts for common
+patterns. <em>Buys: knowledge per FLOP.</em>
+</p>
+
+<h3 id="appendix-attention-kernels-flashattention">Attention kernels: FlashAttention<a class="anchor-link" href="#appendix-attention-kernels-flashattention" aria-label="Link to this section">#</a></h3>
+
+<p>
+Not a modelling change at all — the same mathematics, computed in tiles with an online
+softmax so the <span class="shape">(B, H, L, L)</span> matrix is never written to
+memory. Memory becomes linear in $L$ instead of quadratic.
+<em>Buys: context length.</em> This is worth internalising as a lesson about the field:
+one of the largest capability jumps of the last several years came from rewriting a
+kernel, not from a new architecture.
+</p>
+
+<h3 id="appendix-decoding-speculative-and-multi-token">Decoding: speculative and multi-token<a class="anchor-link" href="#appendix-decoding-speculative-and-multi-token" aria-label="Link to this section">#</a></h3>
+
+<p>
+Generation is sequential and memory-bandwidth-bound, so the GPU is mostly idle.
+<strong>Speculative decoding</strong> uses a small draft model to propose several
+tokens and the large model to verify them in one parallel pass, accepting the longest
+correct prefix — provably identical output distribution, several times faster.
+DeepSeek-V3 folds a related idea into training with a <strong>multi-token
+prediction</strong> objective, predicting more than one future token per position.
+<em>Buys: tokens per second.</em>
+</p>
+
+<h3 id="appendix-post-training-sft-then-preference-optimisation">Post-training: SFT, then preference optimisation<a class="anchor-link" href="#appendix-post-training-sft-then-preference-optimisation" aria-label="Link to this section">#</a></h3>
+
+<p>
+A base model trained as in <a class="xref" href="#ch10">Chapter 10</a> continues text;
+it does not follow instructions. Turning one into an assistant is a separate stage:
+supervised fine-tuning on demonstrations, then optimisation against preferences —
+<strong>RLHF/PPO</strong> classically, <strong>DPO</strong> without a reward model, and
+<strong>GRPO</strong> (DeepSeek's variant, which drops the value network and normalises
+advantages within a group of sampled responses) for reasoning training. DeepSeek-R1 is
+the notable demonstration that reasoning behaviour can emerge from reinforcement
+learning against verifiable answers with little or no supervised bootstrapping.
+<em>Buys: usefulness, which pretraining does not provide.</em>
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept — the shape of progress</span>
+  Look at that list and notice how few entries are new mathematics. Two are
+  factorisations you already implemented (LoRA's low rank, reused for the KV cache),
+  two are gating (SwiGLU, MoE routing) which is the LSTM idea from
+  <a class="xref" href="#ch05">Chapter 05</a>, one is a kernel rewrite, one is a
+  rotation, and one is a change of training objective. <strong>The frontier is
+  reachable from here.</strong> What separates you from it is not a body of
+  mathematics you have not seen — it is engineering scale, data, and the habit of
+  asking which resource a design buys back.
+</div>
+
+<h2 id="appendix-making-work-others-will-trust">Making work others will trust<a class="anchor-link" href="#appendix-making-work-others-will-trust" aria-label="Link to this section">#</a></h2>
+
+<p>
+The technical ability to build these systems and the ability to convince someone of a
+result are different skills, and the second is scarcer. Most of it reduces to a
+handful of habits, all of which appear elsewhere in this book and are collected here.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Habit</th><th>Why it persuades</th></tr></thead>
+  <tbody>
+    <tr><td>Report a spread, never a single number</td><td>seed variance often exceeds the effect being claimed (exercise 00.16)</td></tr>
+    <tr><td>Compare at matched parameters and matched compute</td><td>otherwise you have measured capacity, not your idea</td></tr>
+    <tr><td>Tune the baseline as hard as the method</td><td>an undertuned baseline is the most common way good-faith work becomes wrong</td></tr>
+    <tr><td>Ablate one thing at a time</td><td>the ablation is the only controlled comparison you will have</td></tr>
+    <tr><td>Touch the test set once</td><td>repeated selection is overfitting in slow motion</td></tr>
+    <tr><td>State what you cannot conclude</td><td>readers who spot an unstated limitation stop trusting the stated ones</td></tr>
+    <tr><td>Publish the code and the seeds</td><td>reproducibility is the cheapest credibility available</td></tr>
+    <tr><td>Show a failure case</td><td>a method with no reported failure mode reads as unexamined</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+A useful test before publishing anything, in a paper, a blog post, or a pull request:
+<em>if a hostile reader with your data and code tried to break this claim, what would
+they attack first?</em> Address that in the text. It is the single highest-return
+paragraph you can write, and it converts your most likely critic into a reader who
+trusts the rest.
+</p>
 
 <h2 id="appendix-about-this-book">About this book<a class="anchor-link" href="#appendix-about-this-book" aria-label="Link to this section">#</a></h2>
 

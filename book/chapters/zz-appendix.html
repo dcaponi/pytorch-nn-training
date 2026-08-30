@@ -5,8 +5,14 @@
 
 <p class="lede">
 Reference material, collected so it is in one place: notation, tensor-shape
-conventions, a glossary, the failure modes you will actually hit, and the
-Apple-silicon specifics that this curriculum depends on.
+conventions, a glossary, and the failure modes you will actually hit — followed by
+three sections aimed past the end of the curriculum. <a class="xref" href="#appendix-from-scratch-to-the-library">From
+scratch to the library</a> maps every hand-rolled component to its production
+equivalent. <a class="xref" href="#appendix-reading-the-literature">Reading the
+literature</a> is how to get at a paper's actual contribution.
+<a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">The modern
+stack</a> covers the roughly eight substitutions that separate Chapter 07's transformer
+from a current frontier model — all of them readable with the mathematics you now have.
 </p>
 
 <h2>Notation</h2>
@@ -109,6 +115,15 @@ padding.
     <tr><td><strong>Pre-norm / post-norm</strong></td><td>Whether LayerNorm sits inside or outside the residual path. Pre-norm trains deeper, more stably. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
     <tr><td><strong>Quantization</strong></td><td>Representing weights on a coarse integer grid. Error is bounded by half the step size. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
     <tr><td><strong>Residual connection</strong></td><td>$x + F(x)$. Gives gradients an unobstructed additive path to every layer. <a class="xref" href="#ch07">Ch. 07</a></td></tr>
+    <tr><td><strong>FlashAttention</strong></td><td>Tiled attention with an online softmax; the $L\times L$ matrix is never materialised, so memory is linear in $L$. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>GQA / MQA</strong></td><td>Heads share key/value projections, in groups or entirely. Shrinks the KV cache, which is what limits concurrent users. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>GRPO</strong></td><td>Group Relative Policy Optimization: preference optimisation without a value network, normalising advantages within a sampled group. Used for reasoning training. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>MLA</strong></td><td>Multi-head latent attention: cache a low-rank latent instead of full K and V. Chapter 11's factorisation, applied to the cache. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>MoE</strong></td><td>Mixture of experts: many feed-forward blocks, a router picking top-$k$ per token. Total parameters grow; active parameters do not. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>RMSNorm</strong></td><td>LayerNorm without the mean subtraction or shift — scale only. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>RoPE</strong></td><td>Rotary position embedding: rotate $q$ and $k$ by an angle proportional to position, making the dot product depend on relative offset. <a class="xref" href="#ch07">Ch. 07</a></td></tr>
+    <tr><td><strong>Speculative decoding</strong></td><td>A small draft model proposes tokens; the large model verifies them in one parallel pass. Same output distribution, faster. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>SwiGLU</strong></td><td>A gated feed-forward block — the LSTM gating idea applied to the MLP. Better per parameter. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>Softmax</strong></td><td>Logits to a distribution. Invariant to adding a constant — which is why you subtract the max. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
     <tr><td><strong>Teacher forcing</strong></td><td>Feed the ground-truth prefix during training rather than the model's own output. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
     <tr><td><strong>Temperature</strong></td><td>Divide logits before softmax: below 1 sharpens, above 1 flattens. Never changes the ranking. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
@@ -208,6 +223,291 @@ e.to('mps')(torch.tensor([200], device='mps'))    # mps : a row of zeros</code><
   </tbody>
 </table>
 </div>
+
+<h2>From scratch to the library</h2>
+
+<p>
+Every component this curriculum builds by hand has a production equivalent. Building
+it yourself is not an argument against the library — it is what lets you use the
+library well, because you know what each argument does and what fails when it is
+wrong. The map:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>You built</th><th>Ch.</th><th>Production equivalent</th><th>What the library adds</th></tr></thead>
+  <tbody>
+    <tr><td>manual backward pass</td><td>01</td><td><code>loss.backward()</code></td><td>arbitrary graphs, fused stable kernels</td></tr>
+    <tr><td>manual SGD update</td><td>01</td><td><code>optim.AdamW</code></td><td>per-parameter step sizes, decoupled decay</td></tr>
+    <tr><td>word vocabulary + <code>&lt;UNK&gt;</code></td><td>03</td><td><code>tokenizers</code> (BPE)</td><td>no unknown tokens; any byte string encodes</td></tr>
+    <tr><td>scaled dot-product attention</td><td>06</td><td><code>F.scaled_dot_product_attention</code></td><td>FlashAttention — the $L^2$ matrix is never materialised</td></tr>
+    <tr><td><code>MultiHeadAttention</code></td><td>06</td><td><code>nn.MultiheadAttention</code></td><td>fused projections, key-padding masks</td></tr>
+    <tr><td>encoder block</td><td>07</td><td><code>nn.TransformerEncoderLayer</code></td><td><code>norm_first</code>, nested-tensor fast paths</td></tr>
+    <tr><td>seq2seq model</td><td>09</td><td><code>nn.Transformer</code></td><td>both stacks, mask helpers</td></tr>
+    <tr><td>training loop</td><td>08</td><td><code>accelerate</code>, Lightning</td><td>multi-GPU, mixed precision, checkpoint resume</td></tr>
+    <tr><td>GPT + sampling + KV cache</td><td>10</td><td><code>transformers</code></td><td><code>generate()</code>, beam search, correct cache edges</td></tr>
+    <tr><td><code>quantize_symmetric</code></td><td>11</td><td><code>torch.ao.quantization</code></td><td>real int8 kernels — actual savings, not simulated</td></tr>
+    <tr><td>per-channel scales</td><td>11</td><td><code>bitsandbytes</code> LLM.int8()</td><td>outlier channels kept in fp16</td></tr>
+    <tr><td>4-bit fake quant</td><td>11</td><td>NF4, GPTQ, AWQ</td><td>non-uniform grids, activation-aware calibration</td></tr>
+    <tr><td><code>LoRALinear</code></td><td>11</td><td><code>peft</code></td><td>save/load/merge, hot-swap, every layer type</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box warn">
+  <span class="box-label">On Apple silicon specifically</span>
+  <code>bitsandbytes</code> is CUDA-first and will not give you 4-bit kernels here.
+  The stacks that actually deliver quantized inference on an M-series Mac are
+  <strong>MLX</strong> (Apple's own array framework, designed around unified memory)
+  and <strong>llama.cpp / GGUF</strong>. Both are worth an afternoon, and reimplementing
+  <a class="xref" href="#ch10">Chapter 10</a>'s GPT in MLX is an unusually good way to
+  see what PyTorch abstracts away.
+</div>
+
+<h2>Reading the literature</h2>
+
+<p>
+The point of doing the mathematics by hand is that papers become readable. Most
+machine-learning papers are short, and the contribution is usually one equation
+surrounded by experiments. What follows is how to get at it.
+</p>
+
+<h3>A reading order</h3>
+
+<ol>
+  <li><strong>Abstract, then figures, then conclusions.</strong> The figures usually
+      carry the actual claim. If you cannot state the claim in one sentence after
+      this, the paper may not be worth the full read.</li>
+  <li><strong>Find the one equation.</strong> Nearly every architecture paper has a
+      single new expression; the rest is scaffolding you already know. Locate it and
+      write down its <em>shapes</em>. If the shapes do not compose, you have
+      misread it — which is more common than papers being wrong.</li>
+  <li><strong>Ask what resource it saves.</strong> Almost every modern contribution
+      trades one of: parameters, activation memory, KV-cache memory, FLOPs per token,
+      wall-clock, or data. Naming which one usually explains the whole design.</li>
+  <li><strong>Read the ablations before the headline table.</strong> The headline
+      compares against other people's models and is confounded by scale and data. The
+      ablation compares against the authors' own model with one thing removed, which
+      is the only controlled comparison in the paper.</li>
+  <li><strong>Check what is not reported.</strong> Missing seeds, missing error bars,
+      a baseline tuned less carefully than the method, and evaluation on the set used
+      for model selection are all common and all decisive.</li>
+</ol>
+
+<div class="box concept">
+  <span class="box-label">Key concept — the shape check</span>
+  <p>
+  When notation defeats you, translate to shapes. Paper notation is inconsistent
+  between authors; tensor shapes are not. "Project the input to a latent of dimension
+  $d_c$, then up-project per head" is ambiguous prose and unambiguous once written as
+  <span class="shape">(B, L, d)</span> → <span class="shape">(B, L, d_c)</span> →
+  <span class="shape">(B, H, L, d_h)</span>.
+  </p>
+  <p style="margin-bottom:0">
+  Then count parameters and memory for each shape. If the paper claims a saving, your
+  count should reproduce it — and if it does not, you have either misread the method
+  or found something worth asking about. Both are useful outcomes, and the second is
+  how people build reputations.
+  </p>
+</div>
+
+<h3>The papers behind these chapters</h3>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Ch.</th><th>Paper</th><th>What to take from it</th></tr></thead>
+  <tbody>
+    <tr><td>01</td><td>Rumelhart, Hinton &amp; Williams (1986), <em>Learning representations by back-propagating errors</em></td><td>backprop stated in four pages; still the clearest description</td></tr>
+    <tr><td>02</td><td>Kingma &amp; Ba (2014), <em>Adam</em></td><td>read §2 and the bias-correction derivation; skip the convergence proof (later shown flawed)</td></tr>
+    <tr><td>03</td><td>Kim (2014), <em>CNNs for Sentence Classification</em></td><td>the whole architecture of Chapter 03, in six pages</td></tr>
+    <tr><td>05</td><td>Hochreiter &amp; Schmidhuber (1997), <em>LSTM</em></td><td>hard going; Olah's "Understanding LSTMs" is the better entry point</td></tr>
+    <tr><td>06–07</td><td>Vaswani et al. (2017), <em>Attention Is All You Need</em></td><td>§3 is the entire architecture; note how little justification the $\sqrt{d_k}$ gets — you derived it in exercise 00.13</td></tr>
+    <tr><td>07</td><td>Xiong et al. (2020), <em>On Layer Normalization in the Transformer</em></td><td>why pre-norm removes the need for warmup</td></tr>
+    <tr><td>10</td><td>Radford et al. (2019), <em>Language Models are Unsupervised Multitask Learners</em> (GPT-2)</td><td>the architecture is your notebook; the contribution is the framing</td></tr>
+    <tr><td>10</td><td>Holtzman et al. (2019), <em>The Curious Case of Neural Text Degeneration</em></td><td>where nucleus sampling comes from, and why likelihood ≠ quality</td></tr>
+    <tr><td>11</td><td>Hu et al. (2021), <em>LoRA</em></td><td>§4.1 is the low-rank claim you tested with the rank sweep</td></tr>
+    <tr><td>11</td><td>Dettmers et al. (2023), <em>QLoRA</em></td><td>NF4, double quantization, paged optimizers</td></tr>
+    <tr><td>11</td><td>Dao et al. (2022), <em>FlashAttention</em></td><td>a systems paper that changed modelling; read it for the tiling argument</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>The modern stack: what changed after 2017</h2>
+
+<p>
+Chapter 07's transformer is the 2017 design. A current frontier model is recognisably
+the same block with roughly eight substitutions, each of which is a small, readable
+idea. Knowing all eight is most of what separates "can implement a transformer" from
+"can read a frontier model's technical report and reimplement it".
+</p>
+
+<p>
+Each entry below gives what it replaces, the idea, and which resource it buys back.
+None of them requires mathematics beyond <a class="xref" href="#ch00">Chapter 00</a>.
+</p>
+
+<h3>Normalisation: LayerNorm → RMSNorm</h3>
+
+$$\operatorname{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_i x_i^2 + \epsilon}}\odot\gamma$$
+
+<p>
+Drop the mean subtraction and the $\beta$ shift; keep only the scaling. Empirically
+the re-centring contributes little, and removing it saves a pass over the features and
+a set of parameters. <em>Buys: wall-clock, marginally.</em> Used by Llama, Mistral,
+DeepSeek, and essentially everything current.
+</p>
+
+<h3>Activation: ReLU → SwiGLU</h3>
+
+$$\operatorname{SwiGLU}(x) = \big(\operatorname{Swish}(xW_1) \odot xV\big)W_2
+\qquad \operatorname{Swish}(z) = z\,\sigma(z)$$
+
+<p>
+A <em>gated</em> feed-forward block: one projection produces content, a second produces
+a multiplicative gate, exactly as an <a class="xref" href="#ch05">LSTM gate</a> does.
+It needs three weight matrices instead of two, so implementations shrink the hidden
+width to $\tfrac{2}{3}\cdot 4d$ to keep the parameter count fixed. Consistently better
+per parameter. <em>Buys: quality at equal size.</em>
+</p>
+
+<h3>Position: learned/sinusoidal → RoPE</h3>
+
+<p>
+Instead of adding a position vector to the embedding, <strong>rotate</strong> $q$ and
+$k$ by an angle proportional to position, in 2-D pairs of dimensions. Because a dot
+product depends only on the <em>relative</em> angle, $q_m \cdot k_n$ ends up depending
+on $m - n$ rather than on $m$ and $n$ separately — relative position, for free, inside
+the attention operation.
+</p>
+
+<p>
+This directly fixes the hard context limit from <a class="xref" href="#ch10">Chapter
+10</a>: there is no position-embedding table to run out of, and interpolating or
+rescaling the frequencies extends the context of an already-trained model.
+<em>Buys: length generalisation.</em>
+</p>
+
+<h3>KV cache: MHA → GQA/MQA → latent attention</h3>
+
+<p>
+<a class="xref" href="#ch10-kv-cache">Chapter 10</a> showed the KV cache is what limits
+concurrent users. Three successive attacks on it:
+</p>
+
+<ul>
+  <li><strong>Multi-query attention (MQA)</strong> — all heads share <em>one</em> key
+      and value head. Cache shrinks by a factor of $H$; quality drops somewhat.</li>
+  <li><strong>Grouped-query attention (GQA)</strong> — heads share keys and values in
+      groups of, say, 8. Most of the saving, almost none of the loss. This is the
+      current default.</li>
+  <li><strong>Multi-head latent attention (MLA)</strong>, introduced in DeepSeek-V2 —
+      compress keys and values into a low-rank latent vector and cache <em>that</em>,
+      reconstructing per-head projections on the fly. It is
+      <a class="xref" href="#ch11">Chapter 11's low-rank factorisation</a> applied to
+      the cache instead of to the weights, and it is a good example of an idea you
+      already own being moved to a new place.</li>
+</ul>
+
+<p><em>Buys: KV-cache memory, which is to say serving throughput.</em></p>
+
+<h3>Capacity: dense → mixture of experts</h3>
+
+<p>
+Replace the feed-forward block with $N$ expert blocks and a router that sends each
+token to the top-$k$ of them (typically $k = 1$ or 2). Total parameters grow by
+roughly $N$; <em>active</em> parameters per token do not. A model can hold far more
+knowledge than it spends compute on at any one token.
+</p>
+
+<p>
+The engineering problem is load balancing: a router left alone collapses onto a few
+experts. Classic MoE adds an auxiliary balancing loss, which competes with the language
+modelling objective; DeepSeek-V3 instead adjusts a per-expert routing <em>bias</em>
+based on observed load, achieving balance without an auxiliary loss term. DeepSeekMoE
+also splits experts finer and keeps a few always-on shared experts for common
+patterns. <em>Buys: knowledge per FLOP.</em>
+</p>
+
+<h3>Attention kernels: FlashAttention</h3>
+
+<p>
+Not a modelling change at all — the same mathematics, computed in tiles with an online
+softmax so the <span class="shape">(B, H, L, L)</span> matrix is never written to
+memory. Memory becomes linear in $L$ instead of quadratic.
+<em>Buys: context length.</em> This is worth internalising as a lesson about the field:
+one of the largest capability jumps of the last several years came from rewriting a
+kernel, not from a new architecture.
+</p>
+
+<h3>Decoding: speculative and multi-token</h3>
+
+<p>
+Generation is sequential and memory-bandwidth-bound, so the GPU is mostly idle.
+<strong>Speculative decoding</strong> uses a small draft model to propose several
+tokens and the large model to verify them in one parallel pass, accepting the longest
+correct prefix — provably identical output distribution, several times faster.
+DeepSeek-V3 folds a related idea into training with a <strong>multi-token
+prediction</strong> objective, predicting more than one future token per position.
+<em>Buys: tokens per second.</em>
+</p>
+
+<h3>Post-training: SFT, then preference optimisation</h3>
+
+<p>
+A base model trained as in <a class="xref" href="#ch10">Chapter 10</a> continues text;
+it does not follow instructions. Turning one into an assistant is a separate stage:
+supervised fine-tuning on demonstrations, then optimisation against preferences —
+<strong>RLHF/PPO</strong> classically, <strong>DPO</strong> without a reward model, and
+<strong>GRPO</strong> (DeepSeek's variant, which drops the value network and normalises
+advantages within a group of sampled responses) for reasoning training. DeepSeek-R1 is
+the notable demonstration that reasoning behaviour can emerge from reinforcement
+learning against verifiable answers with little or no supervised bootstrapping.
+<em>Buys: usefulness, which pretraining does not provide.</em>
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept — the shape of progress</span>
+  Look at that list and notice how few entries are new mathematics. Two are
+  factorisations you already implemented (LoRA's low rank, reused for the KV cache),
+  two are gating (SwiGLU, MoE routing) which is the LSTM idea from
+  <a class="xref" href="#ch05">Chapter 05</a>, one is a kernel rewrite, one is a
+  rotation, and one is a change of training objective. <strong>The frontier is
+  reachable from here.</strong> What separates you from it is not a body of
+  mathematics you have not seen — it is engineering scale, data, and the habit of
+  asking which resource a design buys back.
+</div>
+
+<h2>Making work others will trust</h2>
+
+<p>
+The technical ability to build these systems and the ability to convince someone of a
+result are different skills, and the second is scarcer. Most of it reduces to a
+handful of habits, all of which appear elsewhere in this book and are collected here.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Habit</th><th>Why it persuades</th></tr></thead>
+  <tbody>
+    <tr><td>Report a spread, never a single number</td><td>seed variance often exceeds the effect being claimed (exercise 00.16)</td></tr>
+    <tr><td>Compare at matched parameters and matched compute</td><td>otherwise you have measured capacity, not your idea</td></tr>
+    <tr><td>Tune the baseline as hard as the method</td><td>an undertuned baseline is the most common way good-faith work becomes wrong</td></tr>
+    <tr><td>Ablate one thing at a time</td><td>the ablation is the only controlled comparison you will have</td></tr>
+    <tr><td>Touch the test set once</td><td>repeated selection is overfitting in slow motion</td></tr>
+    <tr><td>State what you cannot conclude</td><td>readers who spot an unstated limitation stop trusting the stated ones</td></tr>
+    <tr><td>Publish the code and the seeds</td><td>reproducibility is the cheapest credibility available</td></tr>
+    <tr><td>Show a failure case</td><td>a method with no reported failure mode reads as unexamined</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+A useful test before publishing anything, in a paper, a blog post, or a pull request:
+<em>if a hostile reader with your data and code tried to break this claim, what would
+they attack first?</em> Address that in the text. It is the single highest-return
+paragraph you can write, and it converts your most likely critic into a reader who
+trusts the rest.
+</p>
 
 <h2>About this book</h2>
 

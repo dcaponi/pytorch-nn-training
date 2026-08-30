@@ -363,6 +363,36 @@ one    0.10   excluded</div>
   </details>
 </div>
 
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  The same model, in the ecosystem you will actually be handed:
+  </p>
+<pre><code class="language-python">from transformers import GPT2Config, GPT2LMHeadModel
+
+model = GPT2LMHeadModel(GPT2Config(
+    vocab_size=50257, n_positions=1024,
+    n_embd=768, n_head=12, n_layer=12))
+
+out = model(input_ids, labels=input_ids)   # out.loss is the shift, done for you
+model.generate(ids, do_sample=True, temperature=0.8, top_p=0.9,
+               use_cache=True)             # your sampling loop and KV cache</code></pre>
+  <p>
+  Map it onto what you built: <code>GPT2Block</code> is your <code>Block</code>,
+  <code>use_cache</code> is your <code>CachedAttention</code>, <code>labels=</code>
+  performs the same one-token shift, and the config fields are the hyperparameters you
+  chose by hand. GPT-2 is <em>this notebook at 124M parameters</em>, which is worth
+  sitting with — the gap is scale, data, and a BPE tokenizer, not architecture.
+  </p>
+  <p style="margin-bottom:0">
+  The library earns its place at inference: batched generation, beam search, stopping
+  criteria, quantized loading, and a KV cache that is correct at the boundaries yours is
+  not (see the <code>block_size</code> assertion in the notebook). Use it — and know
+  what every argument does, because that is what separates configuring a model from
+  understanding one.
+  </p>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>10_gpt_from_scratch/prompt.ipynb</code>. You will implement causal

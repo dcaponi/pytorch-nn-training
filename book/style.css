@@ -23,6 +23,8 @@
   --notebook-soft: #e3f3e9;
   --warn:          #a8352f;
   --warn-soft:     #fbe9e7;
+  --library:       #6b4a9e;   /* the production-library equivalent */
+  --library-soft:  #f0ebfa;
 
   --code-bg:       #f4f1ec;
   --t-k:           #9b2fae;   /* keyword */
@@ -62,6 +64,8 @@
     --notebook-soft: #14301f;
     --warn:          #f08a80;
     --warn-soft:     #3a1d1b;
+    --library:       #c0a8f0;
+    --library-soft:  #241d33;
 
     --code-bg:       #121116;
     --t-k:           #d78ce6;
@@ -94,6 +98,8 @@
   --notebook-soft: #14301f;
   --warn:          #f08a80;
   --warn-soft:     #3a1d1b;
+  --library:       #c0a8f0;
+  --library-soft:  #241d33;
 
   --code-bg:       #121116;
   --t-k:           #d78ce6;
@@ -469,6 +475,12 @@ pre code {
 
 .warn { border-left: 3px solid var(--warn); background: var(--warn-soft); }
 .warn .box-label { color: var(--warn); }
+
+/* the production-library equivalent of something just built by hand */
+.library { border-left: 3px solid var(--library); background: var(--library-soft); }
+.library .box-label { color: var(--library); }
+.library pre { background: rgba(127,127,127,.10); border-color: var(--rule); margin: 0.7rem 0; }
+.library table { font-size: 0.76rem; }
 
 /* by-hand exercise internals */
 .byhand ol { padding-left: 1.2rem; }

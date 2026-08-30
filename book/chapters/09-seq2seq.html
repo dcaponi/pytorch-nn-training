@@ -311,6 +311,28 @@ e^0 = 1.000   e^0.5 = 1.649   e^1 = 2.718</div>
   </details>
 </div>
 
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  PyTorch ships the entire architecture of this chapter:
+  </p>
+<pre><code class="language-python">model = nn.Transformer(d_model=256, nhead=8,
+                       num_encoder_layers=3, num_decoder_layers=3,
+                       batch_first=True, norm_first=True)
+
+out = model(src_emb, tgt_emb,
+            tgt_mask=nn.Transformer.generate_square_subsequent_mask(T),
+            src_key_padding_mask=(src == PAD_IDX))</code></pre>
+  <p style="margin-bottom:0">
+  Note what you still have to supply: the embeddings, the positional encoding, the
+  causal mask, the padding masks, the output projection, the teacher-forcing shift, and
+  the decode loop. The module is the easy half. Every bug in this chapter —
+  the shift, the padding mask, <code>ignore_index</code>, the <code>&lt;EOS&gt;</code>
+  that never fires — lives in the half the library does not cover, which is exactly why
+  building it once by hand is worth the afternoon.
+  </p>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>09_seq2seq_translation/prompt.ipynb</code>. You will build the causal mask, the

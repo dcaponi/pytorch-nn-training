@@ -296,6 +296,32 @@ k=5:  100 × 501 =  50,100
   </details>
 </div>
 
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  Word-level vocabularies with an <code>&lt;UNK&gt;</code> bucket are a teaching device.
+  Production text pipelines use <strong>subword tokenisation</strong>, which has no
+  unknown tokens at all — every string decomposes into pieces that are in the vocabulary:
+  </p>
+<pre><code class="language-python">from tokenizers import Tokenizer, models, trainers, pre_tokenizers
+
+tok = Tokenizer(models.BPE(unk_token=None))
+tok.pre_tokenizer = pre_tokenizers.ByteLevel()
+tok.train_from_iterator(corpus, trainers.BpeTrainer(vocab_size=8000))
+
+tok.encode("antidisestablishmentarianism").tokens
+# ['anti', 'dis', 'establish', 'ment', 'arian', 'ism']  — nothing is <UNK></code></pre>
+  <p style="margin-bottom:0">
+  The consequences run deeper than coverage. A byte-level BPE vocabulary can encode
+  <em>any</em> byte string, which is why a modern model handles code, emoji, and
+  languages it never saw in training. It also decouples vocabulary size from
+  corpus vocabulary, which is what makes the embedding table a design choice rather
+  than a consequence of your data. Building BPE from scratch is the first extension in
+  <a class="xref" href="#ch12">Chapter 12</a>, and it is the single largest gap between
+  this curriculum and a production language model.
+  </p>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>03_cnn_sentiment/prompt.ipynb</code>. You will build the vocabulary, encode and

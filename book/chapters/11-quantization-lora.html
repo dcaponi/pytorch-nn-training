@@ -476,6 +476,45 @@ activations (~30%) :               = 0.90 GB
   </details>
 </div>
 
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  You implemented both techniques from their definitions. Here is what the same two
+  ideas look like as one-liners, and what each library adds beyond your version.
+  </p>
+<pre><code class="language-python"># quantization — PyTorch native, works today on CPU
+import torch.ao.quantization as tq
+qmodel = tq.quantize_dynamic(model, {nn.Linear}, dtype=torch.qint8)
+
+# LoRA — the peft library, the de facto standard
+from peft import LoraConfig, get_peft_model
+model = get_peft_model(base, LoraConfig(
+    r=8, lora_alpha=16, target_modules=["qkv", "proj"], lora_dropout=0.05))
+model.print_trainable_parameters()   # your `trainable / total` line
+model.save_pretrained("adapter/")    # a few hundred KB, not a few GB</code></pre>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Yours</th><th>Production</th><th>What it adds</th></tr></thead>
+    <tbody>
+      <tr><td><code>quantize_symmetric</code></td><td><code>torch.ao.quantization</code></td><td>real int8 kernels, so the memory and speed savings are actual rather than simulated</td></tr>
+      <tr><td>per-channel scales</td><td>bitsandbytes <code>LLM.int8()</code></td><td>keeps outlier channels in fp16 — the production form of your outlier experiment</td></tr>
+      <tr><td>4-bit fake quant</td><td>NF4 (QLoRA), GPTQ, AWQ</td><td>a non-uniform grid matched to a normal distribution; calibration on real activations</td></tr>
+      <tr><td><code>LoRALinear</code></td><td><code>peft</code></td><td>adapter save/load/merge, hot-swapping, and every layer type</td></tr>
+      <tr><td>fake quant + LoRA</td><td>QLoRA in <code>bitsandbytes</code>+<code>peft</code></td><td>paged optimizers and double quantization of the scales themselves</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-bottom:0">
+  Two honest notes. <code>bitsandbytes</code> is CUDA-first and will not give you 4-bit
+  kernels on Apple silicon — on this machine, <strong>MLX</strong> and
+  <strong>llama.cpp/GGUF</strong> are the ones that actually deliver quantized speedups,
+  and both are worth an afternoon. And the reason to have built these by hand is not
+  purity: it is that when a 4-bit model degrades, the useful question is "which tensor
+  has the outlier, and is my grid per-channel?" — and that question is unaskable if
+  quantization is a flag you passed.
+  </p>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>11_quantization_and_lora/prompt.ipynb</code>. You will implement

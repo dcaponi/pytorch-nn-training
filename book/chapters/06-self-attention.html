@@ -326,6 +326,30 @@ after W^O          (32, 128, 256)</div>
   </details>
 </div>
 
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  Everything in this chapter is one call in production:
+  </p>
+<pre><code class="language-python">out = F.scaled_dot_product_attention(q, k, v, is_causal=True)</code></pre>
+  <p>
+  It computes exactly the formula you just implemented — you can and should verify that
+  numerically, as the notebook does — but dispatches to a fused
+  <strong>FlashAttention</strong> kernel where one is available. The difference is not
+  speed alone. The naive implementation materialises the
+  <span class="shape">(B, H, L, L)</span> score matrix in memory; the fused kernel
+  computes attention in tiles and <em>never materialises it at all</em>, so memory grows
+  linearly in $L$ rather than quadratically.
+  </p>
+  <p style="margin-bottom:0">
+  That is the difference between a 4k context and a 128k one, and it came from a
+  systems insight rather than a modelling one — which is a useful thing to notice about
+  where progress in this field actually comes from. <code>nn.MultiheadAttention</code>
+  wraps the projections too, and <code>nn.TransformerEncoderLayer</code> wraps the whole
+  block from <a class="xref" href="#ch07">Chapter 07</a>.
+  </p>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>06_self_attention/prompt.ipynb</code>. You will implement

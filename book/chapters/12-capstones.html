@@ -5,7 +5,7 @@
 
 <p class="lede">
 Every chapter so far handed you an architecture and asked you to complete it. This
-one gives you four specifications and no solutions. The gap between "I finished the
+one gives you five specifications and no solutions. The gap between "I finished the
 tutorial" and "I can build this" is exactly the gap these projects exist to close.
 </p>
 
@@ -165,6 +165,70 @@ translation invariance is a strong prior that pays off when data is scarce — t
 together <a class="xref" href="#ch03">Chapter 03</a> and
 <a class="xref" href="#ch07">Chapter 07</a> better than either chapter does alone.
 </p>
+
+<h2>Project 5 — Reproduce a paper</h2>
+
+<p><em>Builds on everything, plus the
+<a class="xref" href="#appendix-reading-the-literature">reading guide</a>.</em></p>
+
+<p>
+The project that most directly builds the capability the others only approach: take a
+published result, reimplement it, and write up what you found. It is also the single
+most legible thing you can show someone evaluating your work, because it demonstrates
+the three skills at once — reading, implementing, and reporting honestly.
+</p>
+
+<p>
+Pick something small and self-contained that this curriculum has prepared you for. Good
+candidates, roughly in order of effort:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Paper</th><th>Claim to reproduce</th><th>Why it is tractable here</th></tr></thead>
+  <tbody>
+    <tr><td>Kim (2014), CNN for sentences</td><td>the multi-width CNN beats a bag-of-words baseline</td><td>you already built it in <a class="xref" href="#ch03">Ch. 03</a></td></tr>
+    <tr><td>Holtzman et al. (2019), nucleus sampling</td><td>top-p beats beam search on repetition metrics</td><td>your Ch. 10 model plus <code>distinct_n</code></td></tr>
+    <tr><td>LoRA (2021), §4.1</td><td>low rank suffices; rank beyond a point adds little</td><td>the rank sweep in <a class="xref" href="#ch11">Ch. 11</a>, extended</td></tr>
+    <tr><td>Xiong et al. (2020), pre-norm</td><td>post-norm needs warmup; pre-norm does not</td><td>one flag in your Ch. 07/10 block, two training runs</td></tr>
+    <tr><td>Press &amp; Wolf (2017), weight tying</td><td>tying improves perplexity, not just size</td><td>one line in your Ch. 10 GPT</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>The method</h3>
+
+<ol>
+  <li><strong>State the claim as a number before you start.</strong> "Pre-norm trains
+      stably at a learning rate where post-norm diverges" is testable; "pre-norm is
+      better" is not.</li>
+  <li><strong>Reimplement from the paper, not from someone's code.</strong> If you get
+      stuck, that is the interesting part — note exactly which detail was
+      underspecified. Every paper has several.</li>
+  <li><strong>Reproduce at your scale, not theirs.</strong> You are testing whether the
+      <em>mechanism</em> holds, not matching a number produced on a thousand GPUs. Say
+      so explicitly in the write-up.</li>
+  <li><strong>Run three seeds and report the spread.</strong> Half of reproduction
+      failures are really seed variance.</li>
+  <li><strong>Write it up in two pages</strong>: the claim, your setup, the result with
+      error bars, where you diverged from the paper, and what you could not test.</li>
+</ol>
+
+<div class="box concept">
+  <span class="box-label">Key concept — the most valuable outcome is not "it worked"</span>
+  <p>
+  A reproduction that confirms the claim is fine. A reproduction that finds the claim
+  holds <em>only under conditions the paper did not state</em> is considerably more
+  valuable, and it is common — sensitivity to learning rate, to initialisation, to
+  dataset size, or to a preprocessing detail buried in an appendix.
+  </p>
+  <p style="margin-bottom:0">
+  That is a genuine contribution, it is publishable as a blog post or a workshop note,
+  and it is exactly the kind of work that demonstrates judgement rather than throughput.
+  Write it up carefully and generously — the goal is to inform, not to score a point off
+  the authors.
+  </p>
+</div>
 
 <h2>The checklist</h2>
 
