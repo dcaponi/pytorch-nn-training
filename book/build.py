@@ -293,6 +293,46 @@ def build_search_index(chapters: list[Chapter]) -> str:
 # --------------------------------------------------------------------------
 
 
+NBREF_RE = re.compile(r"<code>(\d\d_[a-z0-9_]+)(?:/[a-z]+\.ipynb)?</code>")
+
+
+def check_notebooks(chapters: list[Chapter]) -> list[str]:
+    """Every lesson folder the book names must exist and be tracked by git.
+
+    Added after a chapter shipped while its notebook sat untracked, which nobody
+    would notice until a fresh clone.
+    """
+    import subprocess
+
+    problems: list[str] = []
+    try:
+        tracked = set(
+            subprocess.run(["git", "ls-files"], cwd=BOOK.parent, capture_output=True,
+                           text=True, check=True).stdout.split()
+        )
+    except Exception:
+        tracked = None          # not a git checkout; existence check still applies
+
+    referenced: dict[str, str] = {}
+    for ch in chapters:
+        for folder in NBREF_RE.findall(ch.body):
+            referenced.setdefault(folder, ch.chap_id)
+
+    for folder, chap in sorted(referenced.items()):
+        d = BOOK.parent / folder
+        if not d.is_dir():
+            problems.append(f"{chap}: references {folder}/, which does not exist")
+            continue
+        if not (d / "prompt.ipynb").exists():
+            problems.append(f"{chap}: {folder}/prompt.ipynb is missing")
+        if tracked is not None:
+            for nb in sorted(d.glob("*.ipynb")):
+                rel = f"{folder}/{nb.name}"
+                if rel not in tracked:
+                    problems.append(f"{chap}: {rel} exists but is NOT tracked by git")
+    return problems
+
+
 def check_links(chapters: list[Chapter], full_html: str) -> list[str]:
     anchors = {h.anchor for ch in chapters for h in ch.headings}
     anchors |= set(re.findall(r'\bid="([^"]+)"', full_html))
@@ -398,7 +438,7 @@ def build(check_only: bool = False) -> int:
     ):
         page = page.replace(token, value)
 
-    problems = check_links(chapters, page)
+    problems = check_links(chapters, page) + check_notebooks(chapters)
     for p in problems:
         print(f"warning: {p}", file=sys.stderr)
 
