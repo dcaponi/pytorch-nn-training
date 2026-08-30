@@ -214,6 +214,22 @@ body {
 .toc-l1 { font-weight: 600; color: var(--ink); font-size: 0.815rem; }
 .toc-subs { margin: 0.1rem 0 0.5rem 0.5rem !important; }
 .toc-l2 { font-size: 0.76rem; padding-left: 0.6rem; }
+
+/* third level: present in the DOM, revealed only for the section you are in */
+.toc-subsubs {
+  margin: 0 0 0.2rem 0.75rem !important;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .2s ease;
+}
+.toc-sec.expanded > .toc-subsubs { max-height: 60rem; }
+.toc-l3 {
+  font-size: 0.72rem;
+  padding: 0.18rem 0.55rem 0.18rem 0.7rem;
+  color: var(--ink-faint);
+}
+.toc-l3:hover { color: var(--ink-soft); }
+@media (prefers-reduced-motion: reduce) { .toc-subsubs { transition: none; } }
 .toc-link.active {
   color: var(--accent);
   background: var(--accent-soft);
@@ -679,166 +695,484 @@ a.xref:hover { background: var(--accent-soft); }
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#preface">How to read this book</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#preface-the-rhythm">The rhythm</a></li>
-<li><a class="toc-link toc-l2" href="#preface-interactive-figures">Interactive figures</a></li>
-<li><a class="toc-link toc-l2" href="#preface-what-you-need">What you need</a></li>
-<li><a class="toc-link toc-l2" href="#preface-notation">Notation</a></li>
-<li><a class="toc-link toc-l2" href="#preface-the-path-through">The path through</a></li>
+<li class="toc-sec" data-sec="preface-the-rhythm">
+<a class="toc-link toc-l2" href="#preface-the-rhythm">The rhythm</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="preface-interactive-figures">
+<a class="toc-link toc-l2" href="#preface-interactive-figures">Interactive figures</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="preface-what-you-need">
+<a class="toc-link toc-l2" href="#preface-what-you-need">What you need</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="preface-notation">
+<a class="toc-link toc-l2" href="#preface-notation">Notation</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="preface-the-path-through">
+<a class="toc-link toc-l2" href="#preface-the-path-through">The path through</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch00">Mathematical Foundations</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch00-part-1-linear-algebra-what-a-network-computes">Part 1 · Linear Algebra: What a Network Computes</a></li>
-<li><a class="toc-link toc-l2" href="#ch00-part-2-calculus-how-a-network-learns">Part 2 · Calculus: How a Network Learns</a></li>
-<li><a class="toc-link toc-l2" href="#ch00-part-3-probability-what-the-output-means">Part 3 · Probability: What the Output Means</a></li>
-<li><a class="toc-link toc-l2" href="#ch00-cross-entropy">Part 4 · Deriving the Losses</a></li>
-<li><a class="toc-link toc-l2" href="#ch00-softmax-and-the-gradient-that-makes-it-all-work">Softmax and the gradient that makes it all work</a></li>
-<li><a class="toc-link toc-l2" href="#ch00-the-information-theoretic-reading">The information-theoretic reading</a></li>
-<li><a class="toc-link toc-l2" href="#ch00-choosing-a-loss-in-practice">Choosing a loss in practice</a></li>
-<li><a class="toc-link toc-l2" href="#ch00-by-hand-exercises">By-hand exercises</a></li>
+<li class="toc-sec" data-sec="ch00-part-1-linear-algebra-what-a-network-computes">
+<a class="toc-link toc-l2" href="#ch00-part-1-linear-algebra-what-a-network-computes">Part 1 · Linear Algebra: What a Network Computes</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch00-vectors-length-and-direction">Vectors, length, and direction</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-the-dot-product-is-a-similarity-score">The dot product is a similarity score</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-matrix-vector-products-read-two-ways">Matrix–vector products, read two ways</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-matrix-multiplication">Matrix multiplication</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-transpose-and-why-the-backward-pass-needs-it">Transpose, and why the backward pass needs it</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-outer-products-and-rank">Outer products and rank</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-elementwise-operations">Elementwise operations</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-broadcasting">Broadcasting</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch00-part-2-calculus-how-a-network-learns">
+<a class="toc-link toc-l2" href="#ch00-part-2-calculus-how-a-network-learns">Part 2 · Calculus: How a Network Learns</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch00-the-derivative-as-a-rate-of-change">The derivative as a rate of change</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-the-chain-rule-is-backpropagation">The chain rule is backpropagation</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-partial-derivatives-gradients-and-paths">Partial derivatives, gradients, and paths</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-gradient-descent">Gradient descent</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch00-part-3-statistics-why-the-architecture-looks-like-it-does">
+<a class="toc-link toc-l2" href="#ch00-part-3-statistics-why-the-architecture-looks-like-it-does">Part 3 · Statistics: Why the Architecture Looks Like It Does</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch00-expectation-and-variance">Expectation and variance</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-the-two-rules-that-do-all-the-work">The two rules that do all the work</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-the-variance-of-a-dot-product-and-attention-s-scaling-factor">The variance of a dot product, and attention&#x27;s scaling factor</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-standardisation-and-layer-normalisation">Standardisation, and layer normalisation</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-dropout-and-preserved-expectation">Dropout and preserved expectation</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-sample-statistics-and-how-much-you-can-conclude">Sample statistics, and how much you can conclude</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-covariance-correlation-and-independence">Covariance, correlation, and independence</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-bayes-and-base-rates">Bayes, and base rates</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch00-part-4-probability-and-loss">
+<a class="toc-link toc-l2" href="#ch00-part-4-probability-and-loss">Part 4 · Probability and Loss</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch00-models-output-beliefs-not-answers">Models output beliefs, not answers</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-the-three-distributions">The three distributions</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-likelihood-reading-a-distribution-backwards">Likelihood: reading a distribution backwards</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-why-the-logarithm-is-not-optional">Why the logarithm is not optional</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-cross-entropy">The losses, derived</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-softmax-and-the-cancellation">Softmax and the cancellation</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-the-information-theoretic-reading">The information-theoretic reading</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-choosing-a-loss">Choosing a loss</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch00-by-hand-exercises">
+<a class="toc-link toc-l2" href="#ch00-by-hand-exercises">By-hand exercises</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch00-linear-algebra">Linear algebra</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-calculus">Calculus</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-statistics">Statistics</a></li>
+<li><a class="toc-link toc-l3" href="#ch00-probability-and-loss">Probability and loss</a></li>
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch01">A Neural Network from Scratch</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch01-xor-the-smallest-problem-that-needs-a-hidden-layer">XOR: the smallest problem that needs a hidden layer</a></li>
-<li><a class="toc-link toc-l2" href="#ch01-architecture-and-shapes">Architecture and shapes</a></li>
-<li><a class="toc-link toc-l2" href="#ch01-the-forward-pass">The forward pass</a></li>
-<li><a class="toc-link toc-l2" href="#ch01-the-loss">The loss</a></li>
-<li><a class="toc-link toc-l2" href="#ch01-backpropagation">Backpropagation</a></li>
-<li><a class="toc-link toc-l2" href="#ch01-gradient-descent">Gradient descent</a></li>
-<li><a class="toc-link toc-l2" href="#ch01-the-training-loop">The training loop</a></li>
+<li class="toc-sec" data-sec="ch01-xor-the-smallest-problem-that-needs-a-hidden-layer">
+<a class="toc-link toc-l2" href="#ch01-xor-the-smallest-problem-that-needs-a-hidden-layer">XOR: the smallest problem that needs a hidden layer</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch01-architecture-and-shapes">
+<a class="toc-link toc-l2" href="#ch01-architecture-and-shapes">Architecture and shapes</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch01-the-forward-pass">
+<a class="toc-link toc-l2" href="#ch01-the-forward-pass">The forward pass</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch01-every-entry-is-a-dot-product">Every entry is a dot product</a></li>
+<li><a class="toc-link toc-l3" href="#ch01-broadcasting-the-bias">Broadcasting the bias</a></li>
+<li><a class="toc-link toc-l3" href="#ch01-sigmoid">Sigmoid</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch01-the-loss">
+<a class="toc-link toc-l2" href="#ch01-the-loss">The loss</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch01-backpropagation">
+<a class="toc-link toc-l2" href="#ch01-backpropagation">Backpropagation</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch01-start-at-the-output">Start at the output</a></li>
+<li><a class="toc-link toc-l3" href="#ch01-gradients-for-the-output-layer">Gradients for the output layer</a></li>
+<li><a class="toc-link toc-l3" href="#ch01-propagate-to-the-hidden-layer">Propagate to the hidden layer</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch01-gradient-descent">
+<a class="toc-link toc-l2" href="#ch01-gradient-descent">Gradient descent</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch01-the-training-loop">
+<a class="toc-link toc-l2" href="#ch01-the-training-loop">The training loop</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch02">The Same Network in PyTorch</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch02-tensors-are-arrays-that-remember">Tensors are arrays that remember</a></li>
-<li><a class="toc-link toc-l2" href="#ch02-the-five-step-loop">The five-step loop</a></li>
-<li><a class="toc-link toc-l2" href="#ch02-nn-module-parameters-that-know-they-are-parameters">nn.Module: parameters that know they are parameters</a></li>
-<li><a class="toc-link toc-l2" href="#ch02-optimizers">Optimizers</a></li>
-<li><a class="toc-link toc-l2" href="#ch02-devices">Devices</a></li>
-<li><a class="toc-link toc-l2" href="#ch02-train-eval-and-no-grad">train(), eval(), and no_grad()</a></li>
+<li class="toc-sec" data-sec="ch02-tensors-are-arrays-that-remember">
+<a class="toc-link toc-l2" href="#ch02-tensors-are-arrays-that-remember">Tensors are arrays that remember</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch02-what-backward-actually-does">What backward() actually does</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch02-the-five-step-loop">
+<a class="toc-link toc-l2" href="#ch02-the-five-step-loop">The five-step loop</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch02-nn-module-parameters-that-know-they-are-parameters">
+<a class="toc-link toc-l2" href="#ch02-nn-module-parameters-that-know-they-are-parameters">nn.Module: parameters that know they are parameters</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch02-initialisation-for-free">Initialisation, for free</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch02-optimizers">
+<a class="toc-link toc-l2" href="#ch02-optimizers">Optimizers</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch02-devices">
+<a class="toc-link toc-l2" href="#ch02-devices">Devices</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch02-train-eval-and-no-grad">
+<a class="toc-link toc-l2" href="#ch02-train-eval-and-no-grad">train(), eval(), and no_grad()</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch03">Convolutions over Text</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch03-from-words-to-numbers">From words to numbers</a></li>
-<li><a class="toc-link toc-l2" href="#ch03-embeddings-geometry-learned-from-the-task">Embeddings: geometry learned from the task</a></li>
-<li><a class="toc-link toc-l2" href="#ch03-the-convolution">The convolution</a></li>
-<li><a class="toc-link toc-l2" href="#ch03-dropout">Dropout</a></li>
-<li><a class="toc-link toc-l2" href="#ch03-batching-and-the-train-test-split">Batching and the train/test split</a></li>
+<li class="toc-sec" data-sec="ch03-from-words-to-numbers">
+<a class="toc-link toc-l2" href="#ch03-from-words-to-numbers">From words to numbers</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch03-embeddings-geometry-learned-from-the-task">
+<a class="toc-link toc-l2" href="#ch03-embeddings-geometry-learned-from-the-task">Embeddings: geometry learned from the task</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch03-the-convolution">
+<a class="toc-link toc-l2" href="#ch03-the-convolution">The convolution</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch03-shapes-and-the-transpose-that-catches-everyone">Shapes, and the transpose that catches everyone</a></li>
+<li><a class="toc-link toc-l3" href="#ch03-several-kernel-widths-at-once">Several kernel widths at once</a></li>
+<li><a class="toc-link toc-l3" href="#ch03-global-max-pooling">Global max pooling</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch03-dropout">
+<a class="toc-link toc-l2" href="#ch03-dropout">Dropout</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch03-batching-and-the-train-test-split">
+<a class="toc-link toc-l2" href="#ch03-batching-and-the-train-test-split">Batching and the train/test split</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch04">Recurrence and Its Limits</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch04-the-recurrence">The recurrence</a></li>
-<li><a class="toc-link toc-l2" href="#ch04-backpropagation-through-time">Backpropagation through time</a></li>
-<li><a class="toc-link toc-l2" href="#ch04-why-gradients-vanish">Why gradients vanish</a></li>
-<li><a class="toc-link toc-l2" href="#ch04-generating-text-and-the-sampling-question">Generating text, and the sampling question</a></li>
+<li class="toc-sec" data-sec="ch04-the-recurrence">
+<a class="toc-link toc-l2" href="#ch04-the-recurrence">The recurrence</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch04-character-level-language-modelling">Character-level language modelling</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch04-backpropagation-through-time">
+<a class="toc-link toc-l2" href="#ch04-backpropagation-through-time">Backpropagation through time</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch04-why-gradients-vanish">
+<a class="toc-link toc-l2" href="#ch04-why-gradients-vanish">Why gradients vanish</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch04-generating-text-and-the-sampling-question">
+<a class="toc-link toc-l2" href="#ch04-generating-text-and-the-sampling-question">Generating text, and the sampling question</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch05">LSTMs: Gated Memory</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch05-two-states-not-one">Two states, not one</a></li>
-<li><a class="toc-link toc-l2" href="#ch05-reading-the-gates-as-behaviour">Reading the gates as behaviour</a></li>
-<li><a class="toc-link toc-l2" href="#ch05-using-nn-lstm">Using nn.LSTM</a></li>
-<li><a class="toc-link toc-l2" href="#ch05-the-task-sine-wave-prediction">The task: sine wave prediction</a></li>
+<li class="toc-sec" data-sec="ch05-two-states-not-one">
+<a class="toc-link toc-l2" href="#ch05-two-states-not-one">Two states, not one</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch05-reading-the-gates-as-behaviour">
+<a class="toc-link toc-l2" href="#ch05-reading-the-gates-as-behaviour">Reading the gates as behaviour</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch05-the-gru-briefly">The GRU, briefly</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch05-using-nn-lstm">
+<a class="toc-link toc-l2" href="#ch05-using-nn-lstm">Using nn.LSTM</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch05-bidirectionality">Bidirectionality</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch05-the-task-sine-wave-prediction">
+<a class="toc-link toc-l2" href="#ch05-the-task-sine-wave-prediction">The task: sine wave prediction</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch06">Self-Attention from Scratch</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch06-the-problem-with-summarising">The problem with summarising</a></li>
-<li><a class="toc-link toc-l2" href="#ch06-queries-keys-and-values">Queries, keys, and values</a></li>
-<li><a class="toc-link toc-l2" href="#ch06-scaled-dot-product-attention">Scaled dot-product attention</a></li>
-<li><a class="toc-link toc-l2" href="#ch06-multi-head-attention">Multi-head attention</a></li>
-<li><a class="toc-link toc-l2" href="#ch06-masking">Masking</a></li>
+<li class="toc-sec" data-sec="ch06-the-problem-with-summarising">
+<a class="toc-link toc-l2" href="#ch06-the-problem-with-summarising">The problem with summarising</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch06-queries-keys-and-values">
+<a class="toc-link toc-l2" href="#ch06-queries-keys-and-values">Queries, keys, and values</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch06-scaled-dot-product-attention">
+<a class="toc-link toc-l2" href="#ch06-scaled-dot-product-attention">Scaled dot-product attention</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch06-why-the-square-root-scaling">Why the square-root scaling</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch06-multi-head-attention">
+<a class="toc-link toc-l2" href="#ch06-multi-head-attention">Multi-head attention</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch06-the-implementation-and-the-reshape-that-trips-everyone">The implementation, and the reshape that trips everyone</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch06-masking">
+<a class="toc-link toc-l2" href="#ch06-masking">Masking</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch07">The Transformer Encoder</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch07-attention-is-permutation-equivariant">Attention is permutation-equivariant</a></li>
-<li><a class="toc-link toc-l2" href="#ch07-positional-encoding">Positional encoding</a></li>
-<li><a class="toc-link toc-l2" href="#ch07-residual-connections">Residual connections</a></li>
-<li><a class="toc-link toc-l2" href="#ch07-layer-normalisation">Layer normalisation</a></li>
-<li><a class="toc-link toc-l2" href="#ch07-the-feed-forward-network">The feed-forward network</a></li>
-<li><a class="toc-link toc-l2" href="#ch07-the-full-encoder-block">The full encoder block</a></li>
-<li><a class="toc-link toc-l2" href="#ch07-pooling-for-classification">Pooling for classification</a></li>
+<li class="toc-sec" data-sec="ch07-attention-is-permutation-equivariant">
+<a class="toc-link toc-l2" href="#ch07-attention-is-permutation-equivariant">Attention is permutation-equivariant</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch07-positional-encoding">
+<a class="toc-link toc-l2" href="#ch07-positional-encoding">Positional encoding</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch07-residual-connections">
+<a class="toc-link toc-l2" href="#ch07-residual-connections">Residual connections</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch07-layer-normalisation">
+<a class="toc-link toc-l2" href="#ch07-layer-normalisation">Layer normalisation</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch07-post-norm-and-pre-norm">Post-norm and pre-norm</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch07-the-feed-forward-network">
+<a class="toc-link toc-l2" href="#ch07-the-feed-forward-network">The feed-forward network</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch07-the-full-encoder-block">
+<a class="toc-link toc-l2" href="#ch07-the-full-encoder-block">The full encoder block</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch07-pooling-for-classification">
+<a class="toc-link toc-l2" href="#ch07-pooling-for-classification">Pooling for classification</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch08">PyTorch in Practice</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch08-factor-the-training-loop">Factor the training loop</a></li>
-<li><a class="toc-link toc-l2" href="#ch08-learning-rate-schedules">Learning rate schedules</a></li>
-<li><a class="toc-link toc-l2" href="#ch08-checkpointing">Checkpointing</a></li>
-<li><a class="toc-link toc-l2" href="#ch08-padding">Batching sequences without wasting compute</a></li>
-<li><a class="toc-link toc-l2" href="#ch08-reproducibility">Reproducibility</a></li>
-<li><a class="toc-link toc-l2" href="#ch08-diagnosing-training">Diagnosing training</a></li>
-<li><a class="toc-link toc-l2" href="#ch08-making-it-fast-on-apple-silicon">Making it fast on Apple silicon</a></li>
+<li class="toc-sec" data-sec="ch08-factor-the-training-loop">
+<a class="toc-link toc-l2" href="#ch08-factor-the-training-loop">Factor the training loop</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch08-learning-rate-schedules">
+<a class="toc-link toc-l2" href="#ch08-learning-rate-schedules">Learning rate schedules</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch08-checkpointing">
+<a class="toc-link toc-l2" href="#ch08-checkpointing">Checkpointing</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch08-padding">
+<a class="toc-link toc-l2" href="#ch08-padding">Batching sequences without wasting compute</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch08-reproducibility">
+<a class="toc-link toc-l2" href="#ch08-reproducibility">Reproducibility</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch08-diagnosing-training">
+<a class="toc-link toc-l2" href="#ch08-diagnosing-training">Diagnosing training</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch08-making-it-fast-on-apple-silicon">
+<a class="toc-link toc-l2" href="#ch08-making-it-fast-on-apple-silicon">Making it fast on Apple silicon</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch09">Encoder–Decoder Translation</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch09-two-stacks-with-different-jobs">Two stacks with different jobs</a></li>
-<li><a class="toc-link toc-l2" href="#ch09-causal-masking">Causal masking</a></li>
-<li><a class="toc-link toc-l2" href="#ch09-cross-attention">Cross-attention</a></li>
-<li><a class="toc-link toc-l2" href="#ch09-teacher-forcing">Teacher forcing</a></li>
-<li><a class="toc-link toc-l2" href="#ch09-autoregressive-decoding">Autoregressive decoding</a></li>
-<li><a class="toc-link toc-l2" href="#ch09-evaluating-a-translation">Evaluating a translation</a></li>
+<li class="toc-sec" data-sec="ch09-two-stacks-with-different-jobs">
+<a class="toc-link toc-l2" href="#ch09-two-stacks-with-different-jobs">Two stacks with different jobs</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch09-causal-masking">
+<a class="toc-link toc-l2" href="#ch09-causal-masking">Causal masking</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch09-cross-attention">
+<a class="toc-link toc-l2" href="#ch09-cross-attention">Cross-attention</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch09-teacher-forcing">
+<a class="toc-link toc-l2" href="#ch09-teacher-forcing">Teacher forcing</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch09-autoregressive-decoding">
+<a class="toc-link toc-l2" href="#ch09-autoregressive-decoding">Autoregressive decoding</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch09-greedy-versus-beam-search">Greedy versus beam search</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch09-evaluating-a-translation">
+<a class="toc-link toc-l2" href="#ch09-evaluating-a-translation">Evaluating a translation</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch10">GPT: A Decoder-Only Model</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch10-why-the-encoder-was-optional">Why the encoder was optional</a></li>
-<li><a class="toc-link toc-l2" href="#ch10-pre-norm-and-why-this-differs-from-chapter-07">Pre-norm, and why this differs from Chapter 07</a></li>
-<li><a class="toc-link toc-l2" href="#ch10-three-details-in-the-model">Three details in the model</a></li>
-<li><a class="toc-link toc-l2" href="#ch10-decoding-where-the-character-of-the-output-is-decided">Decoding: where the character of the output is decided</a></li>
-<li><a class="toc-link toc-l2" href="#ch10-kv-cache">The KV cache</a></li>
-<li><a class="toc-link toc-l2" href="#ch10-what-this-model-is-and-is-not">What this model is, and is not</a></li>
+<li class="toc-sec" data-sec="ch10-why-the-encoder-was-optional">
+<a class="toc-link toc-l2" href="#ch10-why-the-encoder-was-optional">Why the encoder was optional</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch10-pre-norm-and-why-this-differs-from-chapter-07">
+<a class="toc-link toc-l2" href="#ch10-pre-norm-and-why-this-differs-from-chapter-07">Pre-norm, and why this differs from Chapter 07</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch10-three-details-in-the-model">
+<a class="toc-link toc-l2" href="#ch10-three-details-in-the-model">Three details in the model</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch10-learned-positional-embeddings">Learned positional embeddings</a></li>
+<li><a class="toc-link toc-l3" href="#ch10-weight-tying">Weight tying</a></li>
+<li><a class="toc-link toc-l3" href="#ch10-depth-scaled-initialisation">Depth-scaled initialisation</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch10-decoding-where-the-character-of-the-output-is-decided">
+<a class="toc-link toc-l2" href="#ch10-decoding-where-the-character-of-the-output-is-decided">Decoding: where the character of the output is decided</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch10-kv-cache">
+<a class="toc-link toc-l2" href="#ch10-kv-cache">The KV cache</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch10-what-this-model-is-and-is-not">
+<a class="toc-link toc-l2" href="#ch10-what-this-model-is-and-is-not">What this model is, and is not</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch11">Quantization, LoRA, and Fitting in Memory</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch11-the-number-that-decides-everything">The number that decides everything</a></li>
-<li><a class="toc-link toc-l2" href="#ch11-quantization">Quantization</a></li>
-<li><a class="toc-link toc-l2" href="#ch11-lora">LoRA</a></li>
-<li><a class="toc-link toc-l2" href="#ch11-qlora-both-at-once">QLoRA: both at once</a></li>
-<li><a class="toc-link toc-l2" href="#ch11-what-actually-runs-you-out-of-memory">What actually runs you out of memory</a></li>
-<li><a class="toc-link toc-l2" href="#ch11-the-rest-of-the-toolkit">The rest of the toolkit</a></li>
+<li class="toc-sec" data-sec="ch11-the-number-that-decides-everything">
+<a class="toc-link toc-l2" href="#ch11-the-number-that-decides-everything">The number that decides everything</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch11-quantization">
+<a class="toc-link toc-l2" href="#ch11-quantization">Quantization</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch11-per-channel-scales">Per-channel scales</a></li>
+<li><a class="toc-link toc-l3" href="#ch11-where-quality-actually-breaks">Where quality actually breaks</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch11-lora">
+<a class="toc-link toc-l2" href="#ch11-lora">LoRA</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#ch11-three-details-that-make-it-work">Three details that make it work</a></li>
+<li><a class="toc-link toc-l3" href="#ch11-the-rank-sweep-and-what-it-tests">The rank sweep, and what it tests</a></li>
+<li><a class="toc-link toc-l3" href="#ch11-catastrophic-forgetting">Catastrophic forgetting</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="ch11-qlora-both-at-once">
+<a class="toc-link toc-l2" href="#ch11-qlora-both-at-once">QLoRA: both at once</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch11-what-actually-runs-you-out-of-memory">
+<a class="toc-link toc-l2" href="#ch11-what-actually-runs-you-out-of-memory">What actually runs you out of memory</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch11-the-rest-of-the-toolkit">
+<a class="toc-link toc-l2" href="#ch11-the-rest-of-the-toolkit">The rest of the toolkit</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#ch12">Capstone Projects</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#ch12-how-to-choose-and-how-to-scope">How to choose, and how to scope</a></li>
-<li><a class="toc-link toc-l2" href="#ch12-project-1-a-translator">Project 1 — A translator</a></li>
-<li><a class="toc-link toc-l2" href="#ch12-project-2-a-text-generator">Project 2 — A text generator</a></li>
-<li><a class="toc-link toc-l2" href="#ch12-project-3-a-domain-adapted-assistant">Project 3 — A domain-adapted assistant</a></li>
-<li><a class="toc-link toc-l2" href="#ch12-project-4-an-architecture-bake-off">Project 4 — An architecture bake-off</a></li>
-<li><a class="toc-link toc-l2" href="#ch12-the-checklist">The checklist</a></li>
-<li><a class="toc-link toc-l2" href="#ch12-after-this">After this</a></li>
+<li class="toc-sec" data-sec="ch12-how-to-choose-and-how-to-scope">
+<a class="toc-link toc-l2" href="#ch12-how-to-choose-and-how-to-scope">How to choose, and how to scope</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch12-project-1-a-translator">
+<a class="toc-link toc-l2" href="#ch12-project-1-a-translator">Project 1 — A translator</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch12-project-2-a-text-generator">
+<a class="toc-link toc-l2" href="#ch12-project-2-a-text-generator">Project 2 — A text generator</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch12-project-3-a-domain-adapted-assistant">
+<a class="toc-link toc-l2" href="#ch12-project-3-a-domain-adapted-assistant">Project 3 — A domain-adapted assistant</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch12-project-4-an-architecture-bake-off">
+<a class="toc-link toc-l2" href="#ch12-project-4-an-architecture-bake-off">Project 4 — An architecture bake-off</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch12-the-checklist">
+<a class="toc-link toc-l2" href="#ch12-the-checklist">The checklist</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="ch12-after-this">
+<a class="toc-link toc-l2" href="#ch12-after-this">After this</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 <li class="toc-chapter">
 <a class="toc-link toc-l1" href="#appendix">Appendix</a>
 <ol class="toc-subs">
-<li><a class="toc-link toc-l2" href="#appendix-notation">Notation</a></li>
-<li><a class="toc-link toc-l2" href="#appendix-tensor-shapes">Tensor shapes</a></li>
-<li><a class="toc-link toc-l2" href="#appendix-glossary">Glossary</a></li>
-<li><a class="toc-link toc-l2" href="#appendix-debugging-symptom-to-cause">Debugging: symptom to cause</a></li>
-<li><a class="toc-link toc-l2" href="#appendix-apple-silicon-notes">Apple silicon notes</a></li>
-<li><a class="toc-link toc-l2" href="#appendix-rules-of-thumb">Rules of thumb</a></li>
-<li><a class="toc-link toc-l2" href="#appendix-about-this-book">About this book</a></li>
+<li class="toc-sec" data-sec="appendix-notation">
+<a class="toc-link toc-l2" href="#appendix-notation">Notation</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="appendix-tensor-shapes">
+<a class="toc-link toc-l2" href="#appendix-tensor-shapes">Tensor shapes</a>
+<ol class="toc-subsubs">
+<li><a class="toc-link toc-l3" href="#appendix-shapes-through-each-architecture">Shapes through each architecture</a></li>
+<li><a class="toc-link toc-l3" href="#appendix-the-output-size-formula">The output-size formula</a></li>
+</ol></li>
+<li class="toc-sec" data-sec="appendix-glossary">
+<a class="toc-link toc-l2" href="#appendix-glossary">Glossary</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="appendix-debugging-symptom-to-cause">
+<a class="toc-link toc-l2" href="#appendix-debugging-symptom-to-cause">Debugging: symptom to cause</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="appendix-apple-silicon-notes">
+<a class="toc-link toc-l2" href="#appendix-apple-silicon-notes">Apple silicon notes</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="appendix-rules-of-thumb">
+<a class="toc-link toc-l2" href="#appendix-rules-of-thumb">Rules of thumb</a>
+<ol class="toc-subsubs">
+</ol></li>
+<li class="toc-sec" data-sec="appendix-about-this-book">
+<a class="toc-link toc-l2" href="#appendix-about-this-book">About this book</a>
+<ol class="toc-subsubs">
+</ol></li>
 </ol>
 </li>
 </ol></nav>
@@ -1044,149 +1378,248 @@ to your place. The sidebar has a filter box for when you remember a word but not
 <h1 id="ch00">Mathematical Foundations<a class="anchor-link" href="#ch00" aria-label="Link to this section">#</a></h1>
 
 <p class="lede">
-Three areas of mathematics carry all the weight in this book. Linear algebra is what
-a network computes. Calculus is how it learns. Probability is what its outputs
-<em>mean</em>, and where every loss function comes from. This chapter covers exactly
-as much of each as the rest of the book needs — and no more — with a worked example
-beside every idea.
+Four areas of mathematics carry all the weight in this book. Linear algebra is what a
+network <em>computes</em>. Calculus is how it <em>learns</em>. Statistics is why it is
+<em>built the way it is</em> — initialisation, normalisation, dropout, and the
+$\sqrt{d_k}$ in attention are all variance arguments. Probability is what its outputs
+<em>mean</em>, and where every loss comes from.
 </p>
 
 <p>
-If you have seen this material before, skim to the by-hand exercises and check
-whether you can do them cold. That is a better test of readiness than a feeling of
-familiarity, because the specific things a network needs from these subjects are
-narrow and sometimes surprising: shapes matter more than proofs, the chain rule
-matters more than integration, and one distribution does most of the work.
+This chapter covers exactly as much of each as the rest of the book needs, with a
+worked example beside every idea and twenty-two pencil-and-paper exercises. It is the
+longest chapter here, deliberately: everything after it is easier if this is solid,
+and much harder if it is not.
+</p>
+
+<p>
+If you have seen this material before, skim to the exercises and check whether you can
+do them cold. That is a better test than a feeling of familiarity, because the
+specific things a network needs from these subjects are narrow and occasionally
+surprising — shapes matter more than proofs, the chain rule matters more than
+integration, and <em>variance</em> turns out to explain half the architecture.
 </p>
 
 <hr>
 
 <h2 id="ch00-part-1-linear-algebra-what-a-network-computes">Part 1 · Linear Algebra: What a Network Computes<a class="anchor-link" href="#ch00-part-1-linear-algebra-what-a-network-computes" aria-label="Link to this section">#</a></h2>
 
-<p>
-A neural network is, mechanically, a sequence of matrix multiplications with
-non-linear functions squeezed between them. So the operations below are not
-background material — they <em>are</em> the forward pass.
-</p>
-
-<h3 id="ch00-vectors-and-the-dot-product-as-similarity">Vectors, and the dot product as similarity<a class="anchor-link" href="#ch00-vectors-and-the-dot-product-as-similarity" aria-label="Link to this section">#</a></h3>
+<h3 id="ch00-vectors-length-and-direction">Vectors, length, and direction<a class="anchor-link" href="#ch00-vectors-length-and-direction" aria-label="Link to this section">#</a></h3>
 
 <p>
-A vector is an ordered list of numbers. In this book a vector almost always
-represents one thing: a word's embedding, a token's hidden state, one example's
-features.
+A vector is an ordered list of numbers representing one thing: a word's embedding, a
+token's hidden state, one example's features. Its <strong>length</strong> (Euclidean
+norm) is
 </p>
 
-<p>
-The single most important operation on two vectors is the <strong>dot product</strong>:
-</p>
-
-$$\mathbf{a} \cdot \mathbf{b} = \sum_{i=1}^{n} a_i b_i$$
+$$\|\mathbf{a}\| = \sqrt{\textstyle\sum_i a_i^2}$$
 
 <div class="box example">
   <span class="box-label">Example</span>
-  <div class="given">a = [2, 0, 1]      b = [3, 4, −2]
+  <div class="given">a = [3, 4]        ‖a‖ = √(9 + 16) = √25 = 5
 
-a · b = (2)(3) + (0)(4) + (1)(−2)
-      = 6 + 0 − 2
-      = 4</div>
-</div>
-
-<p>
-The formula is trivial; the interpretation is what matters. The dot product also
-equals
-</p>
-
-$$\mathbf{a}\cdot\mathbf{b} = \|\mathbf{a}\|\,\|\mathbf{b}\|\cos\theta$$
-
-<p>
-where $\|\mathbf{a}\| = \sqrt{\sum a_i^2}$ is the length and $\theta$ the angle
-between them. So the dot product is <strong>large and positive when two vectors
-point the same way, zero when they are perpendicular, and negative when they
-oppose</strong>. It is a similarity score.
-</p>
-
-<div class="box example">
-  <span class="box-label">Example — the same fact, three ways</span>
-  <div class="given">[1, 0] · [1, 0]  =  1     same direction        → large
-[1, 0] · [0, 1]  =  0     perpendicular         → zero
-[1, 0] · [−1, 0] = −1     opposite              → negative</div>
+unit vector in the same direction:  a/‖a‖ = [0.6, 0.8]
+check:  0.36 + 0.64 = 1.00  ✓</div>
   <p style="margin-bottom:0">
-  This is not a curiosity. When <a class="xref" href="#ch06">attention</a> computes
-  $QK^\top$, every entry is a dot product asking "how relevant is this position to
-  that one?" — and the answer is literally an angle between two learned vectors. The
-  entire attention mechanism is this one geometric fact, applied to every pair.
+  Normalising to unit length separates <em>direction</em> from <em>magnitude</em>. That
+  separation matters constantly: gradient clipping rescales a gradient's magnitude
+  while preserving its direction, and cosine similarity compares direction while
+  ignoring magnitude.
   </p>
 </div>
 
-<h3 id="ch00-matrix-multiplication-is-a-grid-of-dot-products">Matrix multiplication is a grid of dot products<a class="anchor-link" href="#ch00-matrix-multiplication-is-a-grid-of-dot-products" aria-label="Link to this section">#</a></h3>
+<h3 id="ch00-the-dot-product-is-a-similarity-score">The dot product is a similarity score<a class="anchor-link" href="#ch00-the-dot-product-is-a-similarity-score" aria-label="Link to this section">#</a></h3>
 
-<p>
-For $A$ of shape <span class="shape">(m, n)</span> and $B$ of shape
-<span class="shape">(n, p)</span>, the product $C = AB$ has shape
-<span class="shape">(m, p)</span> with
-</p>
-
-$$C_{ij} = \sum_{k=1}^{n} A_{ik}B_{kj} = (\text{row } i \text{ of } A) \cdot (\text{column } j \text{ of } B)$$
+$$\mathbf{a}\cdot\mathbf{b} = \sum_i a_ib_i = \|\mathbf{a}\|\,\|\mathbf{b}\|\cos\theta$$
 
 <div class="box example">
-  <span class="box-label">Example</span>
-  <div class="given">    A (2×3)              B (3×2)              C (2×2)
-[ 1  2  0 ]        [ 1   0 ]
-[ 0  1  3 ]   @    [ 2  −1 ]      =    [ ?   ? ]
-                   [ 0   1 ]           [ ?   ? ]
+  <span class="box-label">Example — three readings of one number</span>
+  <div class="given">a = [2, 0, 1]      b = [3, 4, −2]
 
-C₁₁ = row1 · col1 = (1)(1) + (2)(2) + (0)(0) = 5
-C₁₂ = row1 · col2 = (1)(0) + (2)(−1) + (0)(1) = −2
-C₂₁ = row2 · col1 = (0)(1) + (1)(2) + (3)(0) = 2
-C₂₂ = row2 · col2 = (0)(0) + (1)(−1) + (3)(1) = 2
+a · b = (2)(3) + (0)(4) + (1)(−2) = 6 + 0 − 2 = 4
 
-C = [ 5  −2 ]
-    [ 2   2 ]</div>
+and the geometry:
+  [1, 0] · [1, 0]  =  1     same direction    → large
+  [1, 0] · [0, 1]  =  0     perpendicular     → zero
+  [1, 0] · [−1, 0] = −1     opposite          → negative</div>
+  <p style="margin-bottom:0">
+  When <a class="xref" href="#ch06">attention</a> computes $QK^\top$, every entry is a
+  dot product asking "how relevant is this position to that one?" — and the answer is
+  literally an angle between two learned vectors. The entire mechanism is this one
+  geometric fact applied to every pair.
+  </p>
 </div>
 
-<div class="widget" data-widget="matmul"></div>
+<h3 id="ch00-matrix-vector-products-read-two-ways">Matrix–vector products, read two ways<a class="anchor-link" href="#ch00-matrix-vector-products-read-two-ways" aria-label="Link to this section">#</a></h3>
 
 <p>
-Two rules are worth more than any amount of theory here.
-</p>
-
-<p>
-<strong>The inner dimensions must match, and they vanish.</strong>
-<span class="shape">(m, n)</span> @ <span class="shape">(n, p)</span> →
-<span class="shape">(m, p)</span>. If they do not match, you get an error — and this
-is the error you will see most often in this book. Reading a shape mismatch is a
-skill: <code>mat1 and mat2 shapes cannot be multiplied (64x128 and 256x512)</code>
-means you produced 128 features and something expected 256.
-</p>
-
-<p>
-<strong>Matrix multiplication does not commute.</strong> $AB \ne BA$ in general —
-often the shapes do not even permit both. Order is meaning.
+This is the single most useful dual perspective in the subject, and most people only
+ever learn the first half of it.
 </p>
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
   <p>
-  A linear layer <code>nn.Linear(n_in, n_out)</code> computes $XW^\top + b$. Reading
-  the shapes tells you what it does:
+  $A\mathbf{x}$ can be read as <strong>rows</strong>: output $i$ is the dot product of
+  row $i$ with $\mathbf{x}$ — "each output unit takes a weighted vote over all inputs".
   </p>
-  <div class="given">X       (batch, n_in)      one row per example
-Wᵀ      (n_in, n_out)      one column per output unit
-XWᵀ     (batch, n_out)     one row per example, one column per unit
-+ b     (n_out,)           broadcast across every row</div>
   <p style="margin-bottom:0">
-  Output unit $j$'s value for example $i$ is the dot product of example $i$'s
-  features with unit $j$'s weights: <em>a weighted vote over all inputs</em>. Every
-  linear layer in the book is that sentence.
+  Or as <strong>columns</strong>: the output is a <em>linear combination of the columns
+  of $A$</em>, with $\mathbf{x}$ supplying the coefficients — "the input selects and
+  blends a set of stored patterns". Both are always true. The row reading explains the
+  forward pass; the column reading explains embeddings, rank, and LoRA.
   </p>
 </div>
 
-<h3 id="ch00-elementwise-operations-and-the-odot-symbol">Elementwise operations, and the $\odot$ symbol<a class="anchor-link" href="#ch00-elementwise-operations-and-the-odot-symbol" aria-label="Link to this section">#</a></h3>
+<div class="box example">
+  <span class="box-label">Example — the same product, both ways</span>
+  <div class="given">A = [ 2  1  0 ]        x = [1, 2, 4]
+    [ 0  3  1 ]
+
+ROW reading:
+  row1 · x = (2)(1) + (1)(2) + (0)(4) = 4
+  row2 · x = (0)(1) + (3)(2) + (1)(4) = 10          →  [4, 10]
+
+COLUMN reading:
+  1·[2,0]  +  2·[1,3]  +  4·[0,1]
+  = [2,0]  +  [2,6]    +  [0,4]                     →  [4, 10]  ✓</div>
+  <p style="margin-bottom:0">
+  Now set $\mathbf{x} = [0,0,1]$. The column reading makes the answer immediate: the
+  output is just column 3, $[0,1]$. That is precisely what an
+  <a class="xref" href="#ch03">embedding lookup</a> is — a one-hot vector selecting one
+  column — and it is why a lookup table and a linear layer are the same object.
+  </p>
+</div>
+
+<h3 id="ch00-matrix-multiplication">Matrix multiplication<a class="anchor-link" href="#ch00-matrix-multiplication" aria-label="Link to this section">#</a></h3>
 
 <p>
-$A \odot B$ multiplies corresponding entries and requires identical shapes. It is
-completely different from $AB$, and the book uses it constantly — in
+For $A$ of shape <span class="shape">(m, n)</span> and $B$ of shape
+<span class="shape">(n, p)</span>, $C = AB$ has shape <span class="shape">(m, p)</span>
+with $C_{ij} = (\text{row } i \text{ of } A)\cdot(\text{col } j \text{ of } B)$.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example</span>
+  <div class="given">    A (2×3)              B (3×2)
+[ 1  2  0 ]        [ 1   0 ]
+[ 0  1  3 ]   @    [ 2  −1 ]
+                   [ 0   1 ]
+
+C₁₁ = (1)(1) + (2)(2) + (0)(0) =  5
+C₁₂ = (1)(0) + (2)(−1) + (0)(1) = −2
+C₂₁ = (0)(1) + (1)(2) + (3)(0) =  2
+C₂₂ = (0)(0) + (1)(−1) + (3)(1) =  2
+
+C = [  5  −2 ]
+    [  2   2 ]</div>
+</div>
+
+<div class="widget" data-widget="matmul"></div>
+
+<p>
+Three rules earn their keep:
+</p>
+
+<p>
+<strong>Inner dimensions must match, and they vanish.</strong>
+<span class="shape">(m, n)</span> @ <span class="shape">(n, p)</span> →
+<span class="shape">(m, p)</span>. This is the error you will see most often, and
+reading it is a skill: <code>mat1 and mat2 shapes cannot be multiplied (64x128 and
+256x512)</code> means you produced 128 features where something expected 256.
+</p>
+
+<p>
+<strong>It does not commute.</strong> $AB \ne BA$; often only one order is even legal.
+</p>
+
+<p>
+<strong>It <em>is</em> associative</strong>, and this is not a technicality. $(AB)C$ and
+$A(BC)$ give the same answer at wildly different costs — and it is exactly why
+<a class="xref" href="#ch11">LoRA</a> is cheap: computing $x(BA)$ would build a full
+$d \times d$ matrix, while $(xB)A$ never materialises anything larger than $r$ columns.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example — associativity as an optimisation</span>
+  <div class="given">x is (1×1000),  B is (1000×4),  A is (4×1000)
+
+(x @ B) @ A :  1×1000×4 = 4,000 mults, then 1×4×1000 = 4,000
+                                            total 8,000
+
+x @ (B @ A) :  B@A alone is 1000×4×1000 = 4,000,000 mults
+                                            total 4,001,000
+
+Same answer. 500x the work.</div>
+</div>
+
+<h3 id="ch00-transpose-and-why-the-backward-pass-needs-it">Transpose, and why the backward pass needs it<a class="anchor-link" href="#ch00-transpose-and-why-the-backward-pass-needs-it" aria-label="Link to this section">#</a></h3>
+
+<p>
+$A^\top$ swaps rows and columns, so <span class="shape">(m, n)</span> becomes
+<span class="shape">(n, m)</span>. It appears in every backward pass, and the reason is
+worth understanding rather than memorising.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  If the forward pass sent information through $W$ from $n$ inputs to $m$ outputs, the
+  backward pass must send gradient the other way, from $m$ back to $n$. $W^\top$ is the
+  only operator built from $W$ with the right shape to do that. The two canonical
+  results, for $Y = XW$ with $\delta = \partial\mathcal{L}/\partial Y$:
+  $$\frac{\partial\mathcal{L}}{\partial W} = X^\top\delta
+    \qquad\qquad
+    \frac{\partial\mathcal{L}}{\partial X} = \delta W^\top$$
+  A gradient always has the same shape as the thing it differentiates, which makes this
+  the cheapest correctness check in the subject.
+</div>
+
+<div class="box example">
+  <span class="box-label">Example — check by shapes alone</span>
+  <div class="given">X (B, n)     W (n, m)     Y = XW  is (B, m)     δ (B, m)
+
+∂L/∂W = Xᵀδ  :  (n, B) @ (B, m) → (n, m)   matches W  ✓
+∂L/∂X = δWᵀ  :  (B, m) @ (m, n) → (B, n)   matches X  ✓
+
+Any other arrangement of X, W, δ and their transposes either fails to
+multiply or produces the wrong shape. The shapes force the formula.</div>
+</div>
+
+<h3 id="ch00-outer-products-and-rank">Outer products and rank<a class="anchor-link" href="#ch00-outer-products-and-rank" aria-label="Link to this section">#</a></h3>
+
+<p>
+The outer product $\mathbf{u}\mathbf{v}^\top$ of a length-$m$ and a length-$n$ vector is
+an $m \times n$ matrix with entries $u_iv_j$. Every such matrix has
+<strong>rank 1</strong>: every row is a multiple of $\mathbf{v}^\top$, every column a
+multiple of $\mathbf{u}$.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example — 6 numbers stored, 5 numbers needed</span>
+  <div class="given">u = [1, 2, 3]     v = [4, 5]
+
+u vᵀ = [ 1·4  1·5 ]     [  4   5 ]
+       [ 2·4  2·5 ]  =  [  8  10 ]
+       [ 3·4  3·5 ]     [ 12  15 ]
+
+Every row is a multiple of [4, 5].   Every column is a multiple of [1,2,3].
+The 3×2 = 6 entries are generated by just 3 + 2 = 5 numbers.</div>
+  <p style="margin-bottom:0">
+  <strong>Rank</strong> is the number of independent directions a matrix actually uses —
+  equivalently, the smallest number of rank-1 outer products that sum to it. A matrix
+  can be huge and still be low-rank, and if it is, storing all its entries is waste.
+  That single observation is the whole of <a class="xref" href="#ch11">LoRA</a>: $BA$
+  with $B$ of shape <span class="shape">(d, r)</span> and $A$ of shape
+  <span class="shape">(r, d)</span> is a sum of $r$ outer products, so it can express
+  any rank-$r$ update to $W$ using $2dr$ numbers instead of $d^2$.
+  </p>
+</div>
+
+<h3 id="ch00-elementwise-operations">Elementwise operations<a class="anchor-link" href="#ch00-elementwise-operations" aria-label="Link to this section">#</a></h3>
+
+<p>
+$A \odot B$ multiplies corresponding entries and needs identical shapes. Completely
+different from $AB$, and used constantly — in
 <a class="xref" href="#ch01">backpropagation through activations</a>, in
 <a class="xref" href="#ch05">LSTM gates</a>, and in masking.
 </p>
@@ -1195,31 +1628,20 @@ completely different from $AB$, and the book uses it constantly — in
   <span class="box-label">Example — the distinction that matters</span>
   <div class="given">a = [1, 2, 3]        b = [4, 5, 6]
 
-a · b  (dot)         = 4 + 10 + 18 = 32          a scalar
-a ⊙ b  (elementwise) = [4, 10, 18]               a vector, same shape</div>
+a · b  (dot)         = 4 + 10 + 18 = 32       a scalar
+a ⊙ b  (elementwise) = [4, 10, 18]            a vector, same shape</div>
   <p style="margin-bottom:0">
-  When an LSTM's forget gate does $f_t \odot c_{t-1}$, each memory slot is scaled by
-  its own gate value independently. A dot product would collapse the whole memory
-  into one number, destroying it.
+  When an LSTM's forget gate computes $f_t \odot c_{t-1}$, each memory slot is scaled by
+  its own gate value independently. A dot product would collapse the entire memory into
+  one number, destroying it.
   </p>
 </div>
-
-<h3 id="ch00-transpose">Transpose<a class="anchor-link" href="#ch00-transpose" aria-label="Link to this section">#</a></h3>
-
-<p>
-$A^\top$ swaps rows and columns: $(A^\top)_{ij} = A_{ji}$, so
-<span class="shape">(m, n)</span> becomes <span class="shape">(n, m)</span>. It shows
-up in every backward pass, for a reason that is worth understanding rather than
-memorising: if the forward pass sent information through $W$ from $n$ inputs to $m$
-outputs, the backward pass must send gradient the other way, from $m$ back to $n$ —
-and $W^\top$ is the operator with the right shape to do it.
-</p>
 
 <h3 id="ch00-broadcasting">Broadcasting<a class="anchor-link" href="#ch00-broadcasting" aria-label="Link to this section">#</a></h3>
 
 <p>
-When shapes differ, NumPy and PyTorch stretch dimensions of size 1 to match. Align
-shapes from the right; each dimension must be equal, or one of them must be 1.
+When shapes differ, NumPy and PyTorch stretch size-1 dimensions to match. Align from the
+<em>right</em>; each dimension must be equal, or one of them must be 1.
 </p>
 
 <div class="box example">
@@ -1232,8 +1654,8 @@ shapes from the right; each dimension must be equal, or one of them must be 1.
   <p style="margin-bottom:0">
   The last case is legal, silent, and almost never what you meant. A
   <span class="shape">(4, 1)</span> where you intended <span class="shape">(1, 4)</span>
-  produces a 4×4 grid of nonsense rather than an error. When a loss looks wrong for
-  no visible reason, print your shapes.
+  produces a 4×4 grid of nonsense rather than an error. When a loss looks wrong for no
+  visible reason, print your shapes.
   </p>
 </div>
 
@@ -1241,42 +1663,23 @@ shapes from the right; each dimension must be equal, or one of them must be 1.
 
 <h2 id="ch00-part-2-calculus-how-a-network-learns">Part 2 · Calculus: How a Network Learns<a class="anchor-link" href="#ch00-part-2-calculus-how-a-network-learns" aria-label="Link to this section">#</a></h2>
 
-<p>
-Training means adjusting parameters to reduce a loss. The derivative is the only
-tool that tells you which way to adjust, so this section covers derivatives,
-partial derivatives, and — above all — the chain rule, which <em>is</em>
-backpropagation.
-</p>
-
 <h3 id="ch00-the-derivative-as-a-rate-of-change">The derivative as a rate of change<a class="anchor-link" href="#ch00-the-derivative-as-a-rate-of-change" aria-label="Link to this section">#</a></h3>
 
-<p>
-$f'(x)$ is the slope of $f$ at $x$: how much $f$ changes per unit change in $x$.
-</p>
-
-$$f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}$$
+$$f'(x) = \lim_{h\to 0}\frac{f(x+h)-f(x)}{h}
+\qquad\text{estimated by}\qquad
+\frac{f(x+h)-f(x-h)}{2h}$$
 
 <div class="box example">
-  <span class="box-label">Example — verify a rule numerically</span>
-  <p>Take $f(x) = x^2$, whose derivative is $2x$. At $x = 3$, so $f'(3) = 6$.
-  Check with a small $h$:</p>
-  <div class="given">h = 0.001
-
-(f(3.001) − f(3)) / 0.001
-  = (9.006001 − 9) / 0.001
-  = 0.006001 / 0.001
-  = 6.001        ≈ 6   ✓</div>
+  <span class="box-label">Example — and the technique behind it</span>
+  <p>$f(x) = x^2$ has $f'(x) = 2x$, so $f'(3) = 6$. Check numerically:</p>
+  <div class="given">(f(3.001) − f(3)) / 0.001 = (9.006001 − 9) / 0.001 = 6.001  ≈ 6  ✓</div>
   <p style="margin-bottom:0">
-  This is more than a sanity check — it is <strong>gradient checking</strong>, the
-  standard way to verify a hand-written backward pass. If your analytic gradient and
-  a finite-difference estimate disagree, your analytic gradient is wrong. The
-  notebook uses exactly this to verify the softmax gradient.
+  This is <strong>gradient checking</strong> — the standard way to verify a hand-written
+  backward pass. If your analytic gradient disagrees with a finite-difference estimate
+  by more than round-off, the analytic one is wrong. The notebook uses it on the softmax
+  gradient.
   </p>
 </div>
-
-<p>
-The four rules this book uses, and nothing else:
-</p>
 
 <div class="table-wrap">
 <table>
@@ -1284,160 +1687,317 @@ The four rules this book uses, and nothing else:
   <tbody>
     <tr><td>Power</td><td>$\frac{d}{dx}x^n = nx^{n-1}$</td><td>MSE: $\frac{d}{de}e^2 = 2e$</td></tr>
     <tr><td>Exponential</td><td>$\frac{d}{dx}e^x = e^x$</td><td>softmax, sigmoid</td></tr>
-    <tr><td>Logarithm</td><td>$\frac{d}{dx}\ln x = \frac{1}{x}$</td><td>every cross-entropy loss</td></tr>
-    <tr><td>Chain</td><td>$\frac{d}{dx}f(g(x)) = f'(g(x))\,g'(x)$</td><td>all of backpropagation</td></tr>
+    <tr><td>Logarithm</td><td>$\frac{d}{dx}\ln x = 1/x$</td><td>every cross-entropy loss</td></tr>
+    <tr><td>Chain</td><td>$\frac{d}{dx}f(g(x)) = f'(g(x))g'(x)$</td><td>all of backpropagation</td></tr>
   </tbody>
 </table>
 </div>
 
-<h3 id="ch00-the-chain-rule-which-is-the-whole-of-backpropagation">The chain rule, which is the whole of backpropagation<a class="anchor-link" href="#ch00-the-chain-rule-which-is-the-whole-of-backpropagation" aria-label="Link to this section">#</a></h3>
-
-<p>
-When functions are composed, multiply their derivatives. If $y = f(u)$ and
-$u = g(x)$, then
-</p>
-
-$$\frac{dy}{dx} = \frac{dy}{du}\cdot\frac{du}{dx}$$
-
-<div class="box example">
-  <span class="box-label">Example — a two-link chain</span>
-  <p>Let $y = (3x + 1)^2$. Set $u = 3x+1$, so $y = u^2$.</p>
-  <div class="given">dy/du = 2u = 2(3x + 1)
-du/dx = 3
-
-dy/dx = 2(3x + 1) × 3 = 6(3x + 1) = 18x + 6
-
-check at x = 2:  dy/dx = 42
-  numerically: ((3(2.001)+1)² − (3(2)+1)²) / 0.001
-             = (49.042 − 49) / 0.001 = 42.0   ✓</div>
-</div>
+<h3 id="ch00-the-chain-rule-is-backpropagation">The chain rule is backpropagation<a class="anchor-link" href="#ch00-the-chain-rule-is-backpropagation" aria-label="Link to this section">#</a></h3>
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
   <p>
-  A neural network is a composition of many functions:
-  $\mathcal{L}(a_2(z_2(a_1(z_1(x)))))$. The chain rule says the derivative of the
-  whole with respect to anything inside is the <strong>product of the derivatives
-  along the path</strong>.
+  A network is a composition, $\mathcal{L}(a_2(z_2(a_1(z_1(x)))))$. The chain rule says
+  the derivative of the whole with respect to anything inside is the
+  <strong>product of the derivatives along the path</strong>:
   </p>
   <div class="given">∂L/∂z₁ = ∂L/∂a₂ · ∂a₂/∂z₂ · ∂z₂/∂a₁ · ∂a₁/∂z₁
-          └──────────── one factor per layer crossed ───────────┘</div>
+          └───────── one factor per layer crossed ─────────┘</div>
   <p style="margin-bottom:0">
-  Backpropagation is nothing more than evaluating that product from left to right,
-  caching each partial result so the shared prefix is not recomputed for every
-  parameter. Two consequences follow immediately, and they explain most of the
-  architectural history in this book: if the factors are typically below 1 the
-  product decays geometrically with depth (<a class="xref" href="#ch04">vanishing
+  Backpropagation is that product, evaluated from the loss end, caching each partial
+  result so the shared prefix is computed once. Two consequences explain most of the
+  architectural history in this book: if the factors are typically below 1 the product
+  decays geometrically with depth (<a class="xref" href="#ch04">vanishing
   gradients</a>), and if above 1 it explodes.
   </p>
 </div>
 
-<h3 id="ch00-partial-derivatives-and-the-gradient">Partial derivatives and the gradient<a class="anchor-link" href="#ch00-partial-derivatives-and-the-gradient" aria-label="Link to this section">#</a></h3>
+<div class="box example">
+  <span class="box-label">Example — a two-link chain</span>
+  <div class="given">y = (3x + 1)²,  so with u = 3x + 1:
 
-<p>
-With several inputs, $\partial f/\partial x$ measures the change in $f$ per unit
-change in $x$ <em>while holding everything else fixed</em>. The
-<strong>gradient</strong> $\nabla f$ collects them into a vector.
-</p>
+dy/du = 2u = 2(3x + 1)
+du/dx = 3
+dy/dx = 6(3x + 1) = 18x + 6
+
+at x = 2:  42
+numerically: ((3(2.001)+1)² − 49)/0.001 = 42.0  ✓</div>
+</div>
+
+<h3 id="ch00-partial-derivatives-gradients-and-paths">Partial derivatives, gradients, and paths<a class="anchor-link" href="#ch00-partial-derivatives-gradients-and-paths" aria-label="Link to this section">#</a></h3>
 
 <div class="box example">
-  <span class="box-label">Example</span>
-  <p>Let $f(x, y) = x^2y + 3y$.</p>
-  <div class="given">∂f/∂x:  treat y as a constant  →  2xy
-∂f/∂y:  treat x as a constant  →  x² + 3
+  <span class="box-label">Example — the gradient of a two-variable function</span>
+  <div class="given">f(x, y) = x²y + 3y
 
-∇f = [2xy,  x² + 3]
+∂f/∂x:  hold y fixed  →  2xy
+∂f/∂y:  hold x fixed  →  x² + 3
 
-at (x, y) = (2, 1):   ∇f = [4, 7]</div>
+∇f = [2xy, x² + 3]      at (2, 1):  ∇f = [4, 7]</div>
   <p style="margin-bottom:0">
-  Read that: at this point, moving $y$ changes $f$ almost twice as fast as moving
-  $x$. The gradient points in the direction of <em>steepest increase</em>, which is
-  why gradient <em>descent</em> steps in the direction $-\nabla f$.
+  Moving $y$ changes $f$ almost twice as fast as moving $x$. The gradient points in the
+  direction of steepest <em>increase</em>, which is why gradient <em>descent</em> steps
+  along $-\nabla f$.
   </p>
 </div>
 
-<h3 id="ch00-when-a-variable-has-several-paths-sum-them">When a variable has several paths, sum them<a class="anchor-link" href="#ch00-when-a-variable-has-several-paths-sum-them" aria-label="Link to this section">#</a></h3>
-
-<p>
-This is the multivariable chain rule, and it is the one rule people most often get
-wrong. If $x$ influences $L$ through more than one route, the total derivative is
-the <strong>sum over all paths</strong>.
-</p>
-
-<div class="box example">
-  <span class="box-label">Example — a variable used twice</span>
-  <div class="given">a = w · x
+<div class="box concept">
+  <span class="box-label">Key concept — sum over paths</span>
+  <p>
+  If a variable influences the loss by more than one route, the total derivative is the
+  <strong>sum over all paths</strong>. This is the rule people most often get wrong, and
+  it is the reason PyTorch <em>accumulates</em> into <code>.grad</code> rather than
+  overwriting.
+  </p>
+  <div class="given">a = w·x
 b = a + w          ← w reaches b directly AND through a
-L = b²
+L = b²             with w = 3, x = 2:  a = 6, b = 9, L = 81
 
-with w = 3, x = 2:   a = 6,  b = 9,  L = 81
-
-∂L/∂b = 2b = 18
-
-path 1  (w → a → b → L):   ∂a/∂w · ∂b/∂a · ∂L/∂b = 2 × 1 × 18 = 36
-path 2  (w → b → L):                    ∂b/∂w · ∂L/∂b = 1 × 18 = 18
-                                                  total  ∂L/∂w = 54</div>
+∂L/∂b = 18
+path 1 (w → a → b → L):  2 × 1 × 18 = 36
+path 2 (w → b → L):          1 × 18 = 18
+                       total ∂L/∂w = 54</div>
   <p style="margin-bottom:0">
-  This is exactly why PyTorch <em>accumulates</em> into <code>.grad</code> rather than
-  overwriting: a parameter used at several points in the graph must collect a
-  contribution from each. It is also why <code>zero_grad()</code> is mandatory — the
-  accumulation has no idea where one backward pass ends and the next begins. The same
-  summation is what makes weight sharing work in
+  The same summation is what makes weight sharing work in
   <a class="xref" href="#ch03">convolutions</a> and
-  <a class="xref" href="#ch04">recurrent networks</a>.
+  <a class="xref" href="#ch04">recurrent networks</a> — and why <code>zero_grad()</code>
+  is mandatory, since autograd cannot tell where one backward pass ends and the next
+  begins.
   </p>
 </div>
 
 <h3 id="ch00-gradient-descent">Gradient descent<a class="anchor-link" href="#ch00-gradient-descent" aria-label="Link to this section">#</a></h3>
 
-$$\theta \leftarrow \theta - \eta\,\frac{\partial \mathcal{L}}{\partial \theta}$$
+$$\theta \leftarrow \theta - \eta\,\frac{\partial\mathcal{L}}{\partial\theta}$$
 
 <div class="box example">
   <span class="box-label">Example — one step, by hand</span>
-  <div class="given">L(w) = (w − 4)²        current w = 1        learning rate η = 0.1
+  <div class="given">L(w) = (w − 4)²      w = 1      η = 0.1
 
-dL/dw = 2(w − 4) = 2(1 − 4) = −6
+dL/dw = 2(w − 4) = −6
+w ← 1 − 0.1(−6) = 1.6
 
-w ← 1 − 0.1(−6) = 1 + 0.6 = 1.6
+L(1.0) = 9.00    L(1.6) = 5.76    ↓ better
 
-check:  L(1.0) = 9.00      L(1.6) = 5.76      ↓ better
-
-next step:  dL/dw = 2(1.6 − 4) = −4.8  →  w = 2.08   L = 3.69
-then:       dL/dw = −3.84              →  w = 2.464  L = 2.36</div>
-  <p style="margin-bottom:0">
-  Notice the steps shrink as the slope flattens — descent slows down automatically
-  near a minimum. Notice also what would happen at $\eta = 1.0$: the step would be
-  $+6$, landing at $w = 7$, which is <em>further</em> from 4 than where it started.
-  That is divergence, and it is a property of the learning rate, not of the problem.
-  </p>
+At η = 1.0 the step is +6, landing at w = 7 — the same distance from the
+optimum, on the other side. Above that, it diverges.</div>
 </div>
 
 <div class="widget" data-widget="gradient-descent"></div>
 
 <hr>
 
-<h2 id="ch00-part-3-probability-what-the-output-means">Part 3 · Probability: What the Output Means<a class="anchor-link" href="#ch00-part-3-probability-what-the-output-means" aria-label="Link to this section">#</a></h2>
+<h2 id="ch00-part-3-statistics-why-the-architecture-looks-like-it-does">Part 3 · Statistics: Why the Architecture Looks Like It Does<a class="anchor-link" href="#ch00-part-3-statistics-why-the-architecture-looks-like-it-does" aria-label="Link to this section">#</a></h2>
 
 <p>
-With the machinery in place, the question becomes what a network should
-<em>output</em>, and how to score it. The answer to both is probability.
+This part is the one most curricula skip, and skipping it is why initialisation,
+normalisation, and the $\sqrt{d_k}$ in attention feel like arbitrary folklore. They are
+not. Each is a <strong>variance argument</strong>, and once you can compute variances
+they become obvious.
 </p>
 
-<h3 id="ch00-why-a-model-must-output-a-belief-not-an-answer">Why a model must output a belief, not an answer<a class="anchor-link" href="#ch00-why-a-model-must-output-a-belief-not-an-answer" aria-label="Link to this section">#</a></h3>
+<h3 id="ch00-expectation-and-variance">Expectation and variance<a class="anchor-link" href="#ch00-expectation-and-variance" aria-label="Link to this section">#</a></h3>
+
+$$\mathbb{E}[X] = \sum_x x\,P(x)
+\qquad
+\operatorname{Var}(X) = \mathbb{E}\big[(X-\mathbb{E}[X])^2\big] = \mathbb{E}[X^2] - \mathbb{E}[X]^2$$
 
 <p>
-Consider a classifier reading a film review. The naive design outputs a decision:
-<em>positive</em> or <em>negative</em>. That is a dead end, for a reason that has
-nothing to do with neural networks — a discrete answer cannot be improved by a small
-amount, and a step function has zero derivative everywhere it is defined. Section 2
-just established that a zero derivative offers no advice about which direction to
-move.
+The second form is almost always the easier one to compute.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example — a fair die, and a Bernoulli</span>
+  <div class="given">Fair six-sided die:
+  E[X]   = (1+2+3+4+5+6)/6 = 3.5
+  E[X²]  = (1+4+9+16+25+36)/6 = 91/6 = 15.167
+  Var(X) = 15.167 − 3.5² = 15.167 − 12.25 = 2.917
+
+Bernoulli(p): X is 1 with probability p, else 0.
+  E[X]   = p
+  E[X²]  = p            (because 0² = 0 and 1² = 1, so X² = X)
+  Var(X) = p − p² = p(1 − p)</div>
+  <p style="margin-bottom:0">
+  Look hard at $p(1-p)$. It is maximised at $p = 0.5$, where it equals
+  <strong>0.25</strong> — and it is the <em>same expression</em> as the sigmoid
+  derivative $\sigma'(z) = \sigma(z)(1-\sigma(z))$. That is not a coincidence: a sigmoid
+  output <em>is</em> a Bernoulli parameter, and its derivative is that Bernoulli's
+  variance. A saturated unit ($p \to 0$ or $1$) has near-zero variance, which is exactly
+  the same fact as having near-zero gradient. Certainty and unlearnability are the same
+  condition.
+  </p>
+</div>
+
+<h3 id="ch00-the-two-rules-that-do-all-the-work">The two rules that do all the work<a class="anchor-link" href="#ch00-the-two-rules-that-do-all-the-work" aria-label="Link to this section">#</a></h3>
+
+$$\operatorname{Var}(aX) = a^2\operatorname{Var}(X)
+\qquad\qquad
+\operatorname{Var}(X + Y) = \operatorname{Var}(X) + \operatorname{Var}(Y) \ \text{ if independent}$$
+
+<p>
+Scaling squares the variance; independent variances <em>add</em>. Everything below
+follows from these two lines.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept — why weights are initialised at $1/\sqrt{n}$</span>
+  <p>
+  A unit computes $z = \sum_{i=1}^{n} w_ix_i$. Take the inputs to have variance 1 and the
+  weights to be independent with variance $\sigma_w^2$, all with mean zero. Then each
+  term has variance $\sigma_w^2$, and $n$ independent terms add:
+  </p>
+  $$\operatorname{Var}(z) = n\,\sigma_w^2$$
+  <p style="margin-bottom:0">
+  For the signal to leave the layer at the same scale it entered — which is what keeps a
+  deep stack from exploding or collapsing — you need $\operatorname{Var}(z) = 1$, hence
+  $\sigma_w = 1/\sqrt{n}$. That is Xavier/LeCun initialisation, derived in three lines.
+  ReLU discards the negative half and roughly halves the variance, so He initialisation
+  uses $\sqrt{2/n}$ to compensate. PyTorch's <code>nn.Linear</code> default,
+  $\mathcal{U}(-1/\sqrt{n}, 1/\sqrt{n})$, is the same idea.
+  </p>
+</div>
+
+<div class="box example">
+  <span class="box-label">Example — what the wrong scale costs</span>
+  <div class="given">n = 100 inputs, each with variance 1.
+
+σ_w = 0.1 = 1/√100 :  Var(z) = 100 × 0.01 = 1      SD(z) = 1
+                       z lands in roughly [−3, 3]  — sigmoid is responsive here
+
+σ_w = 1  (a plain standard normal init):
+                       Var(z) = 100 × 1 = 100      SD(z) = 10
+                       z lands in roughly [−30, 30]
+
+σ(30) = 1.0000 to ten decimals, and σ′(30) ≈ 1e−13.</div>
+  <p style="margin-bottom:0">
+  Every unit is saturated before training starts, every gradient is ~$10^{-13}$, and the
+  network never learns anything. Not a subtle degradation — a total failure, caused by
+  one factor of $\sqrt{n}$.
+  </p>
+</div>
+
+<h3 id="ch00-the-variance-of-a-dot-product-and-attention-s-scaling-factor">The variance of a dot product, and attention's scaling factor<a class="anchor-link" href="#ch00-the-variance-of-a-dot-product-and-attention-s-scaling-factor" aria-label="Link to this section">#</a></h3>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  <p>
+  The same argument settles attention's scaling factor. For
+  $q\cdot k = \sum_{i=1}^{d_k} q_ik_i$ with all components independent, mean 0,
+  variance 1:
+  </p>
+  <div class="given">E[qᵢkᵢ]   = E[qᵢ]E[kᵢ] = 0            (independence)
+Var(qᵢkᵢ) = E[qᵢ²kᵢ²] − 0² = E[qᵢ²]E[kᵢ²] = 1
+
+Var(q·k) = d_k          SD(q·k) = √d_k</div>
+  <p style="margin-bottom:0">
+  So raw attention scores grow as $\sqrt{d_k}$. At $d_k = 64$ the standard deviation is
+  8, so scores routinely span $\pm 24$ — and a softmax over scores that spread out is
+  numerically one-hot, with a gradient of essentially zero. Dividing by $\sqrt{d_k}$
+  restores unit variance. Without it, <em>making your model wider would break it</em>.
+  </p>
+</div>
+
+<h3 id="ch00-standardisation-and-layer-normalisation">Standardisation, and layer normalisation<a class="anchor-link" href="#ch00-standardisation-and-layer-normalisation" aria-label="Link to this section">#</a></h3>
+
+<p>
+Given any variable, $z = (x - \mu)/\sigma$ has mean 0 and variance 1 by construction —
+subtracting the mean re-centres, dividing by the standard deviation rescales (and the
+$a^2$ rule says dividing by $\sigma$ divides the variance by $\sigma^2$, giving 1).
 </p>
 
 <p>
-So the model outputs a <strong>belief</strong>: $\hat{y} \in (0,1)$, read as "the
-probability this review is positive". Now wrongness has degrees, and degrees have
-derivatives.
+That is exactly what <a class="xref" href="#ch07">layer normalisation</a> does, per token,
+across features. The learned $\gamma$ and $\beta$ then let the network recover any scale
+and shift it actually wants — so normalisation stabilises training without reducing what
+the model can express.
+</p>
+
+<h3 id="ch00-dropout-and-preserved-expectation">Dropout and preserved expectation<a class="anchor-link" href="#ch00-dropout-and-preserved-expectation" aria-label="Link to this section">#</a></h3>
+
+<div class="box example">
+  <span class="box-label">Example — why dropout divides by $1-p$</span>
+  <p>
+  Dropout keeps each activation with probability $1-p$. Write $B \sim
+  \text{Bernoulli}(1-p)$ for the keep indicator. Naively, $y = xB$:
+  </p>
+  <div class="given">E[y] = x · E[B] = x(1 − p)
+
+At p = 0.5 the layer's output is HALF its expected size during training,
+but full size at test time (dropout is off). Every downstream layer sees a
+different input distribution in the two regimes.
+
+Inverted dropout divides by the keep probability:  y = xB/(1 − p)
+  E[y] = x(1 − p)/(1 − p) = x        ✓ train and test now agree</div>
+  <p style="margin-bottom:0">
+  The variance is not preserved, only the mean:
+  $\operatorname{Var}(y) = x^2\,p/(1-p)$, which at $p = 0.9$ is $9x^2$. Heavy dropout
+  injects enormous noise — which is the regularisation, and also why very high dropout
+  rates make training unstable rather than merely slow.
+  </p>
+</div>
+
+<h3 id="ch00-sample-statistics-and-how-much-you-can-conclude">Sample statistics, and how much you can conclude<a class="anchor-link" href="#ch00-sample-statistics-and-how-much-you-can-conclude" aria-label="Link to this section">#</a></h3>
+
+<p>
+Everything above concerned true distributions. In practice you have samples, and a
+statistic computed from $n$ samples is itself a random variable.
+</p>
+
+$$\bar{x} = \frac{1}{n}\sum_i x_i
+\qquad
+s^2 = \frac{1}{n-1}\sum_i (x_i - \bar{x})^2
+\qquad
+\text{SE} = \frac{s}{\sqrt{n}}$$
+
+<div class="box concept">
+  <span class="box-label">Key concept — why three seeds is the minimum</span>
+  The <strong>standard error</strong> is the standard deviation of the sample
+  <em>mean</em>, and it shrinks only as $1/\sqrt{n}$: to halve your uncertainty you need
+  four times as many runs. On a 2,000-example dataset, seed-to-seed variation in test
+  accuracy is routinely ±2%. If architecture A beats B by 1% on a single run, the
+  difference is well inside one standard error and you have measured noise. Reporting a
+  mean without a spread is not a result — it is an anecdote with a number attached.
+</div>
+
+<h3 id="ch00-covariance-correlation-and-independence">Covariance, correlation, and independence<a class="anchor-link" href="#ch00-covariance-correlation-and-independence" aria-label="Link to this section">#</a></h3>
+
+$$\operatorname{Cov}(X,Y) = \mathbb{E}[(X-\mu_X)(Y-\mu_Y)]
+\qquad
+\rho = \frac{\operatorname{Cov}(X,Y)}{\sigma_X\sigma_Y} \in [-1, 1]$$
+
+<p>
+Two cautions that matter in practice. <strong>Independence implies zero covariance, but
+not conversely</strong> — covariance detects only <em>linear</em> association, so a
+perfect quadratic relationship can have $\rho = 0$. And <strong>the variance addition
+rule above required independence</strong>; for correlated variables,
+$\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y) +
+2\operatorname{Cov}(X,Y)$, which is why highly correlated activations make the
+initialisation arithmetic optimistic and deep networks drift out of scale anyway.
+</p>
+
+<h3 id="ch00-bayes-and-base-rates">Bayes, and base rates<a class="anchor-link" href="#ch00-bayes-and-base-rates" aria-label="Link to this section">#</a></h3>
+
+$$P(A \mid B) = \frac{P(B \mid A)\,P(A)}{P(B)}$$
+
+<p>
+The practical content is that <strong>a highly accurate test for a rare condition is
+mostly wrong when it fires</strong>, because the false positives are drawn from a much
+larger pool. This is the same arithmetic as class imbalance in
+<a class="xref" href="#ch03">classification</a>, and exercise 00.18 works it through.
+</p>
+
+<hr>
+
+<h2 id="ch00-part-4-probability-and-loss">Part 4 · Probability and Loss<a class="anchor-link" href="#ch00-part-4-probability-and-loss" aria-label="Link to this section">#</a></h2>
+
+<h3 id="ch00-models-output-beliefs-not-answers">Models output beliefs, not answers<a class="anchor-link" href="#ch00-models-output-beliefs-not-answers" aria-label="Link to this section">#</a></h3>
+
+<p>
+A discrete answer cannot be improved by a small amount, and a step function has zero
+derivative everywhere it is defined — Part 2 established that this offers no advice
+about which direction to move. So a model outputs a <strong>belief</strong>,
+$\hat{y} \in (0,1)$, and wrongness acquires degrees.
 </p>
 
 <div class="box example">
@@ -1448,367 +2008,209 @@ model A says 0.51   →  correct decision, barely
 model B says 0.99   →  correct decision, confidently
 model C says 0.10   →  wrong
 
-A discrete "positive/negative" output cannot distinguish A from B at all,
-and gives no signal for how far C must move. A probability does both.</div>
+A discrete output cannot distinguish A from B, and gives no signal for how
+far C must move. A probability does both.</div>
 </div>
 
-<h3 id="ch00-the-three-distributions-that-cover-this-book">The three distributions that cover this book<a class="anchor-link" href="#ch00-the-three-distributions-that-cover-this-book" aria-label="Link to this section">#</a></h3>
+<h3 id="ch00-the-three-distributions">The three distributions<a class="anchor-link" href="#ch00-the-three-distributions" aria-label="Link to this section">#</a></h3>
 
-<p><strong>Bernoulli</strong> — one yes/no outcome with probability $p$ of being 1:</p>
-
-$$P(y \mid p) = p^{y}(1-p)^{1-y}$$
+<p>
+<strong>Bernoulli</strong>, one yes/no outcome: $P(y \mid p) = p^y(1-p)^{1-y}$.
+<strong>Categorical</strong>, one of $K$: $P(y \mid p) = \prod_k p_k^{y_k}$.
+<strong>Gaussian</strong>, a noisy real number:
+$P(y\mid\mu,\sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}e^{-(y-\mu)^2/2\sigma^2}$.
+</p>
 
 <div class="box example">
   <span class="box-label">Example — the exponent trick</span>
-  <div class="given">p = 0.7
+  <div class="given">Bernoulli with p = 0.7:
+  y = 1:   0.7¹ × 0.3⁰ = 0.7 × 1 = 0.7
+  y = 0:   0.7⁰ × 0.3¹ = 1 × 0.3 = 0.3
 
-y = 1:   P = 0.7¹ × 0.3⁰ = 0.7 × 1 = 0.7
-y = 0:   P = 0.7⁰ × 0.3¹ = 1 × 0.3 = 0.3</div>
+Categorical, p = [0.2, 0.5, 0.3], true class 1 so y = [0, 1, 0]:
+  P = 0.2⁰ × 0.5¹ × 0.3⁰ = 0.5</div>
   <p style="margin-bottom:0">
-  The exponents are an <code>if</code> statement written as an expression. Whichever
-  branch does not apply is raised to the power 0 and becomes 1, dropping out of the
-  product. This matters because an <code>if</code> is not differentiable and this is.
+  The exponents are an <code>if</code> statement written as an expression: whichever
+  branch does not apply is raised to the power 0 and drops out. An <code>if</code> is
+  not differentiable; this is.
   </p>
 </div>
-
-<p><strong>Categorical</strong> — one outcome from $K$ classes:</p>
-
-$$P(y \mid p) = \prod_{k=1}^{K} p_k^{\,y_k}$$
-
-<div class="box example">
-  <span class="box-label">Example</span>
-  <div class="given">3 classes, model says p = [0.2, 0.5, 0.3]
-true class is 1 (the middle), so one-hot y = [0, 1, 0]
-
-P = 0.2⁰ × 0.5¹ × 0.3⁰ = 1 × 0.5 × 1 = 0.5</div>
-  <p style="margin-bottom:0">
-  Same trick, generalised: the product collapses to the single probability assigned
-  to the true class. This is the distribution behind
-  <a class="xref" href="#ch03">sentiment classification</a> and behind every token a
-  <a class="xref" href="#ch10">language model</a> predicts.
-  </p>
-</div>
-
-<p><strong>Gaussian</strong> — a real-valued measurement with noise:</p>
-
-$$P(y \mid \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp\!\left(-\frac{(y-\mu)^2}{2\sigma^2}\right)$$
-
-<p>
-Used when the target is a number rather than a label — the
-<a class="xref" href="#ch05">sine-wave regression</a>, for instance. The model
-predicts $\mu$; $\sigma$ is assumed fixed and, as we will see, disappears entirely.
-</p>
 
 <h3 id="ch00-likelihood-reading-a-distribution-backwards">Likelihood: reading a distribution backwards<a class="anchor-link" href="#ch00-likelihood-reading-a-distribution-backwards" aria-label="Link to this section">#</a></h3>
 
 <p>
-Here is the pivot the chapter turns on. $P(y \mid \theta)$ is normally read
-forwards: parameters known, outcome uncertain. Training reverses it. You
-<em>observed</em> the data; the parameters are what you do not know.
-</p>
-
-<p>
-The same expression with $y$ fixed and $\theta$ varying is the
-<strong>likelihood</strong> of $\theta$. It is not a distribution over $\theta$ — it
-does not integrate to 1 and is not trying to. It is a score: <em>how well does this
-setting of the parameters explain what I saw?</em>
+$P(y \mid \theta)$ read forwards has known parameters and uncertain outcomes. Training
+reverses it: you observed the data, and the parameters are unknown. The same expression,
+read with $y$ fixed and $\theta$ varying, is the <strong>likelihood</strong> of $\theta$
+— not a distribution over $\theta$, but a score for how well each $\theta$ explains what
+you saw.
 </p>
 
 <div class="box example">
   <span class="box-label">Example — the same numbers, read two ways</span>
-  <p>You flip a coin 3 times and see heads, heads, tails.</p>
-  <div class="given">FORWARD (p known, outcome uncertain), with p = 0.5:
+  <p>You flip a coin three times and observe heads, heads, tails.</p>
+  <div class="given">FORWARD (p known), p = 0.5:
     P(HHT) = 0.5 × 0.5 × 0.5 = 0.125
 
-BACKWARD (outcome known, p uncertain) — score candidate values of p:
+BACKWARD (outcome known) — score candidate values of p:
     p = 0.2 :  0.2 × 0.2 × 0.8 = 0.032
     p = 0.5 :  0.5 × 0.5 × 0.5 = 0.125
     p = 0.67:  0.67 × 0.67 × 0.33 = 0.148   ← highest
     p = 0.9 :  0.9 × 0.9 × 0.1 = 0.081</div>
   <p style="margin-bottom:0">
-  The best explanation of "2 heads in 3 flips" is $p = 2/3$ — which is exactly the
-  observed frequency. That is <strong>maximum likelihood estimation</strong>, and
-  the fact that it recovers the obvious answer on an easy problem is what licenses
-  trusting it on a hard one.
+  The best explanation of "2 heads in 3 flips" is $p = 2/3$, the observed frequency.
+  That maximum likelihood recovers the obvious answer on an easy problem is what
+  licenses trusting it on a hard one.
   </p>
 </div>
-
-<p>
-For $N$ independent examples the likelihood of the dataset is the product:
-</p>
-
-$$\mathcal{l}(\theta) = \prod_{i=1}^{N} P(y_i \mid x_i, \theta)$$
 
 <h3 id="ch00-why-the-logarithm-is-not-optional">Why the logarithm is not optional<a class="anchor-link" href="#ch00-why-the-logarithm-is-not-optional" aria-label="Link to this section">#</a></h3>
 
-<p>
-That product is unusable as written, for two independent reasons.
-</p>
-
-<p>
-<strong>It underflows.</strong> A batch of 64 examples at probability 0.1 each gives
-$10^{-64}$. The smallest positive float32 is about $10^{-38}$. Your likelihood is not
-small — it is <em>exactly zero</em>, and so is its gradient.
-</p>
-
-<p>
-<strong>Products differentiate badly.</strong> The product rule compounds across all
-$N$ terms; sums differentiate term by term.
-</p>
-
-<p>
-The logarithm fixes both. It is strictly increasing, so the maximiser is unchanged,
-and it turns products into sums. Flip the sign to minimise and divide by $N$ to make
-batches comparable:
-</p>
-
-$$\mathcal{L}(\theta) = -\frac{1}{N}\sum_{i=1}^{N}\log P(y_i \mid x_i, \theta)$$
-
 <div class="box example">
   <span class="box-label">Example — the underflow, concretely</span>
-  <div class="given">64 examples, each at probability 0.1
+  <div class="given">64 examples, each assigned probability 0.1
 
-  product     : 0.1⁶⁴ = 1e−64   → float32 stores this as exactly 0.0
-  sum of logs : 64 × ln(0.1) = 64 × (−2.303) = −147.4   → perfectly fine
-
-The second number is representable, differentiable, and carries the same
-ordering information. The first is a zero that stops training dead.</div>
-</div>
-
-<div class="box concept">
-  <span class="box-label">Key concept</span>
-  Every loss in this book is that one formula with a different distribution
-  substituted in. Bernoulli gives binary cross-entropy. Categorical gives
-  cross-entropy. Gaussian gives mean squared error. They are not three unrelated
-  recipes — they are one recipe with three ingredients.
-</div>
-
-<hr>
-
-<h2 id="ch00-cross-entropy">Part 4 · Deriving the Losses<a class="anchor-link" href="#ch00-cross-entropy" aria-label="Link to this section">#</a></h2>
-
-<h3 id="ch00-bernoulli-binary-cross-entropy">Bernoulli → binary cross-entropy<a class="anchor-link" href="#ch00-bernoulli-binary-cross-entropy" aria-label="Link to this section">#</a></h3>
-
-$$\mathcal{L} = -\frac{1}{N}\sum_i \log\!\big[\hat{y}_i^{\,y_i}(1-\hat{y}_i)^{1-y_i}\big]
-= -\frac{1}{N}\sum_i\big[y_i\log\hat{y}_i + (1-y_i)\log(1-\hat{y}_i)\big]$$
-
-<div class="box example">
-  <span class="box-label">Example</span>
-  <div class="given">y = 1,  ŷ = 0.9   →  −[1 · ln(0.9) + 0 · ln(0.1)] = −ln(0.9) = 0.105
-y = 0,  ŷ = 0.2   →  −[0 · ln(0.2) + 1 · ln(0.8)] = −ln(0.8) = 0.223</div>
+  product     : 0.1⁶⁴ = 1e−64  →  float32 stores this as exactly 0.0
+  sum of logs : 64 × ln(0.1) = −147.4   →  perfectly fine</div>
   <p style="margin-bottom:0">
-  One term is always multiplied by zero, so the loss is always just
-  $-\log(\text{probability assigned to the truth})$.
+  A zero likelihood has a zero gradient, so training would stop before it started. The
+  log also turns the product into a sum, and sums differentiate term by term while
+  products require the product rule compounding across all $N$ factors.
   </p>
 </div>
 
-<h3 id="ch00-categorical-cross-entropy">Categorical → cross-entropy<a class="anchor-link" href="#ch00-categorical-cross-entropy" aria-label="Link to this section">#</a></h3>
-
-$$\mathcal{L} = -\frac{1}{N}\sum_i\sum_{k} y_{ik}\log\hat{y}_{ik}
-             = -\frac{1}{N}\sum_i \log\hat{y}_{i,c_i}$$
-
 <p>
-The sum over classes collapses because $y$ is one-hot — which is why
-<code>nn.CrossEntropyLoss</code> takes integer class indices rather than one-hot
-vectors. The one-hot was only ever selecting a term.
+Flipping the sign to minimise and dividing by $N$ gives the
+<strong>negative log-likelihood</strong>, which is the loss:
 </p>
+
+$$\mathcal{L}(\theta) = -\frac{1}{N}\sum_{i=1}^{N}\log P(y_i\mid x_i,\theta)$$
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  Every loss in this book is that formula with a different distribution substituted in.
+  Bernoulli gives binary cross-entropy, categorical gives cross-entropy, Gaussian gives
+  mean squared error. They are one recipe with three ingredients.
+</div>
+
+<h3 id="ch00-cross-entropy">The losses, derived<a class="anchor-link" href="#ch00-cross-entropy" aria-label="Link to this section">#</a></h3>
+
+<p><strong>Bernoulli → BCE.</strong></p>
+
+$$\mathcal{L} = -\frac{1}{N}\sum_i\big[y_i\log\hat{y}_i + (1-y_i)\log(1-\hat{y}_i)\big]$$
+
+<p><strong>Categorical → cross-entropy.</strong> The sum over classes collapses because
+$y$ is one-hot, which is why <code>nn.CrossEntropyLoss</code> takes integer indices:</p>
+
+$$\mathcal{L} = -\frac{1}{N}\sum_i\log\hat{y}_{i,c_i}$$
 
 <div class="widget" data-widget="surprisal"></div>
 
 <p>
-Two features of that curve determine how classifiers train. Near $p = 1$ it is flat,
-so a model that is already right receives almost no gradient and spends its capacity
-elsewhere. Near $p = 0$ it is unbounded, so confident wrongness is punished without
-limit. That asymmetry is deliberate.
+Near $p = 1$ the curve is flat, so a model that is already right gets almost no gradient.
+Near $p = 0$ it is unbounded, so confident wrongness is punished without limit.
 </p>
 
-<h3 id="ch00-gaussian-mean-squared-error">Gaussian → mean squared error<a class="anchor-link" href="#ch00-gaussian-mean-squared-error" aria-label="Link to this section">#</a></h3>
+<p><strong>Gaussian → MSE.</strong> Expanding the log of the Gaussian density:</p>
 
-$$-\log P(y \mid \mu,\sigma^2) = \frac{(y-\mu)^2}{2\sigma^2} + \tfrac{1}{2}\log(2\pi\sigma^2)$$
+$$-\log P(y\mid\mu,\sigma^2) = \frac{(y-\mu)^2}{2\sigma^2} + \tfrac{1}{2}\log(2\pi\sigma^2)$$
 
 <p>
-The second term does not involve $\mu$, so it has zero gradient with respect to the
-model and cannot move the minimum — drop it. A fixed $\sigma$ is a constant scale
-absorbed into the learning rate. What survives is
-$\mathcal{L} = \frac{1}{N}\sum(y_i - \hat{y}_i)^2$.
+The second term does not involve $\mu$, so it has zero gradient and cannot move the
+minimum — drop it. A fixed $\sigma$ is a constant absorbed into the learning rate. So MSE
+is not a neutral choice: it asserts symmetric, constant-width Gaussian noise, and
+misbehaves exactly as that assumption predicts when it is false.
 </p>
-
-<p>
-So MSE is not a neutral choice of "how far off am I". It asserts that your targets
-are the truth plus symmetric, constant-width, bell-shaped noise — and it misbehaves
-in exactly the ways that assumption predicts when it is wrong.
-</p>
-
-<h3 id="ch00-why-mse-fails-on-classification">Why MSE fails on classification<a class="anchor-link" href="#ch00-why-mse-fails-on-classification" aria-label="Link to this section">#</a></h3>
-
-<p>
-This is where derivation pays off. With $\hat{y} = \sigma(z)$ and MSE loss, the chain
-rule from Part 2 gives
-</p>
-
-$$\frac{\partial\mathcal{L}}{\partial z} = 2(\hat{y}-y)\,\sigma'(z)$$
 
 <div class="box example">
-  <span class="box-label">Example — the failure, in numbers</span>
-  <div class="given">truth y = 1, and the model is confidently wrong: z = −8, ŷ = 0.000335
+  <span class="box-label">Example — why MSE fails on classification</span>
+  <div class="given">With ŷ = σ(z) and MSE, the chain rule gives  ∂L/∂z = 2(ŷ − y)·σ′(z)
 
-MSE  :  2(0.000335 − 1) × σ′(−8)
-     =  2(−0.9997) × 0.000335
-     =  −0.00067          ← essentially no gradient
+truth y = 1, model confidently wrong at z = −8, ŷ = 0.000335
 
-BCE  :  ŷ − y = 0.000335 − 1
-     =  −0.9997           ← full-strength gradient
+MSE  :  2(0.000335 − 1) × σ′(−8) = 2(−0.9997)(0.000335) = −0.00067
+BCE  :  ŷ − y = −0.9997
 
 ratio: about 1,500×</div>
   <p style="margin-bottom:0">
   <strong>Under MSE, the more confidently wrong the model is, the less it learns.</strong>
-  Training stalls precisely where it needs to move fastest. Cross-entropy is built so
-  the $\sigma'$ factor cancels exactly — see the boxed result below.
+  Cross-entropy is built so the $\sigma'$ factor cancels exactly.
   </p>
 </div>
 
 <div class="widget" data-widget="loss-shapes"></div>
 
-<p>
-The same reasoning sorts the regression losses. MSE's gradient is $2e$ and grows
-without bound, so one mislabelled point with error 50 contributes a gradient of 100
-and dominates the batch. MAE's is $\operatorname{sign}(e)$ — constant magnitude,
-completely indifferent to how bad an outlier is. Huber is quadratic near zero and
-linear in the tails. Tick <em>show gradients</em> above: the loss curves are pretty,
-but the gradients are what training feels.
-</p>
+<h3 id="ch00-softmax-and-the-cancellation">Softmax and the cancellation<a class="anchor-link" href="#ch00-softmax-and-the-cancellation" aria-label="Link to this section">#</a></h3>
 
-<h2 id="ch00-softmax-and-the-gradient-that-makes-it-all-work">Softmax and the gradient that makes it all work<a class="anchor-link" href="#ch00-softmax-and-the-gradient-that-makes-it-all-work" aria-label="Link to this section">#</a></h2>
-
-$$\hat{y}_k = \frac{e^{z_k}}{\sum_j e^{z_j}}$$
+$$\hat{y}_k = \frac{e^{z_k}}{\sum_j e^{z_j}}
+\qquad\Longrightarrow\qquad
+\boxed{\;\frac{\partial\mathcal{L}}{\partial z_k} = \hat{y}_k - y_k\;}$$
 
 <div class="box example">
-  <span class="box-label">Example — softmax by hand</span>
+  <span class="box-label">Example — softmax by hand, and its invariance</span>
   <div class="given">z = [2.0, 1.0, 0.0]
+  e² = 7.389, e¹ = 2.718, e⁰ = 1.000, sum = 11.107
+  ŷ = [0.665, 0.245, 0.090]        sums to 1.000 ✓
 
-exponentiate:  e² = 7.389,  e¹ = 2.718,  e⁰ = 1.000
-sum:           11.107
+Now subtract 2 from every logit, z = [0, −1, −2]:
+  1.000, 0.368, 0.135, sum = 1.503
+  ŷ = [0.665, 0.245, 0.090]        identical
 
-ŷ = [7.389/11.107, 2.718/11.107, 1.000/11.107]
-  = [0.665, 0.245, 0.090]        sums to 1.000 ✓</div>
-  <p style="margin-bottom:0">
-  Now subtract 2 from every logit, giving $[0,-1,-2]$: $e^0 = 1$, $e^{-1} = 0.368$,
-  $e^{-2} = 0.135$, sum 1.503, and $\hat{y} = [0.665, 0.245, 0.090]$ — identical.
-  Softmax is invariant to adding a constant, because $e^c$ cancels between numerator
-  and denominator. That invariance is free insurance: subtract the maximum before
-  exponentiating and the largest exponent becomes $e^0 = 1$, so overflow is
-  impossible. Without it, a logit of 800 becomes <code>inf</code> and the whole
-  distribution becomes <code>nan</code>.
-  </p>
-</div>
-
-<div class="widget" data-widget="softmax"></div>
-
-<h3 id="ch00-the-cancellation">The cancellation<a class="anchor-link" href="#ch00-the-cancellation" aria-label="Link to this section">#</a></h3>
-
-<p>
-Combine softmax with cross-entropy, differentiate with respect to the logits, and
-nearly everything cancels:
-</p>
-
-$$\boxed{\;\frac{\partial\mathcal{L}}{\partial z_k} = \hat{y}_k - y_k\;}$$
-
-<div class="box example">
-  <span class="box-label">Example</span>
-  <div class="given">ŷ = [0.665, 0.245, 0.090]     true class c = 1,  y = [0, 1, 0]
-
-∂L/∂z₀ = 0.665 − 0 = +0.665     push logit 0 DOWN hard
-∂L/∂z₁ = 0.245 − 1 = −0.755     push logit 1 UP hard
-∂L/∂z₂ = 0.090 − 0 = +0.090     push logit 2 down a little
-                        sum = 0</div>
-  <p style="margin-bottom:0">
-  Predicted probability minus true probability — no saturation factor, no
-  attenuation. And the gradients sum to zero necessarily, because adding a constant
-  to every logit changes nothing, so the gradient can have no component in that
-  direction. Only <em>relative</em> logits are learnable.
-  </p>
+Softmax is invariant to adding a constant, because e^c cancels between
+numerator and denominator. Subtracting the max before exponentiating is
+therefore free — and it makes overflow impossible.</div>
 </div>
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
-  Softmax and cross-entropy are designed as a pair; their derivatives cancel to leave
-  the error itself. This is why you pass raw <strong>logits</strong> to
-  <code>nn.CrossEntropyLoss</code> and <code>nn.BCEWithLogitsLoss</code> rather than
-  applying softmax or sigmoid yourself. The fused implementation is numerically
-  stabler and faster, and doing it manually is a silent correctness bug — the loss
-  still runs, the numbers still go down, and the model trains worse than it should.
+  Softmax and cross-entropy are designed as a pair; their derivatives cancel to leave the
+  error itself, unattenuated. This is why you pass raw <strong>logits</strong> to
+  <code>nn.CrossEntropyLoss</code> and <code>nn.BCEWithLogitsLoss</code>. Applying
+  softmax or sigmoid yourself first is a silent correctness bug — the loss still runs,
+  the numbers still go down, and the model trains worse than it should.
 </div>
 
 <details>
   <summary>The derivation, in full</summary>
-  <p>Let $S = \sum_j e^{z_j}$, so $\hat{y}_k = e^{z_k}/S$. The diagonal case $k = c$,
-  by the quotient rule:</p>
-  $$\frac{\partial \hat{y}_c}{\partial z_c} = \frac{e^{z_c}S - e^{z_c}e^{z_c}}{S^2} = \hat{y}_c(1-\hat{y}_c)$$
+  <p>Let $S = \sum_j e^{z_j}$, so $\hat{y}_k = e^{z_k}/S$. The diagonal case $k = c$, by
+  the quotient rule:</p>
+  $$\frac{\partial\hat{y}_c}{\partial z_c} = \frac{e^{z_c}S - e^{z_c}e^{z_c}}{S^2} = \hat{y}_c(1-\hat{y}_c)$$
   <p>and the off-diagonal case $k \ne c$, where the numerator does not depend on $z_k$:</p>
-  $$\frac{\partial \hat{y}_c}{\partial z_k} = \frac{0 \cdot S - e^{z_c}e^{z_k}}{S^2} = -\hat{y}_c\hat{y}_k$$
-  <p>With $\mathcal{L} = -\log\hat{y}_c$ we have
-  $\partial\mathcal{L}/\partial\hat{y}_c = -1/\hat{y}_c$, so for $k = c$:</p>
-  $$\frac{\partial\mathcal{L}}{\partial z_c} = -\frac{1}{\hat{y}_c}\hat{y}_c(1-\hat{y}_c) = \hat{y}_c - 1$$
-  <p>and for $k \ne c$:</p>
-  $$\frac{\partial\mathcal{L}}{\partial z_k} = -\frac{1}{\hat{y}_c}(-\hat{y}_c\hat{y}_k) = \hat{y}_k$$
-  <p>Since $y_c = 1$ and $y_k = 0$, both cases are the single expression
-  $\hat{y}_k - y_k$.</p>
+  $$\frac{\partial\hat{y}_c}{\partial z_k} = \frac{0\cdot S - e^{z_c}e^{z_k}}{S^2} = -\hat{y}_c\hat{y}_k$$
+  <p>With $\mathcal{L} = -\log\hat{y}_c$, so
+  $\partial\mathcal{L}/\partial\hat{y}_c = -1/\hat{y}_c$, the case $k = c$ gives
+  $\hat{y}_c - 1$ and the case $k \ne c$ gives $\hat{y}_k$. Since $y_c = 1$ and
+  $y_k = 0$, both are $\hat{y}_k - y_k$.</p>
 </details>
 
-<h2 id="ch00-the-information-theoretic-reading">The information-theoretic reading<a class="anchor-link" href="#ch00-the-information-theoretic-reading" aria-label="Link to this section">#</a></h2>
+<h3 id="ch00-the-information-theoretic-reading">The information-theoretic reading<a class="anchor-link" href="#ch00-the-information-theoretic-reading" aria-label="Link to this section">#</a></h3>
 
 <p>
-A second derivation reaches the same formula from a different direction, and explains
-the name.
+<strong>Surprisal</strong> is $-\log p$; <strong>entropy</strong>
+$H(p) = -\sum p_k\log p_k$ is its expectation under the truth;
+<strong>cross-entropy</strong> $H(p,q) = -\sum p_k\log q_k$ is what you pay encoding
+reality $p$ with beliefs $q$; and the gap is the <strong>KL divergence</strong>
+$D_{\mathrm{KL}}(p\|q) = H(p,q) - H(p) \ge 0$.
 </p>
-
-<p>
-<strong>Surprisal</strong> of an event of probability $p$ is $-\log p$ — in base 2,
-literally the number of bits an optimal code spends on it.
-<strong>Entropy</strong> $H(p) = -\sum p_k\log p_k$ is its expectation under the
-truth. <strong>Cross-entropy</strong> $H(p,q) = -\sum p_k\log q_k$ is what you pay
-encoding reality $p$ with beliefs $q$. Their difference is the
-<strong>KL divergence</strong>, the pure penalty for being wrong:
-</p>
-
-$$D_{\mathrm{KL}}(p\parallel q) = H(p,q) - H(p) \ge 0$$
-
-<div class="box example">
-  <span class="box-label">Example — the cost of a wrong belief, in bits</span>
-  <div class="given">It rains half of all days:  p = [0.5, 0.5]
-Your model claims:          q = [0.25, 0.75]
-
-H(p)   = −(0.5 log₂0.5 + 0.5 log₂0.5) = 1.000 bits
-H(p,q) = −(0.5 log₂0.25 + 0.5 log₂0.75)
-       = −(0.5(−2) + 0.5(−0.415)) = 1.208 bits
-
-KL(p‖q) = 1.208 − 1.000 = 0.208 bits per day</div>
-  <p style="margin-bottom:0">
-  Over a year, 76 wasted bits — the price of a wrong model, in the currency of
-  message length.
-  </p>
-</div>
 
 <div class="widget" data-widget="entropy"></div>
 
 <p>
-The punchline: $H(p)$ depends only on the data, not on the model. So minimising
-cross-entropy <em>is</em> minimising KL divergence from the truth. The
-maximum-likelihood story and the information-theory story are the same story told
-twice.
+Since $H(p)$ depends only on the data, minimising cross-entropy <em>is</em> minimising
+divergence from the truth. The maximum-likelihood story and the information-theory story
+are the same story told twice.
 </p>
 
 <div class="box note">
   <span class="box-label">Perplexity</span>
-  A language model's perplexity is $e^{\mathcal{L}}$ for cross-entropy in nats. A
-  perplexity of 40 means the model is as uncertain as if choosing uniformly among 40
-  words. When <a class="xref" href="#ch10">Chapter 10</a> reports a loss of 1.51 over
-  73 characters, that is a perplexity of 4.5 — the model has narrowed 73 possible
-  characters down to about four or five plausible ones. Loss curves are hard to read;
-  perplexity is not.
+  A language model's perplexity is $e^{\mathcal{L}}$ for cross-entropy in nats — the
+  effective number of choices it is deciding between. When
+  <a class="xref" href="#ch10">Chapter 10</a> reports a loss of 1.51 over 73 characters,
+  that is a perplexity of 4.5: the model has narrowed 73 possibilities down to about
+  four or five. Loss curves are hard to read; perplexity is not.
 </div>
 
-<h2 id="ch00-choosing-a-loss-in-practice">Choosing a loss in practice<a class="anchor-link" href="#ch00-choosing-a-loss-in-practice" aria-label="Link to this section">#</a></h2>
+<h3 id="ch00-choosing-a-loss">Choosing a loss<a class="anchor-link" href="#ch00-choosing-a-loss" aria-label="Link to this section">#</a></h3>
 
 <div class="table-wrap">
 <table>
@@ -1827,135 +2229,302 @@ twice.
 <p>
 Three rules cause more bugs than everything else combined. <strong>Pass logits, not
 probabilities.</strong> <strong>Ignore your padding</strong> with
-<code>ignore_index=PAD_IDX</code>, or the model spends its capacity learning to
-predict <code>&lt;PAD&gt;</code>, which it will do perfectly and which is worth
-nothing. <strong>Class imbalance is a likelihood problem</strong> — if 95% of labels
-are negative, always predicting negative genuinely is the maximum-likelihood answer,
-and reweighting changes the question rather than fixing a bug.
+<code>ignore_index=PAD_IDX</code>. And <strong>class imbalance is a likelihood
+problem</strong> — if 95% of labels are negative, always predicting negative genuinely
+is the maximum-likelihood answer, so reweighting changes the question rather than fixing
+a bug.
 </p>
 
 <hr>
 
 <h2 id="ch00-by-hand-exercises">By-hand exercises<a class="anchor-link" href="#ch00-by-hand-exercises" aria-label="Link to this section">#</a></h2>
 
+<p>
+Twenty-two exercises, grouped by part. Do them on paper. Every solution is folded up
+underneath, and the numbers are chosen so arithmetic never obscures the idea.
+</p>
+
+<h3 id="ch00-linear-algebra">Linear algebra<a class="anchor-link" href="#ch00-linear-algebra" aria-label="Link to this section">#</a></h3>
+
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.1 · shapes and dot products</span>
-  <p>Nothing here needs a calculator, and every one of these shapes appears in
-  <a class="xref" href="#ch01">Chapter 01</a>.</p>
+  <span class="box-label">By hand — exercise 00.1 · shapes, legality, and parameter counts</span>
   <div class="given">A is (4, 2)      B is (2, 3)      C is (3, 3)      v is (3,)</div>
   <ol>
-    <li>Which of these are legal, and what shape does each produce?
-        <code>A@B</code>, <code>B@A</code>, <code>A@B@C</code>, <code>B@C</code>,
-        <code>C@B</code>.</li>
-    <li>What shape is <code>(A@B) + v</code>? Explain via the broadcasting rules.</li>
-    <li>Compute $\mathbf{a}\cdot\mathbf{b}$ for $\mathbf{a} = [3, -1, 2]$,
-        $\mathbf{b} = [1, 2, 4]$. Is the angle between them acute, right, or obtuse?</li>
-    <li>A batch of 32 examples with 10 features each passes through
+    <li>Which are legal, and what shape does each produce? <code>A@B</code>,
+        <code>B@A</code>, <code>A@B@C</code>, <code>B@C</code>, <code>C@B</code>.</li>
+    <li>What shape is <code>(A@B) + v</code>, and why?</li>
+    <li>A batch of 32 examples with 10 features passes through
         <code>nn.Linear(10, 64)</code> then <code>nn.Linear(64, 3)</code>. Give every
         intermediate shape and the total parameter count.</li>
+    <li>You have $x$ of shape <span class="shape">(1, 1000)</span>, $B$ of shape
+        <span class="shape">(1000, 4)</span>, and $A$ of shape
+        <span class="shape">(4, 1000)</span>. Count the multiplications for
+        <code>(x@B)@A</code> versus <code>x@(B@A)</code>.</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
     <p><strong>1.</strong> Inner dimensions must match and vanish.</p>
-    <div class="given">A@B    (4,2)@(2,3)      → (4, 3)     ✓  2 matches 2
-B@A    (2,3)@(4,2)      → ERROR      ✗  3 ≠ 4
-A@B@C  (4,3)@(3,3)      → (4, 3)     ✓  left-to-right
-B@C    (2,3)@(3,3)      → (2, 3)     ✓
-C@B    (3,3)@(2,3)      → ERROR      ✗  3 ≠ 2</div>
-    <p>Note that <code>A@B</code> is legal while <code>B@A</code> is not — the
-    clearest possible demonstration that matrix multiplication does not commute.</p>
-    <p><strong>2.</strong> <code>A@B</code> is <span class="shape">(4, 3)</span> and
-    <code>v</code> is <span class="shape">(3,)</span>. Aligning from the right, 3
-    matches 3; <code>v</code> has no second dimension, so it is treated as
-    <span class="shape">(1, 3)</span> and stretched across all 4 rows. Result:
-    <strong>(4, 3)</strong>. This is exactly how a bias vector is added to a batch —
-    every example gets the same bias.</p>
-    <p><strong>3.</strong> $(3)(1) + (-1)(2) + (2)(4) = 3 - 2 + 8 = \mathbf{9}$.
-    Positive, so $\cos\theta > 0$ and the angle is <strong>acute</strong> — the
-    vectors broadly agree in direction.</p>
+    <div class="given">A@B    (4,2)@(2,3)  → (4, 3)     ✓
+B@A    (2,3)@(4,2)  → ERROR      ✗  3 ≠ 4
+A@B@C  (4,3)@(3,3)  → (4, 3)     ✓  evaluated left to right
+B@C    (2,3)@(3,3)  → (2, 3)     ✓
+C@B    (3,3)@(2,3)  → ERROR      ✗  3 ≠ 2</div>
+    <p><code>A@B</code> is legal while <code>B@A</code> is not — the clearest possible
+    demonstration that matrix multiplication does not commute.</p>
+    <p><strong>2.</strong> <strong>(4, 3)</strong>. Aligning from the right, 3 matches 3;
+    <code>v</code> has no second dimension so it is treated as
+    <span class="shape">(1, 3)</span> and stretched across all four rows. This is exactly
+    how a bias is added to a batch.</p>
+    <p><strong>3.</strong></p>
+    <div class="given">input                (32, 10)
+after Linear(10,64)  (32, 64)     10×64 + 64 = 704
+after Linear(64,3)   (32,  3)     64×3  +  3 = 195
+                                    total     899</div>
+    <p>The batch dimension 32 passes through untouched at every step. Layers transform
+    features, never the batch.</p>
     <p><strong>4.</strong></p>
-    <div class="given">input           (32, 10)
-after Linear(10,64)  (32, 64)      10×64 + 64 =   704 params
-after Linear(64,3)   (32,  3)      64×3  +  3 =   195 params
-                                        total     899 params</div>
-    <p>The batch dimension 32 passes through untouched at every step. That is
-    universal: layers transform features, never the batch.</p>
+    <div class="given">(x@B)@A : (1×1000×4) + (1×4×1000) = 4,000 + 4,000 = 8,000
+x@(B@A) : (1000×4×1000) + (1×1000×1000)  = 4,000,000 + 1,000,000</div>
+    <p>Identical answers; <strong>625× the work</strong>. Associativity is a free
+    optimisation, and it is precisely why <a class="xref" href="#ch11">LoRA</a> is cheap
+    at inference: you never materialise $BA$.</p>
   </details>
 </div>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 00.2 · the geometry of the dot product</span>
   <p>
-  This is the exercise that makes <a class="xref" href="#ch06">attention</a> feel
-  inevitable rather than arbitrary. Three "word embeddings" in two dimensions:
+  The exercise that makes <a class="xref" href="#ch06">attention</a> feel inevitable.
+  Three "word embeddings" in two dimensions:
   </p>
   <div class="given">cat  = [ 1.0,  0.0 ]
 dog  = [ 0.8,  0.6 ]
-idea = [−0.6,  0.8 ]
-
-useful:  √1.00 = 1.00   0.8² + 0.6² = 1.00   (−0.6)² + 0.8² = 1.00</div>
+idea = [−0.6,  0.8 ]</div>
   <ol>
-    <li>Confirm all three vectors have length 1. (This makes the next part easier —
-        for unit vectors the dot product <em>is</em> the cosine.)</li>
-    <li>Compute all three pairwise dot products: cat·dog, cat·idea, dog·idea.</li>
-    <li>Rank the pairs by similarity. Does the ranking match your intuition about the
-        words?</li>
-    <li>A query vector $q = [0.9, 0.4]$ arrives. Compute its score against each of the
-        three keys, then apply softmax with no scaling. Which word does it attend to
-        most?</li>
-    <li>Now scale $q$ up to $[9, 4]$ — same direction, ten times longer. Recompute the
-        softmax. What happened, and which part of the attention formula exists to
-        prevent it?</li>
+    <li>Confirm all three have length 1. (For unit vectors the dot product <em>is</em>
+        the cosine.)</li>
+    <li>Compute all three pairwise dot products.</li>
+    <li>Rank the pairs by similarity. Does it match your intuition about the words?</li>
+    <li>A query $q = [0.9, 0.4]$ arrives. Compute its score against each key and apply
+        softmax with no scaling.</li>
+    <li>Scale $q$ to $[9, 4]$ — same direction, ten times longer. Recompute. What
+        happened, and which part of the attention formula prevents it?</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> $\|cat\| = \sqrt{1 + 0} = 1$;
-    $\|dog\| = \sqrt{0.64 + 0.36} = 1$; $\|idea\| = \sqrt{0.36 + 0.64} = 1$ ✓.</p>
+    <p><strong>1.</strong> $\sqrt{1+0} = 1$; $\sqrt{0.64+0.36} = 1$;
+    $\sqrt{0.36+0.64} = 1$ ✓.</p>
     <p><strong>2.</strong></p>
     <div class="given">cat · dog  = (1.0)(0.8) + (0.0)(0.6)  =  0.80
 cat · idea = (1.0)(−0.6) + (0.0)(0.8) = −0.60
 dog · idea = (0.8)(−0.6) + (0.6)(0.8) =  0.00</div>
-    <p><strong>3.</strong> cat–dog (0.80) &gt; dog–idea (0.00) &gt; cat–idea (−0.60).
-    Two concrete animals are similar; "idea" is perpendicular to "dog" (unrelated) and
-    points away from "cat" (actively opposed). This is what a learned embedding space
-    does — arrange vectors so that the dot product reports semantic similarity — and it
-    is why <em>every</em> attention score is a dot product.</p>
+    <p><strong>3.</strong> cat–dog (0.80) &gt; dog–idea (0.00) &gt; cat–idea (−0.60). Two
+    concrete animals are similar; "idea" is perpendicular to "dog" and points away from
+    "cat". This is what a learned embedding space does, and why every attention score is
+    a dot product.</p>
     <p><strong>4.</strong></p>
-    <div class="given">q · cat  = (0.9)(1.0) + (0.4)(0.0)  = 0.90
-q · dog  = (0.9)(0.8) + (0.4)(0.6)  = 0.96
-q · idea = (0.9)(−0.6) + (0.4)(0.8) = −0.22
+    <div class="given">q · cat  = 0.90     q · dog  = 0.96     q · idea = −0.22
 
-e^0.90 = 2.460   e^0.96 = 2.612   e^{−0.22} = 0.803
-sum = 5.875
-
+e^0.90 = 2.460   e^0.96 = 2.612   e^{−0.22} = 0.803   sum = 5.875
 softmax = [0.419, 0.445, 0.137]</div>
-    <p>It attends most to <strong>dog</strong>, but only just — 0.445 against 0.419.
-    The distribution is soft, which means gradients flow to all three.</p>
-    <p><strong>5.</strong> Scaling $q$ by 10 multiplies every score by 10:
-    $[9.0, 9.6, -2.2]$.</p>
-    <div class="given">e^9.0 = 8103    e^9.6 = 14765    e^{−2.2} = 0.111
-sum = 22868
-
+    <p>It attends most to <strong>dog</strong>, but only just. The distribution is soft,
+    so gradients flow to all three.</p>
+    <p><strong>5.</strong> Every score is multiplied by 10: $[9.0, 9.6, -2.2]$.</p>
+    <div class="given">e^9.0 = 8103    e^9.6 = 14765    e^{−2.2} = 0.111   sum = 22868
 softmax = [0.354, 0.646, 0.0000049]</div>
-    <p>The <em>direction</em> of $q$ has not changed at all, so the ranking is
-    identical — but the distribution has become far peakier, and "idea" has been
-    annihilated to five parts in a million. Push the scaling further and the row goes
-    fully one-hot, at which point the softmax gradient is ~0 and the layer stops
-    learning entirely.</p>
-    <p>This is exactly what the <strong>$1/\sqrt{d_k}$ factor</strong> in
-    $\operatorname{softmax}(QK^\top/\sqrt{d_k})V$ prevents. Dot-product magnitude grows
-    with dimension — $\operatorname{Var}(q\cdot k) = d_k$ for unit-variance components —
-    so without the correction, simply making your model wider would saturate every
-    attention layer in it. See <a class="xref" href="#ch06">Chapter 06</a>.</p>
+    <p>The <em>direction</em> of $q$ has not changed, so the ranking is identical — but
+    the distribution is far peakier and "idea" has been annihilated to five parts in a
+    million. Push further and the row goes fully one-hot, the softmax gradient goes to
+    zero, and the layer stops learning.</p>
+    <p>This is what the <strong>$1/\sqrt{d_k}$ factor</strong> prevents. Exercise 00.13
+    derives why score magnitude grows with dimension in the first place.</p>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.3 · the chain rule as backpropagation</span>
-  <p>
-  A one-neuron network, computed forwards and then backwards. This is a complete
-  training step in miniature.
-  </p>
+  <span class="box-label">By hand — exercise 00.3 · matrix–vector, both readings</span>
+  <div class="given">A = [ 2  1  0 ]           x = [1, 2, 4]
+    [ 0  3  1 ]</div>
+  <ol>
+    <li>Compute $A\mathbf{x}$ using the <em>row</em> reading (dot products).</li>
+    <li>Compute it again using the <em>column</em> reading (a linear combination of
+        columns, with $\mathbf{x}$ as coefficients). Confirm they agree.</li>
+    <li>Now let $\mathbf{x} = [0, 0, 1]$. Use the column reading to write down the answer
+        immediately, without arithmetic.</li>
+    <li>An <code>nn.Embedding(4, 3)</code> holds a $4\times 3$ table. Explain, using
+        part 3, why looking up token 2 is the same operation as multiplying a one-hot
+        vector by that table — and what that implies about which rows receive gradient.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Row reading:</p>
+    <div class="given">row1 · x = (2)(1) + (1)(2) + (0)(4) = 4
+row2 · x = (0)(1) + (3)(2) + (1)(4) = 10        →  [4, 10]</div>
+    <p><strong>2.</strong> Column reading:</p>
+    <div class="given">1·[2,0] + 2·[1,3] + 4·[0,1]
+= [2,0] + [2,6] + [0,4]                          →  [4, 10]   ✓</div>
+    <p><strong>3.</strong> The coefficients are $0, 0, 1$, so the result is simply the
+    third column: <strong>[0, 1]</strong>. No arithmetic required — and that is the whole
+    value of the column reading.</p>
+    <p><strong>4.</strong> A one-hot vector has a single 1 in position $k$, so the linear
+    combination keeps exactly one row (or column, depending on which side you multiply)
+    and discards the rest. The lookup <em>is</em> the multiplication, executed
+    efficiently.</p>
+    <p>The consequence for training is direct. Since the output depends on only that one
+    row, the gradient with respect to every other row is exactly zero — not small,
+    <em>zero</em>. Only the tokens that actually appeared in a batch get updated, and a
+    token appearing three times accumulates three contributions, as
+    <a class="xref" href="#ch00">summing over paths</a> requires. It is also why rare
+    words have poor embeddings: they simply receive very few updates.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.4 · the transpose in the backward pass</span>
+  <p>A single linear layer with no bias, one example.</p>
+  <div class="given">X = [1, 2]                  (1×2)
+
+W = [ 1  0  2 ]             (2×3)
+    [ 0  1  3 ]
+
+Y = XW                      (1×3)
+δ = ∂L/∂Y = [1, 1, 1]       (1×3)   given from downstream</div>
+  <ol>
+    <li>Compute $Y$.</li>
+    <li>Without computing anything, use shapes alone to decide whether
+        $\partial\mathcal{L}/\partial W$ is $X^\top\delta$ or $\delta^\top X$.</li>
+    <li>Compute $\partial\mathcal{L}/\partial W$ and confirm it has the shape of $W$.</li>
+    <li>Compute $\partial\mathcal{L}/\partial X = \delta W^\top$ and confirm its shape.</li>
+    <li>Interpret the first entry of $\partial\mathcal{L}/\partial W$: why is the whole
+        first row equal to 1 and the whole second row equal to 2?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong></p>
+    <div class="given">Y = [ (1)(1)+(2)(0), (1)(0)+(2)(1), (1)(2)+(2)(3) ] = [1, 2, 8]</div>
+    <p><strong>2.</strong> $W$ is <span class="shape">(2, 3)</span>, so the gradient must
+    be <span class="shape">(2, 3)</span>. $X^\top$ is <span class="shape">(2, 1)</span>
+    and $\delta$ is <span class="shape">(1, 3)</span>, giving
+    <span class="shape">(2, 3)</span> ✓. The alternative $\delta^\top X$ is
+    <span class="shape">(3, 1)</span> @ <span class="shape">(1, 2)</span> =
+    <span class="shape">(3, 2)</span> ✗. <strong>The shapes decide it</strong>, with no
+    calculus needed.</p>
+    <p><strong>3.</strong></p>
+    <div class="given">Xᵀδ = [1]  @  [1  1  1]   =   [ 1  1  1 ]
+      [2]                      [ 2  2  2 ]        (2×3)  ✓</div>
+    <p><strong>4.</strong></p>
+    <div class="given">δWᵀ = [1 1 1] @ [ 1  0 ]  = [ 1+0+2 , 0+1+3 ] = [3, 4]
+                [ 0  1 ]                                  (1×2)  ✓
+                [ 2  3 ]</div>
+    <p><strong>5.</strong> $\partial\mathcal{L}/\partial W_{ij} = X_i\delta_j$ — the input
+    that fed the weight, times the error that came back through it. Since every
+    $\delta_j = 1$ here, each row is just its input value repeated: row 1 is $X_1 = 1$
+    and row 2 is $X_2 = 2$.</p>
+    <p>This is the general rule stated in the chapter — <em>gradient = (what came in)ᵀ ×
+    (what wants to change on the way out)</em> — and it explains why an input feature
+    with large magnitude produces proportionally large weight gradients. That is the
+    argument for feature scaling, and it is the same effect you saw in the one-neuron
+    exercise where $x = 2$ made $\partial\mathcal{L}/\partial w$ twice
+    $\partial\mathcal{L}/\partial b$.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.5 · outer products, rank, and LoRA</span>
+  <div class="given">u = [1, 2, 3]        v = [4, 5]</div>
+  <ol>
+    <li>Compute the outer product $\mathbf{u}\mathbf{v}^\top$ (a $3\times 2$ matrix).</li>
+    <li>Show that every row is a multiple of $[4,5]$. How many independent directions
+        does the matrix span?</li>
+    <li>Six entries are stored. How many numbers actually generate them?</li>
+    <li>Determine the rank of $\begin{pmatrix}1&2\\2&4\end{pmatrix}$ and of
+        $\begin{pmatrix}1&2\\3&4\end{pmatrix}$.</li>
+    <li>LoRA writes $\Delta W = BA$ with $B$ of shape <span class="shape">(d, r)</span>
+        and $A$ of shape <span class="shape">(r, d)</span>. Explain why this is a sum of
+        $r$ outer products, and count the parameters against a full $d\times d$ update at
+        $d = 1000$, $r = 4$.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong></p>
+    <div class="given">u vᵀ = [ 1·4  1·5 ]     [  4   5 ]
+       [ 2·4  2·5 ]  =  [  8  10 ]
+       [ 3·4  3·5 ]     [ 12  15 ]</div>
+    <p><strong>2.</strong> Row 1 is $1\times[4,5]$, row 2 is $2\times[4,5]$, row 3 is
+    $3\times[4,5]$. Every row points along the same direction, so the matrix spans
+    exactly <strong>one</strong> direction: it has <strong>rank 1</strong>.</p>
+    <p><strong>3.</strong> Six entries, generated by $3 + 2 = \mathbf{5}$ numbers. (In
+    fact only 4 degrees of freedom, since scaling $\mathbf{u}$ by $c$ and $\mathbf{v}$ by
+    $1/c$ leaves the product unchanged.)</p>
+    <p><strong>4.</strong> In the first, row 2 = 2 × row 1, so the rows are dependent and
+    the rank is <strong>1</strong> (determinant $1\cdot4 - 2\cdot2 = 0$). In the second
+    the determinant is $1\cdot4 - 2\cdot3 = -2 \ne 0$, so the rank is
+    <strong>2</strong> — full rank.</p>
+    <p><strong>5.</strong> Write $B$'s columns as $b_1,\dots,b_r$ and $A$'s rows as
+    $a_1^\top,\dots,a_r^\top$. Then</p>
+    $$BA = \sum_{i=1}^{r} b_i a_i^\top$$
+    <p>a sum of $r$ rank-1 outer products, so $\operatorname{rank}(BA) \le r$.</p>
+    <div class="given">full update  : d² = 1,000,000 parameters
+LoRA (r=4)   : 2dr = 2(1000)(4) = 8,000 parameters
+                                  125× fewer</div>
+    <p>The bet LoRA makes is that the <em>update</em> a model needs in order to adapt has
+    low rank even though the model itself does not — that adaptation moves along a few
+    directions rather than all thousand. <a class="xref" href="#ch11">Chapter 11</a>
+    tests that claim empirically with a rank sweep: rank 1 alone captures well over half
+    the achievable gain, and rank 8 captures 84% of it at a quarter of the parameters of
+    rank 32. Steep diminishing returns, though — measurably — not a flat plateau.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.6 · a broadcasting audit</span>
+  <p>For each, give the result shape or say why it errors.</p>
+  <div class="given">1.  (32, 64)    + (64,)
+2.  (32, 64)    + (32,)
+3.  (32, 64)    + (32, 1)
+4.  (8, 1, 64)  + (1, 10, 64)
+5.  (2, 3, 4)   * (2, 3, 1)</div>
+  <ol>
+    <li>Work through all five.</li>
+    <li>You are mean-pooling over non-padding positions: <code>x</code> is
+        <span class="shape">(B, L, C)</span> and <code>mask</code> is
+        <span class="shape">(B, L)</span>. Why does <code>x * mask</code> fail — and what
+        is the fix?</li>
+    <li>Now suppose <code>C == L</code> by coincidence (a batch of 128-token sequences
+        with a 128-dimensional model). What happens to <code>x * mask</code> then, and why
+        is that <em>worse</em> than the error?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong></p>
+    <div class="given">1.  (32, 64) + (64,)      → (32, 64)   64 vs 64 ✓, vector added to every row
+2.  (32, 64) + (32,)      → ERROR      64 vs 32, neither equal nor 1
+3.  (32, 64) + (32, 1)    → (32, 64)   64 vs 1 stretches, 32 vs 32 ✓
+4.  (8,1,64) + (1,10,64)  → (8, 10, 64)  both middle and outer stretch
+5.  (2,3,4)  * (2,3,1)    → (2, 3, 4)   the classic per-position scale</div>
+    <p><strong>2.</strong> Aligning from the right: $C$ vs $L$. Unless they happen to be
+    equal, this errors. The mask indexes <em>positions</em>, so it needs a trailing axis
+    to broadcast across channels:</p>
+    <div class="given">mask.unsqueeze(-1)             → (B, L, 1)
+x * mask.unsqueeze(-1)         → (B, L, C)   ✓
+
+pooled = (x * m).sum(1) / m.sum(1).clamp(min=1)</div>
+    <p><strong>3.</strong> It <strong>succeeds silently</strong> and computes garbage.
+    With $C = L$, the mask broadcasts across the <em>batch</em> dimension instead of the
+    channel dimension — so example 0's mask is applied to every example's feature axis.
+    No error, no warning, and a model that trains to a worse-than-expected accuracy for
+    reasons nothing in the output explains.</p>
+    <p>This is why the error case is the lucky one. It is also why the mask-shape bug is
+    most likely to appear precisely in the square configurations people reach for when
+    prototyping.</p>
+  </details>
+</div>
+
+<h3 id="ch00-calculus">Calculus<a class="anchor-link" href="#ch00-calculus" aria-label="Link to this section">#</a></h3>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.7 · the chain rule as backpropagation</span>
+  <p>A one-neuron network, forwards and backwards. A complete training step in miniature.</p>
   <div class="given">x = 2.0     w = 0.5     b = 0.1     true label y = 1
 
 z = wx + b            (linear)
@@ -1964,149 +2533,539 @@ L = −ln(a)            (BCE, with y = 1)
 
 σ(1.1) = 0.750    ln(0.750) = −0.288</div>
   <ol>
-    <li>Forward pass: compute $z$, $a$, and $\mathcal{L}$.</li>
+    <li>Forward pass: compute $z$, $a$, $\mathcal{L}$.</li>
     <li>Compute $\partial\mathcal{L}/\partial a$.</li>
     <li>Compute $\partial a/\partial z$ using $\sigma'(z) = a(1-a)$.</li>
-    <li>Chain them to get $\partial\mathcal{L}/\partial z$. Simplify, and compare with
-        $a - y$.</li>
+    <li>Chain them. Simplify, and compare with $a - y$.</li>
     <li>Compute $\partial\mathcal{L}/\partial w$ and $\partial\mathcal{L}/\partial b$,
-        then take one gradient-descent step at $\eta = 0.5$ and verify the loss
-        decreased.</li>
+        take one step at $\eta = 0.5$, and verify the loss decreased.</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> $z = 0.5(2.0) + 0.1 = 1.1$; $a = \sigma(1.1) = 0.750$;
-    $\mathcal{L} = -\ln(0.750) = \mathbf{0.288}$.</p>
-    <p><strong>2.</strong> $\frac{d}{da}(-\ln a) = -1/a = -1/0.750 = \mathbf{-1.333}$.</p>
-    <p><strong>3.</strong> $a(1-a) = 0.750 \times 0.250 = \mathbf{0.1875}$.</p>
-    <p><strong>4.</strong> Multiplying the two:</p>
+    <p><strong>1.</strong> $z = 1.1$, $a = 0.750$, $\mathcal{L} = 0.288$.</p>
+    <p><strong>2.</strong> $-1/a = -1.333$.</p>
+    <p><strong>3.</strong> $a(1-a) = 0.750 \times 0.250 = 0.1875$.</p>
+    <p><strong>4.</strong></p>
     <div class="given">∂L/∂z = (−1.333)(0.1875) = −0.250
-
-and     a − y = 0.750 − 1 = −0.250     ← identical</div>
-    <p>Algebraically: $-\frac{1}{a}\cdot a(1-a) = -(1-a) = a - 1 = a - y$. The
-    $\sigma'$ factor cancels against the $1/a$ from the log <em>exactly</em>. This is
-    the cancellation from the boxed result above, appearing here in its simplest
-    possible instance — and it is why sigmoid pairs with BCE and not with MSE.</p>
-    <p><strong>5.</strong> Since $z = wx + b$, we have $\partial z/\partial w = x$ and
-    $\partial z/\partial b = 1$:</p>
-    <div class="given">∂L/∂w = (∂L/∂z)(∂z/∂w) = (−0.250)(2.0) = −0.500
-∂L/∂b = (∂L/∂z)(∂z/∂b) = (−0.250)(1.0) = −0.250
+a − y = 0.750 − 1      = −0.250      identical</div>
+    <p>Algebraically $-\frac{1}{a}\cdot a(1-a) = a-1 = a-y$: the $\sigma'$ factor cancels
+    against the $1/a$ from the log <em>exactly</em>. This is the cancellation in its
+    simplest instance, and it is why sigmoid pairs with BCE and not with MSE.</p>
+    <p><strong>5.</strong></p>
+    <div class="given">∂L/∂w = (−0.250)(2.0) = −0.500
+∂L/∂b = (−0.250)(1.0) = −0.250
 
 w ← 0.5 − 0.5(−0.500) = 0.75
 b ← 0.1 − 0.5(−0.250) = 0.225
 
-new z = 0.75(2.0) + 0.225 = 1.725
-new a = σ(1.725) ≈ 0.849
-new L = −ln(0.849) = 0.164        was 0.288  ✓ decreased</div>
-    <p>Note that $\partial\mathcal{L}/\partial w$ is twice
-    $\partial\mathcal{L}/\partial b$, purely because $x = 2$. A larger input produces
-    a larger weight gradient — which is why unnormalised input features with wildly
-    different scales make training difficult, and why feature scaling helps.</p>
+new z = 1.725     new a = 0.849     new L = 0.164    was 0.288  ✓</div>
+    <p>$\partial\mathcal{L}/\partial w$ is twice $\partial\mathcal{L}/\partial b$ purely
+    because $x = 2$ — a larger input yields a larger weight gradient, which is the
+    argument for feature scaling.</p>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.4 · summing over paths</span>
-  <p>
-  A parameter used twice — the case that explains PyTorch's gradient accumulation.
-  </p>
+  <span class="box-label">By hand — exercise 00.8 · summing over paths</span>
   <div class="given">u = w²
 v = u + w
-L = 3v
-
-with w = 2</div>
+L = 3v            with w = 2</div>
   <ol>
-    <li>Compute $u$, $v$, and $\mathcal{L}$.</li>
-    <li>Identify every path from $w$ to $\mathcal{L}$ in the computation graph.</li>
-    <li>Compute the derivative along each path, and sum.</li>
+    <li>Compute $u$, $v$, $\mathcal{L}$.</li>
+    <li>Identify every path from $w$ to $\mathcal{L}$.</li>
+    <li>Compute each path's derivative and sum them.</li>
     <li>Verify numerically with $h = 0.001$.</li>
-    <li>What would <code>w.grad</code> contain if you called <code>backward()</code>
-        twice without <code>zero_grad()</code>?</li>
+    <li>What would <code>w.grad</code> hold after calling <code>backward()</code> twice
+        without <code>zero_grad()</code>?</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> $u = 4$, $v = 4 + 2 = 6$, $\mathcal{L} = 18$.</p>
-    <p><strong>2.</strong> Two paths: $w \to u \to v \to \mathcal{L}$, and the direct
+    <p><strong>1.</strong> $u = 4$, $v = 6$, $\mathcal{L} = 18$.</p>
+    <p><strong>2.</strong> Two: $w \to u \to v \to \mathcal{L}$, and the direct
     $w \to v \to \mathcal{L}$.</p>
     <p><strong>3.</strong></p>
-    <div class="given">∂L/∂v = 3
-∂v/∂u = 1        ∂u/∂w = 2w = 4
-∂v/∂w = 1        (the direct edge)
+    <div class="given">∂L/∂v = 3;   ∂v/∂u = 1,  ∂u/∂w = 2w = 4;   ∂v/∂w = 1
 
 path 1:  4 × 1 × 3 = 12
 path 2:      1 × 3 =  3
-                     ───
-       ∂L/∂w =        15</div>
+             ∂L/∂w = 15</div>
     <p><strong>4.</strong> At $w = 2.001$: $u = 4.004001$, $v = 6.005001$,
-    $\mathcal{L} = 18.015003$. Then
-    $(18.015003 - 18)/0.001 = \mathbf{15.003} \approx 15$ ✓.</p>
-    <p><strong>5.</strong> It would contain <strong>30</strong> — the sum of two
-    independent backward passes, which is the derivative of nothing in particular.
-    Note how plausible 30 looks: nothing crashes, no warning is issued, and the model
-    trains steadily towards the wrong thing. This is why <code>zero_grad()</code> is
-    not optional, and why the accumulation default that causes this bug is also the
-    feature that makes <a class="xref" href="#ch08">gradient accumulation</a> and
-    weight sharing work.</p>
+    $\mathcal{L} = 18.015003$, so $(18.015003-18)/0.001 = 15.003 \approx 15$ ✓.</p>
+    <p><strong>5.</strong> <strong>30</strong> — the sum of two independent backward
+    passes, the derivative of nothing in particular. Note how plausible 30 looks: nothing
+    crashes, no warning appears, and the model trains steadily towards the wrong thing.</p>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.5 · gradient descent, and the learning rate</span>
-  <p>Minimise $\mathcal{L}(w) = (w-4)^2$, starting from $w_0 = 1$.</p>
+  <span class="box-label">By hand — exercise 00.9 · derivatives of the activations</span>
+  <p>Derive each from the definition, then evaluate. You will use all three constantly.</p>
   <ol>
-    <li>Write $d\mathcal{L}/dw$. What is it at $w = 1$?</li>
-    <li>Take three steps at $\eta = 0.1$, tabulating $w$ and $\mathcal{L}(w)$ each time.
-        Is the step size growing or shrinking, and why?</li>
-    <li>Take one step at $\eta = 1.0$. Where do you land, and what is the loss?</li>
-    <li>Take one step at $\eta = 1.5$, then a second. Describe the pattern.</li>
-    <li>Solve for the exact value of $\eta$ at which a step overshoots the minimum by
-        precisely as much as it started away from it — the boundary between converging
-        and diverging.</li>
+    <li>Show that $\sigma'(z) = \sigma(z)(1-\sigma(z))$, starting from
+        $\sigma(z) = (1+e^{-z})^{-1}$.</li>
+    <li>Evaluate $\sigma'(0)$, $\sigma'(2)$, $\sigma'(5)$, given
+        $\sigma(2) = 0.881$ and $\sigma(5) = 0.993$.</li>
+    <li>Show that $\tanh'(z) = 1 - \tanh^2(z)$ and evaluate at $z = 0$.</li>
+    <li>What is $\text{ReLU}'(z)$ for $z > 0$, $z < 0$, and $z = 0$?</li>
+    <li>Using part 2, compute the best-case gradient reaching layer 1 of a 10-layer
+        sigmoid network, and say what that implies.</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> $d\mathcal{L}/dw = 2(w-4)$, which at $w=1$ is
-    $2(-3) = \mathbf{-6}$. Negative, so $w$ should increase — correct, since the
-    minimum is at 4.</p>
-    <p><strong>2.</strong> Each step is $w \leftarrow w - 0.1 \cdot 2(w-4)$:</p>
-    <div class="given">step  w        dL/dw     Δw = −η·grad    L(w)
- 0    1.000    −6.000                    9.000
- 1    1.600    −4.800    +0.600          5.760
- 2    2.080    −3.840    +0.480          3.686
- 3    2.464    −3.072    +0.384          2.359</div>
-    <p>The steps <strong>shrink</strong> (0.600 → 0.480 → 0.384), because the gradient
-    itself shrinks as $w$ approaches the minimum. Gradient descent slows down
-    automatically near an optimum — no schedule required. Note also that each step is
-    exactly 0.8× the previous one: the update is
-    $w_{t+1} - 4 = (1 - 2\eta)(w_t - 4)$, a geometric sequence with ratio
-    $1 - 2\eta = 0.8$.</p>
-    <p><strong>3.</strong> At $\eta = 1.0$: $w = 1 - 1.0(-6) = \mathbf{7}$, and
-    $\mathcal{L}(7) = 9$ — the <em>same loss it started with</em>, on the opposite side.
-    The ratio is $1 - 2(1.0) = -1$: it will oscillate between 1 and 7 forever, never
-    converging and never diverging.</p>
-    <p><strong>4.</strong> At $\eta = 1.5$, ratio $= 1 - 3 = -2$:</p>
-    <div class="given">w₀ = 1   (distance 3 from the optimum)   L = 9
-w₁ = 1 − 1.5(−6) = 10   (distance 6)          L = 36
-w₂ = 10 − 1.5(12) = −8  (distance 12)         L = 144</div>
-    <p>The distance <em>doubles</em> every step and the loss quadruples. Within ten
-    steps you are at $|w| \approx 3000$ and heading for <code>inf</code>, then
-    <code>nan</code>. This is what a loss that explodes in the first few iterations
-    looks like, and nothing about the problem is wrong — only $\eta$.</p>
-    <p><strong>5.</strong> From the recurrence above, the step preserves the distance
-    exactly when $|1 - 2\eta| = 1$, i.e. $\eta = 1$ (part 3). Convergence requires
-    $|1-2\eta| &lt; 1$, so $\mathbf{0 &lt; \eta &lt; 1}$, with the fastest possible
-    convergence at $\eta = 0.5$ where $1-2\eta = 0$ and a <em>single</em> step lands
-    exactly on the minimum.</p>
-    <p>The general result is that stable convergence needs $\eta &lt; 2/L$ where $L$ is
-    the curvature (here $\mathcal{L}'' = 2$, giving $\eta < 1$ ✓). Real loss surfaces
-    have wildly different curvature in different directions, and that is precisely the
-    problem <a class="xref" href="#ch02">Adam</a> solves by giving each parameter its
+    <p><strong>1.</strong> Write $\sigma = (1+e^{-z})^{-1}$ and apply the chain rule:</p>
+    $$\sigma'(z) = -(1+e^{-z})^{-2}\cdot(-e^{-z}) = \frac{e^{-z}}{(1+e^{-z})^2}$$
+    <p>Now split the fraction: $\frac{e^{-z}}{(1+e^{-z})^2} =
+    \frac{1}{1+e^{-z}}\cdot\frac{e^{-z}}{1+e^{-z}}$. The first factor is $\sigma(z)$; the
+    second is $\frac{(1+e^{-z}) - 1}{1+e^{-z}} = 1 - \sigma(z)$. Hence
+    $\sigma' = \sigma(1-\sigma)$ ∎</p>
+    <p><strong>2.</strong></p>
+    <div class="given">σ′(0) = 0.5(0.5)     = 0.2500     ← the maximum
+σ′(2) = 0.881(0.119) = 0.1048
+σ′(5) = 0.993(0.007) = 0.0070</div>
+    <p>By $z = 5$ the derivative has fallen to under 3% of its peak. That is saturation.</p>
+    <p><strong>3.</strong> With $\tanh z = \frac{e^z - e^{-z}}{e^z + e^{-z}}$, the
+    quotient rule gives numerator $(e^z+e^{-z})^2 - (e^z-e^{-z})^2$ over
+    $(e^z+e^{-z})^2$, which is $1 - \tanh^2 z$. At $z = 0$, $\tanh 0 = 0$ so
+    $\tanh'(0) = \mathbf{1}$ — four times sigmoid's peak, which is why tanh was preferred
+    for hidden layers before ReLU.</p>
+    <p><strong>4.</strong> $1$ for $z>0$, $0$ for $z<0$, and <em>undefined</em> at exactly
+    $z=0$ — frameworks pick 0 by convention. This never matters in practice: hitting
+    exactly 0.0 in floating point has probability ~0, and the choice affects a measure-zero
+    set.</p>
+    <p><strong>5.</strong> The best case requires every unit at $z = 0$, giving 0.25 per
+    layer:</p>
+    <div class="given">0.25¹⁰ = 9.5 × 10⁻⁷</div>
+    <p>Under a million times attenuated — and that is the <em>optimum</em>. Real units sit
+    away from zero, so the true factor is far smaller. This single number is the vanishing
+    gradient problem, and it is why ReLU (derivative exactly 1 on the positive half) and
+    residual connections replaced deep sigmoid stacks.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.10 · gradient descent and the learning rate</span>
+  <p>Minimise $\mathcal{L}(w) = (w-4)^2$ from $w_0 = 1$.</p>
+  <ol>
+    <li>Write $d\mathcal{L}/dw$ and evaluate at $w = 1$.</li>
+    <li>Take three steps at $\eta = 0.1$, tabulating $w$ and $\mathcal{L}$. Are the steps
+        growing or shrinking, and why?</li>
+    <li>Take one step at $\eta = 1.0$. Where do you land?</li>
+    <li>Take two steps at $\eta = 1.5$ and describe the pattern.</li>
+    <li>Solve for the exact range of $\eta$ that converges, and the value that converges
+        fastest.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $2(w-4)$, which at $w=1$ is $\mathbf{-6}$ — negative, so $w$
+    should increase.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">step  w        dL/dw     Δw       L(w)
+ 0    1.000    −6.000             9.000
+ 1    1.600    −4.800    +0.600   5.760
+ 2    2.080    −3.840    +0.480   3.686
+ 3    2.464    −3.072    +0.384   2.359</div>
+    <p>The steps <strong>shrink</strong>, because the gradient shrinks as $w$ approaches
+    the minimum — descent slows automatically near an optimum. Each step is exactly 0.8×
+    the last, because $w_{t+1} - 4 = (1-2\eta)(w_t - 4)$ with $1-2\eta = 0.8$.</p>
+    <p><strong>3.</strong> $w = 1 + 6 = \mathbf{7}$, and $\mathcal{L}(7) = 9$ — the
+    <em>same loss it started with</em>, on the far side. The ratio is $-1$: it oscillates
+    between 1 and 7 forever.</p>
+    <p><strong>4.</strong> Ratio $1 - 3 = -2$:</p>
+    <div class="given">w₀ = 1   (distance 3)    L = 9
+w₁ = 10  (distance 6)    L = 36
+w₂ = −8  (distance 12)   L = 144</div>
+    <p>Distance doubles each step, loss quadruples, and within ten steps you are heading
+    for <code>inf</code> and then <code>nan</code>. Nothing about the problem is wrong —
+    only $\eta$.</p>
+    <p><strong>5.</strong> Convergence needs $|1-2\eta| &lt; 1$, so
+    $\mathbf{0 &lt; \eta &lt; 1}$, with $\eta = 0.5$ giving $1-2\eta = 0$ and landing
+    exactly on the minimum in a <em>single</em> step. The general condition is
+    $\eta &lt; 2/\mathcal{L}''$; here $\mathcal{L}'' = 2$, giving $\eta < 1$ ✓. Real loss
+    surfaces have wildly different curvature in different directions, which is precisely
+    the problem <a class="xref" href="#ch02">Adam</a> attacks by giving each parameter its
     own effective step size.</p>
   </details>
 </div>
 
+<h3 id="ch00-statistics">Statistics<a class="anchor-link" href="#ch00-statistics" aria-label="Link to this section">#</a></h3>
+
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.6 · binary cross-entropy on a batch</span>
+  <span class="box-label">By hand — exercise 00.11 · expectation and variance from the definition</span>
+  <ol>
+    <li>A fair four-sided die shows 1, 2, 3, 4. Compute $\mathbb{E}[X]$,
+        $\mathbb{E}[X^2]$, and $\operatorname{Var}(X)$.</li>
+    <li>A biased coin has $P(\text{heads}) = 0.3$, scored as $X = 1$ for heads and 0 for
+        tails. Compute $\mathbb{E}[X]$ and $\operatorname{Var}(X)$ both from the
+        definition and from the formula $p(1-p)$.</li>
+    <li>For what $p$ is a Bernoulli's variance largest, and what is that value?</li>
+    <li>A sigmoid output is a Bernoulli parameter. Using part 3, state the maximum
+        possible value of $\sigma'(z)$ and explain the connection.</li>
+    <li>A network's unit outputs $\sigma(z) = 0.99$. What is the variance of the
+        corresponding Bernoulli, and what does that say about the gradient?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong></p>
+    <div class="given">E[X]   = (1+2+3+4)/4 = 2.5
+E[X²]  = (1+4+9+16)/4 = 30/4 = 7.5
+Var(X) = 7.5 − 2.5² = 7.5 − 6.25 = 1.25</div>
+    <p><strong>2.</strong> From the definition:
+    $\mathbb{E}[X] = 1(0.3) + 0(0.7) = 0.3$;
+    $\mathbb{E}[X^2] = 1(0.3) + 0(0.7) = 0.3$ (since $X^2 = X$ for a 0/1 variable);
+    $\operatorname{Var}(X) = 0.3 - 0.09 = \mathbf{0.21}$. From the formula:
+    $p(1-p) = 0.3(0.7) = 0.21$ ✓</p>
+    <p><strong>3.</strong> $p(1-p)$ is a downward parabola with roots at 0 and 1, so it
+    peaks at the midpoint $p = 0.5$, where it equals <strong>0.25</strong>.</p>
+    <p><strong>4.</strong> $\sigma'(z) = \sigma(z)(1-\sigma(z))$ is <em>literally</em>
+    $p(1-p)$ evaluated at $p = \sigma(z)$. So the maximum possible sigmoid derivative is
+    <strong>0.25</strong>, at $z = 0$ where $\sigma = 0.5$.</p>
+    <p>The connection is not a coincidence but an identity: a sigmoid output <em>is</em> a
+    Bernoulli parameter, and its derivative <em>is</em> that Bernoulli's variance. Which
+    means <strong>a confident unit and an unlearnable unit are the same thing</strong>.
+    The model's certainty and its gradient are two readings of one number.</p>
+    <p><strong>5.</strong> $0.99(0.01) = \mathbf{0.0099}$. The gradient through that unit
+    is attenuated by a factor of about 100 relative to an uncertain unit — and by 25
+    relative to the best case. If the unit is confidently <em>wrong</em>, that is exactly
+    the situation where you most need a large gradient and least get one, which is the
+    whole argument in <a class="xref" href="#ch00-cross-entropy">Part 4</a> for why
+    cross-entropy's cancellation matters.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.12 · variance of a sum, and weight initialisation</span>
+  <p>
+  This exercise derives Xavier initialisation from scratch. It is the single most
+  useful piece of statistics in the chapter.
+  </p>
+  <div class="given">A unit computes  z = Σᵢ wᵢxᵢ  over n = 100 inputs.
+Inputs xᵢ: independent, mean 0, variance 1.
+Weights wᵢ: independent of each other and of x, mean 0, variance σ²_w.</div>
+  <ol>
+    <li>Using $\operatorname{Var}(aX) = a^2\operatorname{Var}(X)$ and additivity for
+        independent variables, write $\operatorname{Var}(z)$ in terms of $n$ and
+        $\sigma_w^2$.</li>
+    <li>Evaluate $\operatorname{Var}(z)$ and $\text{SD}(z)$ for $\sigma_w = 1$.</li>
+    <li>Given $\sigma(10) \approx 0.99995$ and $\sigma'(10) \approx 4.5\times10^{-5}$,
+        say what happens to this layer at that scale.</li>
+    <li>Solve for the $\sigma_w$ that gives $\operatorname{Var}(z) = 1$.</li>
+    <li>Now stack 10 such layers. If each layer multiplies the variance by a factor $c$,
+        what is the variance at layer 10 for $c = 2$ and for $c = 0.5$? Why must $c = 1$?</li>
+    <li>ReLU zeroes the negative half of its input. Roughly what does that do to the
+        variance, and how should $\sigma_w$ change to compensate?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Each term $w_ix_i$ has variance
+    $\operatorname{Var}(w_i)\operatorname{Var}(x_i) = \sigma_w^2 \cdot 1$ (using
+    independence and zero means). The $n$ terms are independent, so their variances add:</p>
+    $$\operatorname{Var}(z) = n\sigma_w^2$$
+    <p><strong>2.</strong> $\operatorname{Var}(z) = 100 \times 1 = 100$, so
+    $\text{SD}(z) = \mathbf{10}$.</p>
+    <p><strong>3.</strong> Pre-activations land in roughly $[-30, 30]$. At $|z| = 10$ the
+    sigmoid is already 0.99995 and its derivative is $4.5\times10^{-5}$ — so essentially
+    every unit is saturated <em>before training begins</em>, and every gradient is
+    attenuated by ~$10^{-5}$ per layer. The network does not train slowly; it does not
+    train at all. And nothing in the code is wrong — only one factor.</p>
+    <p><strong>4.</strong> $n\sigma_w^2 = 1 \Rightarrow \sigma_w = 1/\sqrt{n} =
+    1/\sqrt{100} = \mathbf{0.1}$. Check: $100 \times 0.01 = 1$ ✓. This is
+    <strong>Xavier/LeCun initialisation</strong>, and you have just derived it in two
+    lines.</p>
+    <p><strong>5.</strong></p>
+    <div class="given">c = 2.0 :  2¹⁰  = 1024×      variance explodes
+c = 0.5 :  0.5¹⁰ = 0.001×     variance collapses to nothing
+c = 1.0 :  1¹⁰   = 1×         stable at any depth</div>
+    <p>Any $c \ne 1$ compounds geometrically with depth. This is the <em>same</em>
+    geometric-product problem as <a class="xref" href="#ch04">vanishing gradients</a>,
+    appearing in the forward pass instead of the backward one — which is why the fix
+    (control the per-layer factor) and the fallback (normalise explicitly, as
+    <a class="xref" href="#ch07">layer norm</a> does) are the same in both directions.</p>
+    <p><strong>6.</strong> ReLU sets roughly half the values to zero, which approximately
+    halves the variance. To restore $\operatorname{Var}(z) = 1$ you need to double
+    $\sigma_w^2$, so $\sigma_w = \sqrt{2/n}$. That is <strong>He initialisation</strong>,
+    the default for ReLU networks — and it differs from Xavier by exactly the factor
+    $\sqrt{2}$ that this one sentence predicts.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.13 · the variance of a dot product, and $\sqrt{d_k}$</span>
+  <p>
+  Exercise 00.2 showed <em>that</em> large scores saturate a softmax. This one shows
+  <em>why they become large</em>.
+  </p>
+  <div class="given">q · k = Σᵢ qᵢkᵢ  over d_k components.
+All qᵢ, kᵢ independent, mean 0, variance 1.</div>
+  <ol>
+    <li>Compute $\mathbb{E}[q_ik_i]$.</li>
+    <li>Compute $\operatorname{Var}(q_ik_i)$. (Use
+        $\operatorname{Var}(Y) = \mathbb{E}[Y^2] - \mathbb{E}[Y]^2$ and independence.)</li>
+    <li>Compute $\operatorname{Var}(q\cdot k)$ and $\text{SD}(q\cdot k)$ in terms of
+        $d_k$.</li>
+    <li>Evaluate the standard deviation for $d_k = 16$, $64$, and $256$.</li>
+    <li>Take three logits at roughly $\pm 1$ SD for $d_k = 64$ — say $[0, 8, -8]$ — and
+        compute their softmax. Then do the same after dividing by $\sqrt{d_k}$, i.e.
+        $[0, 1, -1]$. Compare.</li>
+    <li>Using $\sigma'$-style reasoning, estimate how much smaller the gradient is in the
+        unscaled case.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> By independence,
+    $\mathbb{E}[q_ik_i] = \mathbb{E}[q_i]\mathbb{E}[k_i] = 0 \times 0 = \mathbf{0}$.</p>
+    <p><strong>2.</strong> Since the mean is 0,
+    $\operatorname{Var}(q_ik_i) = \mathbb{E}[q_i^2k_i^2] =
+    \mathbb{E}[q_i^2]\mathbb{E}[k_i^2] = 1 \times 1 = \mathbf{1}$.</p>
+    <p><strong>3.</strong> The $d_k$ terms are independent, so variances add:
+    $\operatorname{Var}(q\cdot k) = \mathbf{d_k}$ and
+    $\text{SD} = \mathbf{\sqrt{d_k}}$.</p>
+    <p><strong>4.</strong> $\sqrt{16} = 4$, $\sqrt{64} = 8$, $\sqrt{256} = 16$. Scores
+    routinely reach three standard deviations, so at $d_k = 64$ they span roughly
+    $\pm 24$.</p>
+    <p><strong>5.</strong></p>
+    <div class="given">UNSCALED  z = [0, 8, −8]
+  e⁰ = 1,  e⁸ = 2981,  e⁻⁸ = 0.000335     sum = 2982
+  softmax = [0.000335, 0.99966, 0.00000011]      ← effectively one-hot
+
+SCALED    z = [0, 1, −1]
+  e⁰ = 1,  e¹ = 2.718,  e⁻¹ = 0.368       sum = 4.086
+  softmax = [0.245, 0.665, 0.090]                ← soft</div>
+    <p><strong>6.</strong> The softmax Jacobian's diagonal is $p(1-p)$ — the same
+    Bernoulli variance from exercise 00.11.</p>
+    <div class="given">unscaled: p = 0.99966  →  p(1−p) = 0.00034
+scaled:   p = 0.665    →  p(1−p) = 0.223
+
+ratio ≈ 650×</div>
+    <p>So without the scaling the attention weights receive roughly <strong>650 times
+    less gradient</strong> and effectively stop learning — and it gets worse as $d_k$
+    grows. The alarming consequence is that <em>widening your model would break it</em>:
+    performance would degrade as you added capacity, for reasons invisible in the code.
+    Dividing by $\sqrt{d_k}$ restores unit variance and makes score magnitude independent
+    of dimension. See <a class="xref" href="#ch06">Chapter 06</a>.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.14 · standardisation and layer normalisation</span>
+  <div class="given">One token's features:   x = [2, 4, 4, 4, 5, 5, 7, 9]</div>
+  <ol>
+    <li>Compute the mean $\mu$.</li>
+    <li>Compute the variance (dividing by $n$, as layer norm does) and the standard
+        deviation.</li>
+    <li>Standardise: $z_i = (x_i - \mu)/\sigma$.</li>
+    <li>Verify the result has mean 0 and variance 1.</li>
+    <li>Apply learned parameters $\gamma = 2$, $\beta = 1$. What is the output's mean and
+        variance now — and why would a network want to undo the normalisation it just
+        performed?</li>
+    <li>If you had used <em>batch</em> norm instead, which numbers would have entered the
+        mean, and what breaks at inference on a single example?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $\mu = (2+4+4+4+5+5+7+9)/8 = 40/8 = \mathbf{5}$.</p>
+    <p><strong>2.</strong> Deviations: $-3, -1, -1, -1, 0, 0, 2, 4$. Squares:
+    $9, 1, 1, 1, 0, 0, 4, 16$, summing to 32. So
+    $\sigma^2 = 32/8 = \mathbf{4}$ and $\sigma = \mathbf{2}$.</p>
+    <p><strong>3.</strong></p>
+    <div class="given">z = [−1.5, −0.5, −0.5, −0.5, 0, 0, 1.0, 2.0]</div>
+    <p><strong>4.</strong> Sum $= -1.5-0.5-0.5-0.5+0+0+1+2 = 0$, so the mean is 0 ✓.
+    Squares $= 2.25+0.25+0.25+0.25+0+0+1+4 = 8$, and $8/8 = 1$ ✓.</p>
+    <p><strong>5.</strong> Output $= 2z + 1$, which has mean $2(0)+1 = \mathbf{1}$ and
+    variance $2^2(1) = \mathbf{4}$ (by the $a^2$ rule).</p>
+    <p>As for why: forcing every representation to mean 0 and variance 1 is a strong
+    constraint, and sometimes the right answer genuinely involves a large-magnitude or
+    off-centre feature. $\gamma$ and $\beta$ let the network recover any scale and shift,
+    so normalisation stabilises training <em>without</em> restricting what the model can
+    express — in the limit it can learn $\gamma = \sigma$, $\beta = \mu$ and undo the
+    operation entirely. It is a helpful default, not a cage.</p>
+    <p><strong>6.</strong> Batch norm would average feature 0 across every token in the
+    batch, producing one mean and variance per <em>feature</em> rather than per token. At
+    inference on a single example there is no batch to compute statistics from, so it must
+    fall back on running averages accumulated during training — which is why batch norm
+    needs distinct train and eval behaviour and degrades at small batch sizes. Layer norm
+    takes its statistics from within the token, so one example behaves exactly like a
+    thousand. For variable-length sequence data that is decisive.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.15 · dropout and preserved expectation</span>
+  <div class="given">A layer outputs four activations, all equal to 1.0.
+Dropout with p = 0.5 (each unit kept with probability 0.5).</div>
+  <ol>
+    <li>Without any rescaling, what is the expected sum of the four activations during
+        training? What is it at test time, when dropout is off?</li>
+    <li>Inverted dropout divides survivors by the keep probability $1-p$. What is the
+        expected sum now?</li>
+    <li>Derive $\mathbb{E}[y]$ for $y = xB/(1-p)$ with
+        $B \sim \text{Bernoulli}(1-p)$.</li>
+    <li>Derive $\operatorname{Var}(y)$, and evaluate it at $p = 0.5$ and $p = 0.9$ for
+        $x = 1$.</li>
+    <li>What does part 4 predict about training with a very high dropout rate?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Each unit survives with probability 0.5, so the expected sum is
+    $4 \times 1.0 \times 0.5 = \mathbf{2}$ during training and $\mathbf{4}$ at test time.
+    Every downstream layer therefore sees inputs at <em>half</em> the scale in training
+    that it sees in deployment — a systematic distribution shift baked into the model.</p>
+    <p><strong>2.</strong> Each survivor is doubled, so the expected sum is
+    $4 \times 1.0 \times 0.5 \times 2 = \mathbf{4}$ ✓ — matching test time exactly.</p>
+    <p><strong>3.</strong> $\mathbb{E}[B] = 1-p$, so</p>
+    $$\mathbb{E}[y] = \frac{x\,\mathbb{E}[B]}{1-p} = \frac{x(1-p)}{1-p} = x$$
+    <p><strong>4.</strong> Since $B^2 = B$ for a 0/1 variable,
+    $\mathbb{E}[y^2] = x^2\mathbb{E}[B]/(1-p)^2 = x^2/(1-p)$, so</p>
+    $$\operatorname{Var}(y) = \frac{x^2}{1-p} - x^2 = x^2\frac{p}{1-p}$$
+    <div class="given">p = 0.5 :  Var = 1 × (0.5/0.5) = 1.0
+p = 0.9 :  Var = 1 × (0.9/0.1) = 9.0</div>
+    <p><strong>5.</strong> Only the <em>mean</em> is preserved; the variance grows without
+    bound as $p \to 1$. At $p = 0.9$ each activation carries nine times the variance of
+    the signal itself, so gradients become extremely noisy and training turns unstable
+    rather than merely slower. That noise is the regularisation — it is what prevents
+    co-adaptation — but it explains why dropout rates above about 0.5 usually hurt, and
+    why the useful range is 0.1–0.5.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.16 · sample mean, standard error, and how many seeds</span>
+  <p>You train the same model three times, changing only the random seed.</p>
+  <div class="given">test accuracies:  0.812,  0.789,  0.834</div>
+  <ol>
+    <li>Compute the sample mean.</li>
+    <li>Compute the sample standard deviation $s$ (dividing by $n-1$).</li>
+    <li>Compute the standard error $s/\sqrt{n}$.</li>
+    <li>Give an approximate 95% interval as mean ± 2 SE.</li>
+    <li>A competing architecture scores 0.820 on one run. What can you conclude?</li>
+    <li>You want to halve the standard error. How many seeds do you need?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $(0.812 + 0.789 + 0.834)/3 = 2.435/3 = \mathbf{0.8117}$.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">deviations:  +0.0003,  −0.0227,  +0.0223
+squares:     9e−8,     5.153e−4,  4.973e−4      sum = 1.0127e−3
+
+s² = 1.0127e−3 / (3 − 1) = 5.06e−4
+s  = 0.0225</div>
+    <p><strong>3.</strong> $\text{SE} = 0.0225/\sqrt{3} = 0.0225/1.732 = \mathbf{0.0130}$.</p>
+    <p><strong>4.</strong> $0.8117 \pm 0.026$, i.e. roughly
+    $[\mathbf{0.786},\ \mathbf{0.838}]$.</p>
+    <p><strong>5.</strong> <strong>Nothing.</strong> 0.820 sits comfortably inside the
+    interval — well under one standard error from the mean — so the data cannot
+    distinguish the two architectures. It is also a single run, so it has its own unknown
+    spread; the honest comparison needs three seeds of <em>both</em> and a look at whether
+    the intervals overlap.</p>
+    <p>This is the most common flaw in informal ML comparisons: a 0.8% difference reported
+    as a finding when the seed-to-seed spread is 2.3%.</p>
+    <p><strong>6.</strong> SE scales as $1/\sqrt{n}$, so halving it needs <strong>four
+    times</strong> as many seeds — twelve. That $1/\sqrt{n}$ is unforgiving, and it is why
+    the right response to a noisy result is usually a bigger effect rather than more runs.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.17 · covariance and correlation</span>
+  <div class="given">x = [1, 2, 3, 4]        y = [2, 3, 5, 4]</div>
+  <ol>
+    <li>Compute both means.</li>
+    <li>Compute $\operatorname{Cov}(x,y)$, dividing by $n$.</li>
+    <li>Compute both standard deviations and then the correlation $\rho$.</li>
+    <li>Give an example of two variables with zero covariance that are obviously
+        <em>not</em> independent.</li>
+    <li>Exercise 00.12 assumed independence when adding variances. Write the corrected
+        rule for correlated variables, and say what it implies for a layer whose input
+        features are highly correlated.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $\bar{x} = 10/4 = 2.5$; $\bar{y} = 14/4 = 3.5$.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">dev x:  −1.5, −0.5, +0.5, +1.5
+dev y:  −1.5, −0.5, +1.5, +0.5
+
+products: 2.25, 0.25, 0.75, 0.75      sum = 4.0
+Cov = 4.0 / 4 = 1.0</div>
+    <p><strong>3.</strong></p>
+    <div class="given">Var(x) = (2.25+0.25+0.25+2.25)/4 = 1.25    σ_x = 1.118
+Var(y) = (2.25+0.25+2.25+0.25)/4 = 1.25    σ_y = 1.118
+
+ρ = 1.0 / (1.118 × 1.118) = 1.0 / 1.25 = 0.80</div>
+    <p>Strongly but not perfectly associated — the third and fourth points break the
+    monotonic pattern.</p>
+    <p><strong>4.</strong> Let $X$ be symmetric about zero (say uniform on $[-1,1]$) and
+    $Y = X^2$. Then $\operatorname{Cov}(X,Y) = \mathbb{E}[X^3] = 0$ by symmetry, yet $Y$
+    is a deterministic function of $X$ — maximally dependent. Covariance detects only
+    <em>linear</em> association, so zero covariance never proves independence.</p>
+    <p><strong>5.</strong></p>
+    $$\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y) + 2\operatorname{Cov}(X,Y)$$
+    <p>With positively correlated inputs the cross terms are positive, so the true
+    variance of a unit's pre-activation is <em>larger</em> than the $n\sigma_w^2$ that
+    exercise 00.12 predicted. Initialisation calibrated on the independence assumption is
+    therefore optimistic, and activations drift upward with depth anyway — which is part
+    of why explicit normalisation layers earn their place even in a well-initialised
+    network. It is also an argument for decorrelating inputs where you cheaply can.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.18 · Bayes, base rates, and class imbalance</span>
+  <div class="given">A disease affects 0.5% of the population.
+A test detects it in 99% of sick people          (sensitivity)
+and correctly clears 95% of healthy people       (specificity).</div>
+  <ol>
+    <li>Write down $P(D)$, $P(+|D)$, and $P(+|\neg D)$.</li>
+    <li>Compute $P(+)$ using the law of total probability.</li>
+    <li>Compute $P(D\,|\,+)$ with Bayes' theorem. Is the answer what you expected?</li>
+    <li>Redo the calculation by imagining 10,000 people, counting bodies rather than
+        probabilities.</li>
+    <li>A classifier with these exact rates is deployed. What is its precision? What
+        accuracy would "always predict healthy" achieve?</li>
+    <li>What does this say about reporting accuracy on imbalanced problems, and what
+        would you change in the loss?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $P(D) = 0.005$, $P(+|D) = 0.99$,
+    $P(+|\neg D) = 1 - 0.95 = 0.05$.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">P(+) = P(+|D)P(D) + P(+|¬D)P(¬D)
+     = (0.99)(0.005) + (0.05)(0.995)
+     = 0.00495 + 0.04975
+     = 0.0547</div>
+    <p><strong>3.</strong></p>
+    $$P(D\mid+) = \frac{0.00495}{0.0547} = \mathbf{0.0905}$$
+    <p>A positive result from a 99%-sensitive test means about a <strong>9%</strong>
+    chance of having the disease. Nine times out of ten it is a false alarm.</p>
+    <p><strong>4.</strong> Counting bodies makes it obvious:</p>
+    <div class="given">10,000 people
+  50 sick     → 49.5 test positive     (true positives)
+9,950 healthy → 497.5 test positive    (false positives)
+                ─────
+      total positives = 547
+
+49.5 / 547 = 9.05%   ✓</div>
+    <p>The false positives come from a pool 199 times larger, so even a small false
+    positive rate swamps the true positives. That is the base-rate fallacy, and the body
+    count is the version worth remembering.</p>
+    <p><strong>5.</strong> Precision <em>is</em> $P(D|+)$ = <strong>9.05%</strong>. Meanwhile
+    "always predict healthy" achieves <strong>99.5% accuracy</strong> — better than any
+    number the real classifier will report — while being completely useless.</p>
+    <p><strong>6.</strong> Accuracy is meaningless on imbalanced problems: report precision
+    and recall (or a precision–recall curve), and pick the operating point deliberately.
+    In the loss, note that "always predict negative" genuinely <em>is</em> the maximum
+    likelihood answer — the objective is not malfunctioning, it is faithfully answering the
+    question you asked. Changing the answer means changing the question, via
+    <code>pos_weight</code> in <code>BCEWithLogitsLoss</code> or <code>weight=</code> in
+    <code>CrossEntropyLoss</code>, or by resampling. See
+    <a class="xref" href="#ch03">Chapter 03</a>.</p>
+  </details>
+</div>
+
+<h3 id="ch00-probability-and-loss">Probability and loss<a class="anchor-link" href="#ch00-probability-and-loss" aria-label="Link to this section">#</a></h3>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.19 · binary cross-entropy on a batch</span>
   <div class="given">example   true y    predicted ŷ
    1         1         0.9
    2         0         0.2
@@ -2115,76 +3074,72 @@ w₂ = 10 − 1.5(12) = −8  (distance 12)         L = 144</div>
 ln 0.9 ≈ −0.105    ln 0.8 ≈ −0.223    ln 0.4 ≈ −0.916</div>
   <ol>
     <li>Write the per-example loss, simplifying away the term multiplied by zero.</li>
-    <li>Evaluate each and average to get the batch loss.</li>
+    <li>Evaluate each and average.</li>
     <li>Which example contributes most, and by how much?</li>
-    <li>Example 2 is 0.2 away from perfect and example 3 is 0.6 away — three times
-        the error. Is the loss three times larger? What does the answer tell you about
-        how batches are dominated?</li>
+    <li>Example 2 is 0.2 from perfect and example 3 is 0.6 — three times the error. Is the
+        loss three times larger? What does that say about how batches are dominated?</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
     <p><strong>1 &amp; 2.</strong></p>
-    <div class="given">example 1:  y=1  →  −ln(0.9)       = 0.105
-example 2:  y=0  →  −ln(1 − 0.2)  = 0.223
-example 3:  y=1  →  −ln(0.4)      = 0.916
+    <div class="given">example 1:  y=1  →  −ln(0.9)      = 0.105
+example 2:  y=0  →  −ln(1 − 0.2) = 0.223
+example 3:  y=1  →  −ln(0.4)     = 0.916
 
-batch loss = (0.105 + 0.223 + 0.916)/3 = 1.244/3 = 0.415</div>
+batch loss = 1.244 / 3 = 0.415</div>
     <p><strong>3.</strong> Example 3, at 0.916, is <strong>74%</strong> of the total.</p>
-    <p><strong>4.</strong> No — it is <strong>4.1× larger</strong> for 3× the error.
-    The log makes the loss superlinear in the error, so a single badly-classified
-    example dominates the batch gradient. That is usually what you want (hard examples
-    deserve attention) and occasionally a disaster (a mislabelled example also
-    dominates). It is the same mechanism that makes MSE fragile to outliers, seen from
-    the classification side.</p>
+    <p><strong>4.</strong> No — it is <strong>4.1× larger</strong> for 3× the error. The
+    log makes the loss superlinear in the error, so a single badly-classified example
+    dominates the gradient. Usually that is what you want (hard examples deserve
+    attention) and occasionally a disaster (a mislabelled example dominates too). It is
+    the same mechanism that makes MSE fragile to outliers, seen from the classification
+    side.</p>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.7 · softmax, cross-entropy, and its gradient</span>
+  <span class="box-label">By hand — exercise 00.20 · softmax, cross-entropy, and the gradient</span>
   <div class="given">z = [2.0, 1.0, 0.0]        true class c = 1 (the middle one)
 
 e⁰ = 1.000    e¹ = 2.718    e² = 7.389</div>
   <ol>
     <li>Apply the max-subtraction trick and confirm it cannot change the answer.</li>
     <li>Compute $\operatorname{softmax}(z)$ to three decimals.</li>
-    <li>Compute the loss $-\log\hat{y}_c$, and compare it with the loss of a uniform
-        guess.</li>
-    <li>Compute $\partial\mathcal{L}/\partial z_k$ for all three logits. Check they
-        sum to zero and explain why they must.</li>
-    <li>If you added 100 to every logit, what would change about the loss and the
-        gradients?</li>
+    <li>Compute the loss, and compare with a uniform guess.</li>
+    <li>Compute $\partial\mathcal{L}/\partial z_k$ for all three logits. Check they sum to
+        zero and explain why they must.</li>
+    <li>If you added 100 to every logit, what would change about the loss, the gradients,
+        and a naive implementation?</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> Subtracting 2 gives $[0, -1, -2]$. Since
-    $e^{z_k - m}/\sum_j e^{z_j - m} = (e^{-m}e^{z_k})/(e^{-m}\sum_j e^{z_j})$, the
-    $e^{-m}$ cancels and the distribution is identical.</p>
-    <p><strong>2.</strong> $\sum = 7.389 + 2.718 + 1.000 = 11.107$, so</p>
-    <div class="given">ŷ = [0.665, 0.245, 0.090]      sums to 1.000 ✓</div>
+    <p><strong>1.</strong> Subtracting 2 gives $[0,-1,-2]$. Since
+    $e^{z_k-m}/\sum_j e^{z_j-m} = (e^{-m}e^{z_k})/(e^{-m}\sum_j e^{z_j})$, the $e^{-m}$
+    cancels.</p>
+    <p><strong>2.</strong> $\sum = 11.107$, so
+    $\hat{y} = [\mathbf{0.665}, \mathbf{0.245}, \mathbf{0.090}]$.</p>
     <p><strong>3.</strong> $\mathcal{L} = -\ln(0.245) = \mathbf{1.406}$ nats. A uniform
-    guess over 3 classes costs $-\ln(1/3) = 1.099$, so this model is
-    <em>worse than guessing</em> on this example — it put most of its mass on the
-    wrong class. That comparison is the cheapest possible sanity check on any
-    classifier's loss.</p>
-    <p><strong>4.</strong> With $y = [0,1,0]$:</p>
-    <div class="given">∂L/∂z₀ = 0.665 − 0 = +0.665
-∂L/∂z₁ = 0.245 − 1 = −0.755
-∂L/∂z₂ = 0.090 − 0 = +0.090
+    guess over 3 classes costs $-\ln(1/3) = 1.099$, so this model is <em>worse than
+    guessing</em> on this example. That comparison is the cheapest sanity check available
+    on any classifier's loss.</p>
+    <p><strong>4.</strong></p>
+    <div class="given">∂L/∂z₀ = 0.665 − 0 = +0.665     push logit 0 DOWN
+∂L/∂z₁ = 0.245 − 1 = −0.755     push logit 1 UP
+∂L/∂z₂ = 0.090 − 0 = +0.090     push logit 2 down slightly
                 sum =  0.000</div>
-    <p>They must sum to zero because softmax outputs are constrained to sum to 1:
-    shifting every logit equally changes nothing, so the gradient can have no
-    component along that direction.</p>
-    <p><strong>5.</strong> <strong>Nothing at all.</strong> Both the loss and every
-    gradient are unchanged — this is the invariance from part 1, and part 4 is its
-    fingerprint in the gradients. What <em>would</em> change is the naive
-    implementation's behaviour: $e^{102}$ is fine, but at $+800$ it overflows to
-    <code>inf</code> and the distribution becomes <code>nan</code>. The mathematics is
-    invariant; the floating-point arithmetic is not.</p>
+    <p>They must sum to zero because softmax outputs are constrained to sum to 1: shifting
+    every logit equally changes nothing, so the gradient can have no component in that
+    direction. Only <em>relative</em> logits are learnable.</p>
+    <p><strong>5.</strong> <strong>Nothing changes</strong> in the loss or the gradients —
+    that is the invariance from part 1, with part 4 as its fingerprint. What changes is the
+    naive implementation: $e^{102}$ is fine, but at $+800$ it overflows to <code>inf</code>
+    and the distribution becomes <code>nan</code>. The mathematics is invariant; the
+    floating-point arithmetic is not.</p>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.8 · entropy, cross-entropy, and KL</span>
+  <span class="box-label">By hand — exercise 00.21 · entropy, cross-entropy, and KL</span>
   <p>
   A weather model claims rain with probability $q = 0.25$ every day. It actually rains
   half the time, $p = 0.5$. Work in bits, with $\log_2 3 \approx 1.585$.
@@ -2192,90 +3147,79 @@ e⁰ = 1.000    e¹ = 2.718    e² = 7.389</div>
   <ol>
     <li>Compute $H(p)$.</li>
     <li>Compute $H(p,q)$.</li>
-    <li>Compute $D_{\mathrm{KL}}(p\parallel q)$ and say what the number means
-        physically.</li>
-    <li>Compute $D_{\mathrm{KL}}(q\parallel p)$. Why is it different?</li>
-    <li>Training minimises $H(p,q)$, not $D_{\mathrm{KL}}$. Why does that make no
-        difference to where the minimum is?</li>
+    <li>Compute $D_{\mathrm{KL}}(p\|q)$ and say what it means physically.</li>
+    <li>Compute $D_{\mathrm{KL}}(q\|p)$. Why is it different?</li>
+    <li>Training minimises $H(p,q)$, not $D_{\mathrm{KL}}$. Why does that not matter?</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> $H(p) = -(0.5\log_2 0.5 + 0.5\log_2 0.5) = 1$ bit — a fair
-    coin, maximal uncertainty for a binary event.</p>
-    <p><strong>2.</strong> $\log_2 0.25 = -2$ and
-    $\log_2 0.75 = \log_2 3 - 2 \approx -0.415$, so
-    $H(p,q) = -(0.5(-2) + 0.5(-0.415)) = \mathbf{1.208}$ bits.</p>
+    <p><strong>1.</strong> $H(p) = -(0.5\log_2 0.5 + 0.5\log_2 0.5) = \mathbf{1}$ bit — a
+    fair coin, maximal uncertainty for a binary event.</p>
+    <p><strong>2.</strong> $\log_2 0.25 = -2$ and $\log_2 0.75 = \log_2 3 - 2 = -0.415$:</p>
+    <div class="given">H(p,q) = −(0.5(−2) + 0.5(−0.415)) = 1 + 0.208 = 1.208 bits</div>
     <p><strong>3.</strong> $1.208 - 1 = \mathbf{0.208}$ bits. Physically: encoding real
-    weather using this model's beliefs costs 0.21 extra bits per day — about 76 wasted
-    bits a year. That is the concrete price of a wrong model, measured in message
-    length.</p>
+    weather with this model's beliefs costs 0.21 extra bits per day — about 76 wasted bits
+    a year. That is the price of a wrong model, in the currency of message length.</p>
     <p><strong>4.</strong>
-    $D_{\mathrm{KL}}(q\parallel p) = 0.25\log_2(0.5) + 0.75\log_2(1.5)
-    = -0.25 + 0.75(0.585) = \mathbf{0.189}$ bits. Different because the two average
-    the discrepancy under different distributions — "how surprised will I be" depends
-    on who is doing the expecting. The asymmetry is a feature: forward and reverse KL
-    produce famously different behaviours (mass-covering versus mode-seeking) when
-    used as objectives.</p>
-    <p><strong>5.</strong> Because $D_{\mathrm{KL}}(p\parallel q) = H(p,q) - H(p)$ and
-    $H(p)$ depends only on the data, not on the model. Subtracting a constant shifts a
-    function without moving its minimum, so
-    $\arg\min_\theta H(p,q_\theta) = \arg\min_\theta D_{\mathrm{KL}}(p\parallel q_\theta)$.
-    Minimising cross-entropy <em>is</em> minimising divergence from the truth — you
+    $D_{\mathrm{KL}}(q\|p) = 0.25\log_2(0.5) + 0.75\log_2(1.5) = -0.25 + 0.439
+    = \mathbf{0.189}$ bits. Different because the two average the discrepancy under
+    different distributions — "how surprised will I be" depends on who is doing the
+    expecting. The asymmetry is a feature: forward and reverse KL produce famously
+    different behaviours (mass-covering versus mode-seeking) as objectives.</p>
+    <p><strong>5.</strong> Because $D_{\mathrm{KL}} = H(p,q) - H(p)$ and $H(p)$ depends
+    only on the data. Subtracting a constant shifts a function without moving its minimum,
+    so minimising cross-entropy <em>is</em> minimising divergence from the truth — you
     simply cannot compute the constant, and do not need to.</p>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.9 · choosing the loss</span>
+  <span class="box-label">By hand — exercise 00.22 · choosing the loss</span>
   <p>No arithmetic. For each, name the loss and justify it from the distribution.</p>
   <ol>
-    <li>Predicting apartment rents, where 2% of the dataset is luxury penthouses at
-        30× the median.</li>
+    <li>Predicting apartment rents, where 2% of the data is penthouses at 30× the median.</li>
     <li>Tagging a photo with any of 20 labels; a photo can have several.</li>
     <li>Predicting the next word from a 50,000-word vocabulary.</li>
-    <li>Detecting a rare disease present in 0.5% of patients.</li>
+    <li>Detecting a disease present in 0.5% of patients.</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1. MAE or Huber.</strong> MSE is the Gaussian NLL, and this data has
-    heavy tails, so the assumption is simply false. Under MSE the penthouses'
-    squared errors dominate the gradient and distort predictions for ordinary
-    apartments. Huber is usually best: quadratic near zero for smooth convergence,
-    linear in the tail for robustness.</p>
-    <p><strong>2. BCE per label</strong> (<code>BCEWithLogitsLoss</code> over 20
-    logits), <em>not</em> cross-entropy. Cross-entropy assumes the categorical
-    distribution, in which exactly one class occurs — the softmax forces the 20
-    outputs to compete for a fixed probability budget. Multi-label means 20
-    independent Bernoulli events, so each gets its own sigmoid and its own BCE term.
-    This is a genuinely common mistake.</p>
-    <p><strong>3. Cross-entropy</strong> over 50,000 logits. Categorical: exactly one
-    word comes next. Report perplexity rather than raw loss — $e^{\mathcal{L}}$ is
-    interpretable, and the uniform baseline is $\ln(50000) = 10.8$ nats.</p>
-    <p><strong>4. BCE with <code>pos_weight</code></strong>. The loss itself is
-    correct — Bernoulli, one binary outcome — but with 0.5% positives the
-    maximum-likelihood solution really is "always predict negative", which achieves
-    99.5% accuracy and is useless. The loss is not malfunctioning; it is answering the
-    question you asked. Reweighting the positive class changes the question to one you
-    actually care about. Report precision and recall, never accuracy.</p>
+    <p><strong>1. MAE or Huber.</strong> MSE is the Gaussian NLL and this data has heavy
+    tails, so the assumption is false. Under MSE the penthouses' squared errors dominate
+    the gradient and distort predictions for ordinary apartments. Huber is usually best:
+    quadratic near zero, linear in the tail.</p>
+    <p><strong>2. BCE per label</strong> over 20 logits, <em>not</em> cross-entropy.
+    Cross-entropy assumes the categorical distribution, in which exactly one class occurs
+    — its softmax forces the 20 outputs to compete for a fixed probability budget.
+    Multi-label means 20 independent Bernoulli events, each with its own sigmoid and its
+    own BCE term. This is a genuinely common mistake.</p>
+    <p><strong>3. Cross-entropy</strong> over 50,000 logits — categorical, since exactly
+    one word comes next. Report perplexity rather than raw loss; the uniform baseline is
+    $\ln(50000) = 10.8$ nats.</p>
+    <p><strong>4. BCE with <code>pos_weight</code></strong>, and report precision and
+    recall rather than accuracy. Exercise 00.18 is this question with numbers: the
+    unweighted maximum-likelihood answer is "always predict healthy", which scores 99.5%
+    accuracy and is useless.</p>
   </details>
 </div>
 
 <div class="box nbref">
   <span class="box-label">Notebook</span>
-  Open <code>00_math_foundations/prompt.ipynb</code>. You will verify the linear
-  algebra and broadcasting rules in code, check derivatives by finite differences,
-  implement BCE, softmax, and cross-entropy from their definitions, reproduce the
-  $\hat{y}-y$ gradient three independent ways, and watch a naive softmax overflow to
-  <code>nan</code> on a logit of 800 before fixing it. It is the only notebook here
-  that trains nothing — it is entirely about the mathematics.
+  Open <code>00_math_foundations/prompt.ipynb</code>. You will verify the linear algebra
+  and broadcasting rules in code, check derivatives by finite differences, measure
+  variance propagation through a deep stack and watch it explode and collapse at the
+  wrong initialisation, confirm the $\sqrt{d_k}$ argument empirically, implement BCE,
+  softmax, and cross-entropy from their definitions, and reproduce the $\hat{y}-y$
+  gradient three independent ways. It is the only notebook here that trains nothing — it
+  is entirely about the mathematics.
 </div>
 
 <div class="box note">
   <span class="box-label">Where this goes next</span>
-  <a class="xref" href="#ch01">Chapter 01</a> takes the BCE loss and the chain rule
-  from this chapter and works out, by hand and then in NumPy, the derivative of the
-  loss with respect to every weight in a two-layer network. That is backpropagation —
-  and with the foundations here, it introduces no new mathematics at all.
+  <a class="xref" href="#ch01">Chapter 01</a> uses all four parts at once: matrix
+  multiplies for the forward pass, the BCE loss derived here, the chain rule for every
+  gradient, and the variance argument for why weights start random and small. That is
+  backpropagation — and after this chapter it introduces no new mathematics at all.
 </div>
 
 </section>
@@ -4067,7 +5011,7 @@ row is the weighted average of all value vectors, weighted by that position's at
 
 <div class="widget" data-widget="attention"></div>
 
-<h3 id="ch06-why-the-sqrt-d-k">Why the $\sqrt{d_k}$<a class="anchor-link" href="#ch06-why-the-sqrt-d-k" aria-label="Link to this section">#</a></h3>
+<h3 id="ch06-why-the-square-root-scaling">Why the square-root scaling<a class="anchor-link" href="#ch06-why-the-square-root-scaling" aria-label="Link to this section">#</a></h3>
 
 <p>
 This is the one piece of the formula that looks arbitrary and is not. Suppose the components
@@ -5903,16 +6847,49 @@ as $r$ changes, so retuning the rank does not force retuning the learning rate.
 
 <p>
 LoRA's central claim is empirical, not proven, so it is worth testing. The notebook
-adapts a model trained on Carroll to Shakespeare at ranks 1, 2, 4, 8, 16, and 32,
-and the curve flattens fast — most of the benefit arrives by $r = 4$ or $8$, with
-higher ranks buying little.
+adapts a Carroll-trained model to Shakespeare at ranks 1, 2, 4, 8, 16, and 32.
+Measuring the gain against the unadapted baseline of 2.487 nats:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>rank $r$</th><th>trainable</th><th>val loss</th><th>gain</th><th>% of the $r{=}32$ gain</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>0.37%</td><td>2.095</td><td>0.392</td><td>58%</td></tr>
+    <tr><td>2</td><td>0.73%</td><td>2.036</td><td>0.451</td><td>67%</td></tr>
+    <tr><td>4</td><td>1.46%</td><td>1.977</td><td>0.510</td><td>76%</td></tr>
+    <tr><td>8</td><td>2.92%</td><td>1.921</td><td>0.566</td><td>84%</td></tr>
+    <tr><td>32</td><td>11.68%</td><td>1.815</td><td>0.672</td><td>100%</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Read that honestly. <strong>Rank 1 — three thousand parameters, 0.37% of the model —
+already captures well over half the benefit</strong>, and rank 8 captures 84% at a
+quarter of rank 32's parameters. That is a strong result for the low-rank hypothesis:
+if adaptation genuinely required a full-rank update, a single direction would achieve
+almost nothing.
 </p>
 
 <p>
-That flattening <em>is</em> the claim: if adaptation genuinely required a full-rank
-update, quality would keep climbing with $r$. It does not, which means the update
-really does live in a low-dimensional subspace.
+But the curve has <em>not</em> plateaued. Rank 32 is meaningfully better than rank 8,
+and there is no sign it has stopped improving. The honest statement is
+<strong>steep diminishing returns, not saturation</strong> — you buy most of the
+benefit cheaply and keep buying a little more indefinitely. Where you stop is a budget
+decision rather than a point where extra rank stops helping.
 </p>
+
+<div class="box note">
+  <span class="box-label">Why this regime may flatter high ranks</span>
+  This is a 0.8M-parameter model adapted for 500 steps between two very different
+  authors. All three of those push towards needing more rank than a realistic setting:
+  a small model has less redundant capacity to reuse, a short run has not converged at
+  any rank, and a large domain shift is a bigger change than typical fine-tuning.
+  Published results on large models — where the base already contains most of what the
+  target task needs — flatten considerably earlier. Treat the shape of this curve as
+  real and its exact position as specific to this experiment.
+</div>
 
 <h3 id="ch11-catastrophic-forgetting">Catastrophic forgetting<a class="anchor-link" href="#ch11-catastrophic-forgetting" aria-label="Link to this section">#</a></h3>
 
@@ -6704,8 +7681,9 @@ cross-references between chapters do not go stale when you rewrite a heading.
     var id = a.getAttribute('href').slice(1);
     links[id] = a;
   });
-  var spyTargets = $$('h1[id], h2[id]').filter(function (h) { return links[h.id]; });
+  var spyTargets = $$('h1[id], h2[id], h3[id]').filter(function (h) { return links[h.id]; });
   var activeLink = null;
+  var expandedSec = null;
 
   function setActive(id) {
     var a = links[id];
@@ -6713,6 +7691,16 @@ cross-references between chapters do not go stale when you rewrite a heading.
     if (activeLink) activeLink.classList.remove('active');
     a.classList.add('active');
     activeLink = a;
+
+    // reveal the third-level entries for whichever section you are reading, and
+    // collapse the previous one, so the sidebar stays short in a long chapter
+    var sec = a.closest('.toc-sec');
+    if (sec !== expandedSec) {
+      if (expandedSec) expandedSec.classList.remove('expanded');
+      if (sec) sec.classList.add('expanded');
+      expandedSec = sec;
+    }
+
     // keep the active entry visible without yanking the whole page
     var top = a.offsetTop, view = sidebar.scrollTop, h = sidebar.clientHeight;
     if (top < view + 60 || top > view + h - 60) sidebar.scrollTop = top - h / 2;

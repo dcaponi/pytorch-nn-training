@@ -112,6 +112,13 @@ def process_fragment(path: Path) -> Chapter:
         seen.add(anchor)
 
         plain = strip_markup(text)
+        if "$" in plain:
+            # headings become plain text in the sidebar, where KaTeX never runs
+            print(
+                f"warning: {path.name}: heading contains math, which will not "
+                f"render in the table of contents: {plain!r}",
+                file=sys.stderr,
+            )
         if level == 1 and not title:
             title = plain
         headings.append(Heading(level, anchor, plain))
@@ -201,21 +208,43 @@ def highlight_blocks(body: str) -> str:
 
 
 def render_toc(chapters: list[Chapter]) -> str:
+    """Chapters and their h2s, with h3s nested one level deeper.
+
+    The h3 entries are hidden by CSS until their h2 becomes the active section,
+    which keeps the sidebar short without losing fine-grained navigation in the
+    long chapters.
+    """
     parts = ['<nav id="toc" aria-label="Table of contents"><ol class="toc-root">']
     for ch in chapters:
-        subs = [h for h in ch.headings if h.level == 2]
         parts.append('<li class="toc-chapter">')
         parts.append(
             f'<a class="toc-link toc-l1" href="#{ch.chap_id}">'
             f"{html.escape(ch.title)}</a>"
         )
+        subs = [h for h in ch.headings if h.level in (2, 3)]
         if subs:
             parts.append('<ol class="toc-subs">')
+            open_l2 = False
             for h in subs:
-                parts.append(
-                    f'<li><a class="toc-link toc-l2" href="#{h.anchor}">'
-                    f"{html.escape(h.text)}</a></li>"
-                )
+                if h.level == 2:
+                    if open_l2:
+                        parts.append("</ol></li>")
+                    parts.append(f'<li class="toc-sec" data-sec="{h.anchor}">')
+                    parts.append(
+                        f'<a class="toc-link toc-l2" href="#{h.anchor}">'
+                        f"{html.escape(h.text)}</a>"
+                    )
+                    parts.append('<ol class="toc-subsubs">')
+                    open_l2 = True
+                else:
+                    if not open_l2:      # an h3 before any h2 in this chapter
+                        continue
+                    parts.append(
+                        f'<li><a class="toc-link toc-l3" href="#{h.anchor}">'
+                        f"{html.escape(h.text)}</a></li>"
+                    )
+            if open_l2:
+                parts.append("</ol></li>")
             parts.append("</ol>")
         parts.append("</li>")
     parts.append("</ol></nav>")

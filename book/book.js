@@ -80,8 +80,9 @@
     var id = a.getAttribute('href').slice(1);
     links[id] = a;
   });
-  var spyTargets = $$('h1[id], h2[id]').filter(function (h) { return links[h.id]; });
+  var spyTargets = $$('h1[id], h2[id], h3[id]').filter(function (h) { return links[h.id]; });
   var activeLink = null;
+  var expandedSec = null;
 
   function setActive(id) {
     var a = links[id];
@@ -89,6 +90,16 @@
     if (activeLink) activeLink.classList.remove('active');
     a.classList.add('active');
     activeLink = a;
+
+    // reveal the third-level entries for whichever section you are reading, and
+    // collapse the previous one, so the sidebar stays short in a long chapter
+    var sec = a.closest('.toc-sec');
+    if (sec !== expandedSec) {
+      if (expandedSec) expandedSec.classList.remove('expanded');
+      if (sec) sec.classList.add('expanded');
+      expandedSec = sec;
+    }
+
     // keep the active entry visible without yanking the whole page
     var top = a.offsetTop, view = sidebar.scrollTop, h = sidebar.clientHeight;
     if (top < view + 60 || top > view + h - 60) sidebar.scrollTop = top - h / 2;

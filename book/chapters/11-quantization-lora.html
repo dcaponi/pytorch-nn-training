@@ -216,16 +216,49 @@ as $r$ changes, so retuning the rank does not force retuning the learning rate.
 
 <p>
 LoRA's central claim is empirical, not proven, so it is worth testing. The notebook
-adapts a model trained on Carroll to Shakespeare at ranks 1, 2, 4, 8, 16, and 32,
-and the curve flattens fast — most of the benefit arrives by $r = 4$ or $8$, with
-higher ranks buying little.
+adapts a Carroll-trained model to Shakespeare at ranks 1, 2, 4, 8, 16, and 32.
+Measuring the gain against the unadapted baseline of 2.487 nats:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>rank $r$</th><th>trainable</th><th>val loss</th><th>gain</th><th>% of the $r{=}32$ gain</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>0.37%</td><td>2.095</td><td>0.392</td><td>58%</td></tr>
+    <tr><td>2</td><td>0.73%</td><td>2.036</td><td>0.451</td><td>67%</td></tr>
+    <tr><td>4</td><td>1.46%</td><td>1.977</td><td>0.510</td><td>76%</td></tr>
+    <tr><td>8</td><td>2.92%</td><td>1.921</td><td>0.566</td><td>84%</td></tr>
+    <tr><td>32</td><td>11.68%</td><td>1.815</td><td>0.672</td><td>100%</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Read that honestly. <strong>Rank 1 — three thousand parameters, 0.37% of the model —
+already captures well over half the benefit</strong>, and rank 8 captures 84% at a
+quarter of rank 32's parameters. That is a strong result for the low-rank hypothesis:
+if adaptation genuinely required a full-rank update, a single direction would achieve
+almost nothing.
 </p>
 
 <p>
-That flattening <em>is</em> the claim: if adaptation genuinely required a full-rank
-update, quality would keep climbing with $r$. It does not, which means the update
-really does live in a low-dimensional subspace.
+But the curve has <em>not</em> plateaued. Rank 32 is meaningfully better than rank 8,
+and there is no sign it has stopped improving. The honest statement is
+<strong>steep diminishing returns, not saturation</strong> — you buy most of the
+benefit cheaply and keep buying a little more indefinitely. Where you stop is a budget
+decision rather than a point where extra rank stops helping.
 </p>
+
+<div class="box note">
+  <span class="box-label">Why this regime may flatter high ranks</span>
+  This is a 0.8M-parameter model adapted for 500 steps between two very different
+  authors. All three of those push towards needing more rank than a realistic setting:
+  a small model has less redundant capacity to reuse, a short run has not converged at
+  any rank, and a large domain shift is a bigger change than typical fine-tuning.
+  Published results on large models — where the base already contains most of what the
+  target task needs — flatten considerably earlier. Treat the shape of this curve as
+  real and its exact position as specific to this experiment.
+</div>
 
 <h3>Catastrophic forgetting</h3>
 
