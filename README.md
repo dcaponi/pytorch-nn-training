@@ -87,6 +87,11 @@ search, navigation, and widget mounting) which CI runs before deploying:
 cd book/test && npm install && npm test
 ```
 
+`book/tour/` holds two Playwright scripts that need a real browser rather than jsdom:
+`npm run overflow` reports any element wider than its column, per chapter — the check
+that caught a clipped display equation — and `npm run tour` records a narrated
+walkthrough of the book.
+
 ---
 
 ## What's Covered

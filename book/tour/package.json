@@ -1,0 +1,13 @@
+{
+  "name": "nnbook-tour",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Records a narrated tour of the book, and audits it for layout overflow",
+  "scripts": {
+    "tour": "node tour.js",
+    "overflow": "node overflow.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.40.0"
+  }
+}
