@@ -33,7 +33,7 @@ is what you want when you would rather Cmd+F than search.
 Everything is in one file with no fetches, so it behaves identically opened from
 `file://` and served over HTTP. Mathematics renders offline via a vendored KaTeX; the
 interactive figures are canvas widgets computing the same arithmetic as the text beside
-them. 855 KB, 236 KB gzipped.
+them. Around 850 KB, roughly 240 KB gzipped.
 
 ### Publishing it to GitHub Pages
 
