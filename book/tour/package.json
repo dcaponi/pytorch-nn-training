@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "description": "Records a narrated tour of the book, and audits it for layout overflow",
   "scripts": {
+    "voice": "node voice.js",
     "tour": "node tour.js",
+    "mix": "node mix.js",
+    "subs": "node subs.js",
     "overflow": "node overflow.js"
   },
   "devDependencies": {

@@ -1,0 +1,73 @@
+[
+  { "id": "open", "kicker": "Neural Networks by Hand and by PyTorch",
+    "caption": "A companion book to a thirteen-lesson PyTorch curriculum — built so you finish able to <b>read the literature and extend it</b>, not just reproduce a tutorial.",
+    "speech": "Neural Networks by Hand and by PyTorch is a companion book to a thirteen lesson PyTorch curriculum. It is built so that you finish able to read the literature and extend it, not just reproduce a tutorial." },
+
+  { "id": "registers", "kicker": "How it works",
+    "caption": "Every idea appears in four registers: <b>derived as mathematics</b>, <b>computed by hand</b>, <b>written as code</b>, then <b>mapped to the library call</b> it becomes in production.",
+    "speech": "Every idea appears in four registers. Derived as mathematics. Computed by hand on paper. Written as code you complete yourself. And then mapped to the library call it becomes in production." },
+
+  { "id": "ch00", "kicker": "Chapter zero · Mathematical Foundations",
+    "caption": "Linear algebra, calculus, statistics and probability — the four areas the rest of the curriculum runs on. Every rule is <b>verified in code</b>, never asserted.",
+    "speech": "Chapter zero covers the four areas the rest of the curriculum runs on. Linear algebra, calculus, statistics, and probability. Every rule is verified in code rather than asserted." },
+
+  { "id": "derive", "kicker": "Derivations, not folklore",
+    "caption": "Xavier initialisation is <b>derived in three lines</b> from the variance of a sum. So is attention’s 1/√dₖ, and layer norm, and dropout’s 1/(1−p).",
+    "speech": "Xavier initialisation is derived in three lines from the variance of a sum. So is attention's one over root d k scaling, and layer normalisation, and the one over one minus p in dropout. These are not folklore. They are consequences." },
+
+  { "id": "widgets", "kicker": "Figures you can interrogate",
+    "caption": "Seventeen interactive figures, each computing the <b>same arithmetic as the text beside it</b>. Nothing is drawn to look convincing.",
+    "speech": "There are seventeen interactive figures. Each one computes the same arithmetic as the text beside it. Nothing here is drawn merely to look convincing. Drag a slider, and the numbers move because they were recalculated." },
+
+  { "id": "byhand", "kicker": "Twenty-four pencil-and-paper exercises",
+    "caption": "In chapter 00 alone. A gradient you have computed once with a pencil stops being a symbol and becomes <b>a number you know how to check</b>.",
+    "speech": "Chapter zero alone carries twenty four pencil and paper exercises. A gradient you have computed once with a pencil stops being a symbol on a page, and becomes a number you know how to check." },
+
+  { "id": "worked", "kicker": "Every one is fully worked",
+    "caption": "Solutions fold open underneath. The numbers are chosen so <b>arithmetic never obscures the idea</b> being drilled.",
+    "speech": "Every solution folds open underneath. The numbers are chosen so that arithmetic never obscures the idea being drilled." },
+
+  { "id": "recognise", "kicker": "The skill students actually lack",
+    "caption": "Not computing a variance — <b>recognising that something is a variance question</b>. Four triggers, three guided diagnoses, and drills where the answer is the category.",
+    "speech": "Feedback said students struggle to recognise which technique a problem needs. So the newest section is about exactly that. Not computing a variance, but recognising that something is a variance question. Four triggers, three guided diagnoses, and drills where the answer is the category rather than a number." },
+
+  { "id": "arch", "kicker": "Chapters one to eleven · from XOR to a GPT",
+    "caption": "Backpropagation by hand, CNNs, LSTMs, attention, transformers, translation, a decoder-only GPT, then <b>quantization and LoRA implemented from scratch</b>.",
+    "speech": "From there the curriculum runs from XOR to a working GPT. Backpropagation by hand, convolutions, LSTMs, attention, transformers, translation, a decoder only language model, and finally quantization and LoRA, both implemented from scratch." },
+
+  { "id": "honest", "kicker": "Every claim is measured",
+    "caption": "The KV cache in chapter 10 comes out <b>slower</b> at notebook scale — so the book reports the wall clock honestly and adds an operation count explaining why.",
+    "speech": "And every claim is measured. The key value cache in chapter ten comes out slower at notebook scale. Rather than quietly assert the textbook answer, the book reports the wall clock honestly, and adds an operation count that explains why the two disagree." },
+
+  { "id": "library", "kicker": "Then: what production writes instead",
+    "caption": "Every hand-rolled component is mapped to its real API — <b>F.scaled_dot_product_attention</b>, <b>peft</b>, <b>transformers</b> — with what it adds <i>and what it hides</i>.",
+    "speech": "Every hand rolled component is then mapped to the real thing. Scaled dot product attention. The peft library for LoRA. Hugging Face transformers for the language model. Each with what the library adds, and just as importantly, what it hides from you." },
+
+  { "id": "modern", "kicker": "The appendix aims past the curriculum",
+    "caption": "RMSNorm, SwiGLU, RoPE, grouped-query and latent attention, mixture-of-experts, FlashAttention, speculative decoding, DPO and GRPO — <b>each with the one-line idea and the resource it buys back</b>.",
+    "speech": "The appendix aims past the end of the curriculum. R M S norm, swiglu, rotary embeddings, grouped query and latent attention, mixture of experts, flash attention, speculative decoding, and preference optimisation. Each with the one line idea, and the resource it buys back." },
+
+  { "id": "frontier", "kicker": "And makes the argument explicit",
+    "caption": "Almost none of it is new mathematics. Two entries are the low-rank factorisation from chapter 11; two are LSTM gating from chapter 05. <b>The frontier is reachable from here.</b>",
+    "speech": "And it makes the argument explicit. Almost none of that is new mathematics. Two of those entries are the low rank factorisation you already implemented in chapter eleven. Two more are the LSTM gating idea from chapter five. The frontier is reachable from here." },
+
+  { "id": "search", "kicker": "Full-text search across every chapter",
+    "caption": "It is a single-page app: chapters are routes, cross-references jump instantly, and a <b>back button returns you to where you were reading</b>.",
+    "speech": "The book is a single page app. Chapters are routes, cross references jump instantly, and there is full text search across every chapter. Follow a reference backwards and a button returns you to exactly where you were reading." },
+
+  { "id": "offline", "kicker": "Reads offline, in either theme",
+    "caption": "Mathematics renders from a <b>vendored KaTeX</b> — no network, no CDN, nothing external. The whole book is one file that works from a URL or straight off disk.",
+    "speech": "Mathematics renders from a vendored copy of KaTeX. No network, no content delivery network, nothing external at all. The whole book is a single file that behaves identically served from a U R L or opened straight off disk." },
+
+  { "id": "outcomes", "kicker": "What you should be able to do afterwards",
+    "caption": "Derive a loss from a distribution · implement attention and check it against the library · diagnose why a network will not train · read a paper and reproduce its claim.",
+    "speech": "So what should you be able to do afterwards? Derive a loss function from a distribution. Implement attention and check it numerically against the library version. Diagnose why a network will not train. And read a paper, and reproduce its central claim." },
+
+  { "id": "standard", "kicker": "And the standard it holds you to",
+    "caption": "Matched-parameter comparisons, tuned baselines, error bars over seeds, and <b>stating what you cannot conclude</b>. Five capstones, including reproducing a published result.",
+    "speech": "And it holds you to a standard while you do it. Matched parameter comparisons. Baselines tuned as hard as your own method. Error bars over several seeds. And stating plainly what you cannot conclude. There are five capstone projects, including reproducing a published result." },
+
+  { "id": "close", "kicker": "dcaponi.github.io/pytorch-nn-training",
+    "caption": "Thirteen lessons · fifteen chapters · 45 by-hand exercises · 17 interactive figures. Everything runs on a MacBook Air with 24 GB.",
+    "speech": "Thirteen lessons. Fifteen chapters. Forty five by hand exercises, and seventeen interactive figures. And all of it runs on a MacBook Air with twenty four gigabytes of memory." }
+]

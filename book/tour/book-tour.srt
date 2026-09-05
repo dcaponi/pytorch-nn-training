@@ -1,0 +1,321 @@
+1
+00:00:03,453 --> 00:00:09,024
+Neural Networks by Hand and by PyTorch is
+a companion book to a thirteen lesson
+PyTorch curriculum.
+
+2
+00:00:09,074 --> 00:00:14,985
+It is built so that you finish able to
+read the literature and extend it, not
+just reproduce a tutorial.
+
+3
+00:00:16,997 --> 00:00:19,133
+Every idea appears in four registers.
+
+4
+00:00:19,183 --> 00:00:20,551
+Derived as mathematics.
+
+5
+00:00:20,601 --> 00:00:22,146
+Computed by hand on paper.
+
+6
+00:00:22,196 --> 00:00:24,450
+Written as code you complete yourself.
+
+7
+00:00:24,500 --> 00:00:28,112
+And then mapped to the library call it
+becomes in production.
+
+8
+00:00:29,923 --> 00:00:34,242
+Chapter zero covers the four areas the
+rest of the curriculum runs on.
+
+9
+00:00:34,292 --> 00:00:37,674
+Linear algebra, calculus, statistics, and
+probability.
+
+10
+00:00:37,724 --> 00:00:40,982
+Every rule is verified in code rather than
+asserted.
+
+11
+00:00:43,891 --> 00:00:48,414
+Xavier initialisation is derived in three
+lines from the variance of a sum.
+
+12
+00:00:48,464 --> 00:00:55,182
+So is attention's one over root d k
+scaling, and layer normalisation, and the
+one over one minus p in dropout.
+
+13
+00:00:55,232 --> 00:00:56,646
+These are not folklore.
+
+14
+00:00:56,696 --> 00:00:58,048
+They are consequences.
+
+15
+00:01:01,200 --> 00:01:03,367
+There are seventeen interactive figures.
+
+16
+00:01:03,417 --> 00:01:06,749
+Each one computes the same arithmetic as
+the text beside it.
+
+17
+00:01:06,799 --> 00:01:09,465
+Nothing here is drawn merely to look
+convincing.
+
+18
+00:01:09,515 --> 00:01:13,234
+Drag a slider, and the numbers move
+because they were recalculated.
+
+19
+00:01:16,145 --> 00:01:19,885
+Chapter zero alone carries twenty four
+pencil and paper exercises.
+
+20
+00:01:19,935 --> 00:01:27,006
+A gradient you have computed once with a
+pencil stops being a symbol on a page, and
+becomes a number you know how to check.
+
+21
+00:01:29,590 --> 00:01:31,592
+Every solution folds open underneath.
+
+22
+00:01:31,642 --> 00:01:36,085
+The numbers are chosen so that arithmetic
+never obscures the idea being drilled.
+
+23
+00:01:38,995 --> 00:01:43,372
+Feedback said students struggle to
+recognise which technique a problem needs.
+
+24
+00:01:43,422 --> 00:01:45,959
+So the newest section is about exactly
+that.
+
+25
+00:01:46,009 --> 00:01:50,615
+Not computing a variance, but recognising
+that something is a variance question.
+
+26
+00:01:50,665 --> 00:01:56,652
+Four triggers, three guided diagnoses, and
+drills where the answer is the category
+rather than a number.
+
+27
+00:01:59,565 --> 00:02:03,469
+From there the curriculum runs from XOR to
+a working GPT.
+
+28
+00:02:03,519 --> 00:02:16,026
+Backpropagation by hand, convolutions,
+LSTMs, attention, transformers,
+translation, a decoder only language
+model, and finally quantization and LoRA,
+both implemented from scratch.
+
+29
+00:02:18,331 --> 00:02:19,838
+And every claim is measured.
+
+30
+00:02:19,888 --> 00:02:23,786
+The key value cache in chapter ten comes
+out slower at notebook scale.
+
+31
+00:02:23,836 --> 00:02:32,349
+Rather than quietly assert the textbook
+answer, the book reports the wall clock
+honestly, and adds an operation count that
+explains why the two disagree.
+
+32
+00:02:34,353 --> 00:02:37,758
+Every hand rolled component is then mapped
+to the real thing.
+
+33
+00:02:37,808 --> 00:02:39,458
+Scaled dot product attention.
+
+34
+00:02:39,508 --> 00:02:40,987
+The peft library for LoRA.
+
+35
+00:02:41,037 --> 00:02:43,819
+Hugging Face transformers for the language
+model.
+
+36
+00:02:43,869 --> 00:02:48,464
+Each with what the library adds, and just
+as importantly, what it hides from you.
+
+37
+00:02:51,394 --> 00:02:54,437
+The appendix aims past the end of the
+curriculum.
+
+38
+00:02:54,487 --> 00:03:04,726
+R M S norm, swiglu, rotary embeddings,
+grouped query and latent attention,
+mixture of experts, flash attention,
+speculative decoding, and preference
+optimisation.
+
+39
+00:03:04,776 --> 00:03:08,514
+Each with the one line idea, and the
+resource it buys back.
+
+40
+00:03:10,422 --> 00:03:12,378
+And it makes the argument explicit.
+
+41
+00:03:12,428 --> 00:03:14,671
+Almost none of that is new mathematics.
+
+42
+00:03:14,721 --> 00:03:20,117
+Two of those entries are the low rank
+factorisation you already implemented in
+chapter eleven.
+
+43
+00:03:20,167 --> 00:03:23,155
+Two more are the LSTM gating idea from
+chapter five.
+
+44
+00:03:23,205 --> 00:03:25,276
+The frontier is reachable from here.
+
+45
+00:03:27,193 --> 00:03:28,784
+The book is a single page app.
+
+46
+00:03:28,834 --> 00:03:34,582
+Chapters are routes, cross references jump
+instantly, and there is full text search
+across every chapter.
+
+47
+00:03:34,632 --> 00:03:39,450
+Follow a reference backwards and a button
+returns you to exactly where you were
+reading.
+
+48
+00:03:40,905 --> 00:03:43,939
+Mathematics renders from a vendored copy
+of KaTeX.
+
+49
+00:03:43,989 --> 00:03:48,010
+No network, no content delivery network,
+nothing external at all.
+
+50
+00:03:48,060 --> 00:03:54,547
+The whole book is a single file that
+behaves identically served from a U R L or
+opened straight off disk.
+
+51
+00:03:57,905 --> 00:04:00,327
+So what should you be able to do
+afterwards?
+
+52
+00:04:00,377 --> 00:04:02,798
+Derive a loss function from a
+distribution.
+
+53
+00:04:02,848 --> 00:04:06,955
+Implement attention and check it
+numerically against the library version.
+
+54
+00:04:07,005 --> 00:04:09,146
+Diagnose why a network will not train.
+
+55
+00:04:09,196 --> 00:04:12,010
+And read a paper, and reproduce its
+central claim.
+
+56
+00:04:12,912 --> 00:04:15,600
+And it holds you to a standard while you
+do it.
+
+57
+00:04:15,650 --> 00:04:17,405
+Matched parameter comparisons.
+
+58
+00:04:17,455 --> 00:04:19,968
+Baselines tuned as hard as your own
+method.
+
+59
+00:04:20,018 --> 00:04:21,774
+Error bars over several seeds.
+
+60
+00:04:21,824 --> 00:04:24,453
+And stating plainly what you cannot
+conclude.
+
+61
+00:04:24,503 --> 00:04:28,880
+There are five capstone projects,
+including reproducing a published result.
+
+62
+00:04:31,189 --> 00:04:32,210
+Thirteen lessons.
+
+63
+00:04:32,260 --> 00:04:33,344
+Fifteen chapters.
+
+64
+00:04:33,394 --> 00:04:37,439
+Forty five by hand exercises, and
+seventeen interactive figures.
+
+65
+00:04:37,489 --> 00:04:42,100
+And all of it runs on a MacBook Air with
+twenty four gigabytes of memory.
