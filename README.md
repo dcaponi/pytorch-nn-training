@@ -33,7 +33,7 @@ is what you want when you would rather Cmd+F than search.
 Everything is in one file with no fetches, so it behaves identically opened from
 `file://` and served over HTTP. Mathematics renders offline via a vendored KaTeX; the
 interactive figures are canvas widgets computing the same arithmetic as the text beside
-them. 825 KB, 230 KB gzipped.
+them. 855 KB, 236 KB gzipped.
 
 ### Publishing it to GitHub Pages
 
@@ -50,7 +50,7 @@ needed and deep links survive a refresh.
 
 Every chapter carries **By hand** exercises — small calculations you do on paper
 before writing code, with fully worked solutions folded up underneath. Chapter 00
-alone has twenty-two. That step is the one people skip and the one that does the work:
+alone has twenty-four. That step is the one people skip and the one that does the work:
 a gradient you have computed once with a pencil stops being a symbol and becomes a
 number you know how to check.
 
@@ -107,6 +107,10 @@ rather than asserted. Trains no model; it is entirely about the mathematics.
 - **Probability and loss** — likelihood, why every loss is a negative log-likelihood,
   BCE / softmax / cross-entropy from their definitions, the `ŷ - y` gradient verified
   three ways, entropy, KL divergence, and perplexity
+- **Recognising which tool applies** — the skill students actually lack. Four triggers
+  (applied repeatedly → variance; measured once → standard error; rare → base rates;
+  an output choice → likelihood), three guided diagnoses, and drills where the answer is
+  the *category*, not a number
 
 ### 01 — Neural Network from Scratch
 Build a 2-layer network (XOR) using **only NumPy**. Every operation — forward pass,

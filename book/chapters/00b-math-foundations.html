@@ -13,7 +13,7 @@ $\sqrt{d_k}$ in attention are all variance arguments. Probability is what its ou
 
 <p>
 This chapter covers exactly as much of each as the rest of the book needs, with a
-worked example beside every idea and twenty-two pencil-and-paper exercises. It is the
+worked example beside every idea and twenty-four pencil-and-paper exercises. It is the
 longest chapter here, deliberately: everything after it is easier if this is solid,
 and much harder if it is not.
 </p>
@@ -863,10 +863,245 @@ a bug.
 
 <hr>
 
+<h2 id="ch00-which-tool">Part 5 · Recognising Which Tool Applies</h2>
+
+<p>
+Parts 1–4 gave you the machinery. The harder skill, and the one that actually separates
+people who can use this material from people who have merely read it, is
+<strong>recognition</strong>: noticing that the thing in front of you is a variance
+question, or a base-rate question, or a likelihood question, before you know what to
+compute.
+</p>
+
+<p>
+That skill is what lets you read a paper or a colleague's result and tell whether the
+reasoning holds. This section is deliberately short — enough to know what is sound and
+what is not in the chapters ahead, not a course in statistics.
+</p>
+
+<h3>The trigger table</h3>
+
+<p>
+Almost every situation in this book announces itself with one of seven questions. Learn
+to hear the question and the tool follows.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>When you find yourself asking…</th><th>Reach for</th><th>Because</th></tr></thead>
+  <tbody>
+    <tr><td>"Will this blow up or shrink as it passes through many layers/steps?"</td><td><strong>Variance propagation</strong> — $\operatorname{Var}(aX)=a^2\operatorname{Var}(X)$, additivity</td><td>anything applied repeatedly compounds geometrically</td></tr>
+    <tr><td>"Is this difference real, or noise?"</td><td><strong>Sample mean and standard error</strong></td><td>a statistic from $n$ runs is itself random</td></tr>
+    <tr><td>"What should the model output, and what loss?"</td><td><strong>Likelihood</strong> → negative log-likelihood</td><td>the loss is determined by the distribution, not chosen</td></tr>
+    <tr><td>"How wrong is this belief, in a unit I can compare?"</td><td><strong>Entropy, cross-entropy, KL</strong></td><td>gives an absolute scale and a baseline to beat</td></tr>
+    <tr><td>"The test says positive — should I believe it?"</td><td><strong>Bayes and base rates</strong></td><td>rarity dominates accuracy</td></tr>
+    <tr><td>"Are these two quantities related?"</td><td><strong>Covariance and correlation</strong>, and their limits</td><td>they detect <em>linear</em> association only</td></tr>
+    <tr><td>"Is this number good?"</td><td><strong>A baseline</strong>: $\ln K$, the majority class, the uniform model</td><td>no metric means anything alone</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box concept">
+  <span class="box-label">Key concept — the one-line diagnostic</span>
+  <p style="margin-bottom:0">
+  If something is <strong>applied repeatedly</strong>, it is a variance question. If
+  something is <strong>measured once</strong>, it is a standard-error question. If
+  something is <strong>rare</strong>, it is a base-rate question. If you are choosing an
+  <strong>output</strong>, it is a likelihood question. Those four cover most of what you
+  will meet, and getting the category right is most of the work — the arithmetic
+  afterwards is Parts 1–4.
+  </p>
+</div>
+
+<h3>Guided example 1 — "my deep network won't train"</h3>
+
+<div class="box spec">
+  <span class="box-label">Guided</span>
+  <p class="statement">
+    "I stacked 30 layers with <code>torch.randn</code> weights. The loss starts at 2.30
+    and never moves. More epochs don't help and neither does a bigger learning rate."
+  </p>
+  <p><strong>Recognise first, compute second.</strong></p>
+  <ol>
+    <li><em>Is something applied repeatedly?</em> Yes — 30 layers, the same operation each
+        time. That is the variance-propagation trigger.</li>
+    <li><em>Is this number good?</em> 2.30 is suspiciously close to $\ln 10 = 2.303$. So
+        the model is emitting a uniform distribution over 10 classes — not learning
+        badly, not learning <em>at all</em>.</li>
+  </ol>
+  <p>Only now compute. With <code>torch.randn</code>, $\sigma_w = 1$, so per layer</p>
+  <div class="given">Var(z) = n · σ²_w = n        (Part 3, "the two rules")
+
+For n = 256:  Var multiplies by 256 EVERY layer.
+After 30 layers: 256³⁰ ≈ 10⁷²  — pre-activations are astronomically large,
+every saturating non-linearity is pinned, every derivative ≈ 0.</div>
+  <p style="margin-bottom:0">
+  Two triggers, two lines of arithmetic, and the diagnosis is certain rather than a
+  guess. The fix is $\sigma_w = 1/\sqrt{n}$, and the general lesson is that "won't train"
+  plus "loss sits at $\ln K$" is nearly always initialisation or a broken gradient path —
+  never a hyperparameter you can tune your way out of.
+  </p>
+</div>
+
+<h3>Guided example 2 — "our classifier is 99% accurate"</h3>
+
+<div class="box spec">
+  <span class="box-label">Guided</span>
+  <p class="statement">
+    "Our fraud detector hits 99% accuracy on the held-out set. Ship it."
+  </p>
+  <ol>
+    <li><em>Is something rare?</em> Fraud is. That is the base-rate trigger, and it makes
+        accuracy the wrong metric before you look at any number.</li>
+    <li><em>Is there a baseline?</em> If fraud is 1% of transactions, "always say
+        legitimate" scores <strong>99%</strong> — identical to the model.</li>
+  </ol>
+  <div class="given">P(fraud) = 0.01
+Even a genuinely good model, at 90% recall and 95% specificity:
+
+  true positives  = 0.01 × 0.90       = 0.0090
+  false positives = 0.99 × 0.05       = 0.0495
+  precision = 0.0090 / (0.0090 + 0.0495) = 15%
+
+85 of every 100 alerts are wrong — while "accuracy" reads 94.9%.</div>
+  <p style="margin-bottom:0">
+  The claim is not false, it is <em>uninformative</em>, and recognising that took one
+  question: is the positive class rare? Ask for precision and recall, and for the
+  majority-class baseline alongside every accuracy figure. This is the single most common
+  way a plausible-sounding result turns out to be worthless.
+  </p>
+</div>
+
+<h3>Guided example 3 — "the new architecture is better"</h3>
+
+<div class="box spec">
+  <span class="box-label">Guided</span>
+  <p class="statement">
+    "Swapping in the new attention variant took us from 84.1% to 84.9% on the test set."
+  </p>
+  <ol>
+    <li><em>Was it measured once?</em> Almost certainly. That is the standard-error
+        trigger.</li>
+    <li>Recall the scale: on a small dataset, seed-to-seed spread is routinely ±2%.</li>
+  </ol>
+  <div class="given">A 0.8% gap against a ~2% spread is well inside one standard error.
+With 3 seeds and s ≈ 0.02, SE = 0.02/√3 ≈ 0.012 — larger than the effect.
+
+Verdict: the experiment cannot distinguish the two architectures.
+It is not evidence the variant is worse; it is not evidence of anything.</div>
+  <p style="margin-bottom:0">
+  Note the second-order trap: the test set was almost certainly used to <em>choose</em>
+  the variant, which makes 84.9% optimistic on top of being noisy. Ask for three seeds,
+  a standard error, and whether the test set was touched more than once. If the answer to
+  the last is yes, the number is a selection artefact.
+  </p>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.23 · name the tool</span>
+  <p>
+  For each, name the trigger and the tool <em>before</em> computing anything, then say in
+  one line what you would check. No arithmetic required.
+  </p>
+  <ol>
+    <li>"I widened <code>d_k</code> from 64 to 256 and the model got worse. Attention is
+        nearly one-hot everywhere."</li>
+    <li>"Validation loss on my 60-token-vocabulary character model is 3.9. Is that
+        good?"</li>
+    <li>"Height and shoe size have correlation 0.8 in my data, so I dropped shoe size as
+        redundant."</li>
+    <li>"My regression targets are house prices; 2% are mansions. Which loss?"</li>
+    <li>"Dropout at p=0.9 made training unstable rather than just slower."</li>
+    <li>"The screening test is 99% sensitive, so a positive result means the patient
+        almost certainly has the condition."</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1. Repeatedly applied → variance.</strong> Dot-product scores have standard
+    deviation $\sqrt{d_k}$, so quadrupling $d_k$ doubled the spread of the attention
+    logits and saturated the softmax; its Jacobian term $p(1-p)$ collapsed and the layer
+    stopped learning. <em>Check:</em> is the $1/\sqrt{d_k}$ scaling actually applied?
+    (Exercise 00.13.)</p>
+    <p><strong>2. Is this number good? → baseline.</strong> A uniform model over 60
+    characters scores $\ln 60 = 4.09$. At 3.9 the model has learned almost nothing —
+    perplexity 49 against a baseline of 60. <em>Check:</em> always quote $\ln K$ beside a
+    cross-entropy, and prefer perplexity, which is interpretable.</p>
+    <p><strong>3. Related? → correlation, and its limits.</strong> Two cautions. Correlation
+    detects only linear association, so 0.8 does not mean one determines the other; and
+    for a <em>model</em>, correlated features are not automatically redundant — they can
+    still carry independent signal, and dropping one is an empirical question, not an
+    algebraic one. <em>Check:</em> measure held-out performance with and without it.</p>
+    <p><strong>4. Choosing an output → likelihood.</strong> MSE is the Gaussian NLL, and
+    house prices have heavy tails, so the assumption is wrong and the mansions will
+    dominate the gradient. Use MAE or Huber. <em>Check:</em> plot the residual
+    distribution; if it is not roughly bell-shaped, MSE is asserting something false.</p>
+    <p><strong>5. Repeatedly applied → variance.</strong> Inverted dropout preserves the
+    <em>mean</em> but multiplies the variance by $p/(1-p)$, which at $p = 0.9$ is
+    <strong>9×</strong>. That is noise, not slowness. <em>Check:</em> drop to 0.1–0.5;
+    above ~0.5 the injected variance usually outweighs the regularisation.</p>
+    <p><strong>6. Rare → base rates.</strong> Sensitivity alone says nothing about
+    $P(\text{disease} \mid +)$ — that needs the prevalence and the false-positive rate.
+    At 0.5% prevalence and 95% specificity, a positive result means roughly a
+    <strong>9%</strong> chance of disease (exercise 00.18). <em>Check:</em> ask for
+    prevalence and specificity, or just count bodies in a population of 10,000.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.24 · spot the flawed claim</span>
+  <p>
+  Each of these is something a reasonable person might say. One is fine. Find the flaw in
+  the other three and name the tool that exposes it.
+  </p>
+  <ol>
+    <li>"We ran both models on the same fixed seed to make the comparison fair."</li>
+    <li>"Cross-entropy went from 0.69 to 0.52 on a binary task, so the model learned
+        something real."</li>
+    <li>"Our model beats the published baseline, which we ran with its default
+        hyperparameters while tuning ours."</li>
+    <li>"We used the validation set to pick the architecture and the learning rate, then
+        reported the test set once."</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1. Flawed — standard error.</strong> A shared seed removes one nuisance
+    difference but tells you nothing about the <em>spread</em>. You have one sample from
+    each and no idea whether the gap exceeds run-to-run variation. Fairness is about
+    matched conditions <em>and</em> repeated measurement; the fix is several seeds, not
+    the same one.</p>
+    <p><strong>2. Fine — baseline.</strong> $\ln 2 = 0.693$ is exactly the uniform-guess
+    loss for a binary task, so 0.69 is "knows nothing" and 0.52 is genuine movement.
+    Quoting the baseline is what makes the claim checkable, and this one does it
+    implicitly.</p>
+    <p><strong>3. Flawed — the untuned baseline.</strong> The comparison measures tuning
+    effort, not architecture. This is the most common way good-faith work reaches a wrong
+    conclusion, and it is invisible in the results table. Tune the baseline with the same
+    budget you gave your own method, and say what that budget was.</p>
+    <p><strong>4. Flawed, subtly — repeated selection.</strong> Reporting the test set once
+    is correct. But architecture <em>and</em> learning rate were both chosen on
+    validation, so the validation number is now an optimistic selection artefact and any
+    claim resting on it is overstated. The test figure is fine; just do not also present
+    the validation score as an unbiased estimate.</p>
+  </details>
+</div>
+
+<div class="box note">
+  <span class="box-label">A deliberately small dose</span>
+  This is not a statistics course, and it is not trying to be. It is the minimum needed
+  to read the rest of this book critically — to notice when a loss curve, an ablation, or
+  a benchmark claim is not carrying the weight put on it. The
+  <a class="xref" href="#appendix-reading-the-literature">reading guide</a> applies the
+  same instincts to papers, and
+  <a class="xref" href="#ch12">Chapter 12's projects</a> ask you to meet the standard
+  yourself.
+</div>
+
+<hr>
+
 <h2>By-hand exercises</h2>
 
 <p>
-Twenty-two exercises, grouped by part. Do them on paper. Every solution is folded up
+Twenty-four exercises, grouped by part. The last two are recognition drills rather than arithmetic. Do them on paper. Every solution is folded up
 underneath, and the numbers are chosen so arithmetic never obscures the idea.
 </p>
 
