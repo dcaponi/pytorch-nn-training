@@ -180,6 +180,225 @@ extra tensors per parameter in memory, which is a detail here and a
   forgotten <code>zero_grad()</code>.
 </div>
 
+<h2 id="ch02-spec-to-code">From a problem statement to code</h2>
+
+<p>
+Every notebook in this book hands you an architecture. Real work does not. It hands you
+a sentence — from a colleague, a paper, a ticket — and you have to turn it into a model,
+a loss, and a tensor of the right shape. That translation is its own skill, it is
+mechanical once you see the structure, and it is worth drilling deliberately.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept — five questions, in order</span>
+  <p>
+  Any supervised problem statement answers five questions. Extract them in this order
+  and the code writes itself:
+  </p>
+  <ol style="margin-bottom:0">
+    <li><strong>What is one example?</strong> → the input shape after the batch
+        dimension.</li>
+    <li><strong>What is one answer?</strong> → the output dimension. One number? One
+        probability? $K$ scores?</li>
+    <li><strong>What kind of answer is it?</strong> → real value, one label out of $K$,
+        several independent yes/no labels. This picks the loss
+        (<a class="xref" href="#ch00-cross-entropy">Chapter 00</a>).</li>
+    <li><strong>What does the target tensor look like?</strong> → its shape <em>and its
+        dtype</em>. This is where most bugs live.</li>
+    <li><strong>What shape is everything in between?</strong> → the hidden sizes, which
+        are the only genuinely free choice.</li>
+  </ol>
+</div>
+
+<p>
+Notice that only question 5 is a design decision. Questions 1–4 are <em>determined</em>
+by the problem, which is why disagreements about them are usually misunderstandings
+rather than opinions.
+</p>
+
+<h3>A worked example</h3>
+
+<div class="box spec">
+  <span class="box-label">From the spec — worked</span>
+  <p class="statement">
+    "Create a simple neural net with two connected layers that takes a random input we
+    will create and classifies it, imagining a 3-class prediction problem."
+  </p>
+  <p>Answer the five questions before writing anything.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Question</th><th>The statement says</th><th>So</th></tr></thead>
+    <tbody>
+      <tr><td>1. One example?</td><td>"random input we will create" — unspecified, so we choose</td><td>pick <code>n_features = 10</code></td></tr>
+      <tr><td>2. One answer?</td><td>"3-class"</td><td><strong>3 output logits</strong></td></tr>
+      <tr><td>3. What kind?</td><td>"classifies" + 3 classes, one per example</td><td>categorical → <code>CrossEntropyLoss</code></td></tr>
+      <tr><td>4. Target tensor?</td><td>one class index per example</td><td><span class="shape">(B,)</span> of <code>torch.long</code>, values in 0–2</td></tr>
+      <tr><td>5. In between?</td><td>"two connected layers"</td><td>one hidden size, ours to pick</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>
+  "Two connected layers" is the one genuinely ambiguous phrase, and it is worth being
+  explicit rather than guessing: it almost always means two <code>nn.Linear</code>
+  modules — input → hidden → output — with a non-linearity between them. Two layers
+  <em>without</em> a non-linearity would collapse to one
+  (<a class="xref" href="#ch01">Chapter 01</a>), so the activation is implied by the
+  word "layers" even when nobody says it.
+  </p>
+<pre><code class="language-python">import torch
+import torch.nn as nn
+
+B, N_FEATURES, N_HIDDEN, N_CLASSES = 16, 10, 32, 3
+
+X = torch.randn(B, N_FEATURES)                       # (16, 10)
+y = torch.randint(0, N_CLASSES, (B,))                # (16,)  int64 class indices
+
+model = nn.Sequential(
+    nn.Linear(N_FEATURES, N_HIDDEN),                 # (B, 10) -> (B, 32)
+    nn.ReLU(),                                       # the implied non-linearity
+    nn.Linear(N_HIDDEN, N_CLASSES),                  # (B, 32) -> (B, 3)
+)                                                    # NOTE: no softmax here
+
+logits = model(X)                                    # (16, 3) raw scores
+loss = nn.CrossEntropyLoss()(logits, y)              # scalar
+
+print(logits.shape, y.shape, y.dtype, loss.item())
+# torch.Size([16, 3]) torch.Size([16]) torch.int64 1.1147</code></pre>
+  <p style="margin-bottom:0">
+  Three things in that snippet are the ones people get wrong, and all three follow from
+  questions 2–4 rather than from taste. The final layer emits <strong>3 logits, not
+  1</strong>. There is <strong>no softmax</strong>, because
+  <code>CrossEntropyLoss</code> applies it internally and doing it twice is a silent bug
+  (<a class="xref" href="#ch00-cross-entropy">Chapter 00</a>). And the target is
+  <span class="shape">(B,)</span> <code>int64</code> — <em>not</em> one-hot, not
+  <span class="shape">(B, 1)</span>, not float.
+  </p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">The three errors this method prevents</span>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Mistake</th><th>What you see</th></tr></thead>
+    <tbody>
+      <tr><td>Target as <span class="shape">(B, 1)</span> instead of <span class="shape">(B,)</span></td><td><code>Expected target size [16, 3], got [16, 1]</code></td></tr>
+      <tr><td>Target left as float</td><td><code>expected scalar type Long but found Float</code></td></tr>
+      <tr><td>Softmax before <code>CrossEntropyLoss</code></td><td><strong>nothing</strong> — it trains, worse, silently</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-bottom:0">
+  The first two are loud and cost a minute. The third is the dangerous one, and no error
+  message will ever tell you about it — you have to know the rule.
+  </p>
+</div>
+
+<h3>The lookup table</h3>
+
+<p>
+Question 3 is the one that determines everything downstream, so it is worth having
+memorised in the forward direction — <em>from the words in the statement</em> to the code:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>The statement says…</th><th>Final layer</th><th>Loss</th><th>Target shape / dtype</th></tr></thead>
+  <tbody>
+    <tr><td>"predict a number", "estimate the price"</td><td><code>Linear(h, 1)</code></td><td><code>MSELoss</code></td><td><span class="shape">(B, 1)</span> float</td></tr>
+    <tr><td>"is it X or not", "detect spam"</td><td><code>Linear(h, 1)</code></td><td><code>BCEWithLogitsLoss</code></td><td><span class="shape">(B, 1)</span> float 0.0/1.0</td></tr>
+    <tr><td>"classify into K classes", "which digit"</td><td><code>Linear(h, K)</code></td><td><code>CrossEntropyLoss</code></td><td><span class="shape">(B,)</span> <strong>int64</strong></td></tr>
+    <tr><td>"tag with any of K labels"</td><td><code>Linear(h, K)</code></td><td><code>BCEWithLogitsLoss</code></td><td><span class="shape">(B, K)</span> float 0/1</td></tr>
+    <tr><td>"predict the next token"</td><td><code>Linear(h, V)</code></td><td><code>CrossEntropyLoss</code></td><td><span class="shape">(B·L,)</span> int64</td></tr>
+    <tr><td>"predict a sequence of numbers"</td><td><code>Linear(h, T)</code></td><td><code>MSELoss</code></td><td><span class="shape">(B, T)</span> float</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+The tell for row 3 versus row 4 is the word <em>any</em>. "Classify into one of 20
+topics" is categorical and the classes compete for one probability budget; "tag with any
+of 20 topics" is 20 independent yes/no questions. Same 20 output units, different loss,
+different target shape — and picking the wrong one produces a model that trains to a
+plausible-looking loss and is quietly solving a different problem.
+</p>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 02.3 · four statements, no code</span>
+  <p>
+  For each, answer the five questions: input shape, output dimension, loss, target shape
+  and dtype, and whether a final activation belongs in the model.
+  </p>
+  <ol>
+    <li>"Given 50 sensor readings, predict tomorrow's temperature."</li>
+    <li>"Given a 128-pixel-wide grayscale image row, say which of 10 digits it is."</li>
+    <li>"Given a movie plot summary embedding of size 256, tag it with any of 18
+        genres."</li>
+    <li>"Given 20 features, predict whether a customer churns."</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <div class="given">1.  in (B, 50)   out 1    MSELoss              target (B, 1) float     no activation
+2.  in (B, 128)  out 10   CrossEntropyLoss     target (B,)   int64     no activation
+3.  in (B, 256)  out 18   BCEWithLogitsLoss    target (B, 18) float    no activation
+4.  in (B, 20)   out 1    BCEWithLogitsLoss    target (B, 1) float     no activation</div>
+    <p><strong>Every one says "no activation"</strong>, and that is the point of the
+    exercise. The <code>WithLogits</code> and <code>CrossEntropy</code> losses apply
+    sigmoid and softmax internally; regression needs no squashing at all. A final
+    activation in the model is almost always a mistake in modern PyTorch — the exception
+    being when you need probabilities at <em>inference</em>, which you apply after the
+    fact and outside the training loop.</p>
+    <p>Note 2 versus 3: both are "pick from a set", but 2 says "which of 10" (exactly
+    one) and 3 says "any of 18" (independent). That single word changes the loss and the
+    target's shape and dtype.</p>
+    <p>And 4 could equally be <code>Linear(h, 2)</code> with
+    <code>CrossEntropyLoss</code> — binary classification is the two-class special case
+    of categorical. One logit with BCE is the more common choice and has one fewer
+    parameter; either is defensible, which makes it the only genuine judgement call in
+    the four.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 02.4 · debug by shape</span>
+  <p>
+  Each snippet raises or misbehaves. Name the fault and the fix, without running it.
+  </p>
+  <div class="given">A)  model = nn.Sequential(nn.Linear(10, 32), nn.ReLU(), nn.Linear(32, 3), nn.Softmax(dim=1))
+    loss = nn.CrossEntropyLoss()(model(X), y)
+
+B)  y = torch.randint(0, 3, (16, 1))
+    loss = nn.CrossEntropyLoss()(model(X), y)
+
+C)  y = torch.randint(0, 3, (16,)).float()
+    loss = nn.CrossEntropyLoss()(model(X), y)
+
+D)  model = nn.Sequential(nn.Linear(10, 32), nn.Linear(32, 3))
+    # trains, but plateaus far above what it should</div>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>A — double softmax.</strong> <code>CrossEntropyLoss</code> already applies
+    log-softmax, so this normalises twice. It <em>runs</em>, the loss decreases, and the
+    model is worse than it should be with no diagnostic anywhere. Remove the
+    <code>nn.Softmax</code>. This is the one to actually memorise.</p>
+    <p><strong>B — target shape.</strong> <code>(16, 1)</code> where
+    <code>(16,)</code> is required. Raises <code>Expected target size [16, 3], got
+    [16, 1]</code>. Fix with <code>y.squeeze(1)</code>, or build it as
+    <code>(16,)</code>.</p>
+    <p><strong>C — target dtype.</strong> <code>CrossEntropyLoss</code> wants int64 class
+    indices; <code>.float()</code> makes it real-valued. Raises
+    <code>expected scalar type Long but found Float</code>. Drop the
+    <code>.float()</code>. (Confusingly, <code>BCEWithLogitsLoss</code> wants exactly the
+    opposite — float targets — which is why the dtype is worth naming explicitly in
+    question 4.)</p>
+    <p><strong>D — no non-linearity.</strong> Two <code>Linear</code> layers with nothing
+    between them compose to a single linear map
+    (<a class="xref" href="#ch01">Chapter 01</a>), so despite appearances this is a
+    one-layer model and cannot learn anything a linear classifier cannot. Insert
+    <code>nn.ReLU()</code>. Nothing errors; it just quietly underfits, which is the
+    hardest class of bug to notice.</p>
+  </details>
+</div>
+
 <h2>Devices</h2>
 
 <pre><code class="language-python">device = torch.device('mps' if torch.backends.mps.is_available()

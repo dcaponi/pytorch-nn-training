@@ -35,6 +35,16 @@ jobs:
       - name: Fail if any cross-reference is dangling
         run: python3 book/build.py --check
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Test the single-page app
+        working-directory: book/test
+        run: |
+          npm install --no-fund --no-audit
+          npm test
+
       - name: Prepare the artifact
         run: |
           mkdir -p _site

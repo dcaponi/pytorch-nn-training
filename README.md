@@ -76,8 +76,16 @@ python3 book/build.py --check   # validate fragments and cross-references only
 ```
 
 The build script is standard-library only — no dependencies, no toolchain. It assigns
-stable heading anchors, checks every cross-reference, highlights Python code blocks, and
-emits the search index the router uses.
+stable heading anchors, checks every cross-reference, verifies that every lesson folder
+the book names exists and is tracked by git, highlights Python code blocks, and emits the
+search index the router uses.
+
+The app itself has a headless test suite (`book/test/`, 33 assertions over routing,
+search, navigation, and widget mounting) which CI runs before deploying:
+
+```bash
+cd book/test && npm install && npm test
+```
 
 ---
 
@@ -118,6 +126,10 @@ later lesson.
 - The five-step training loop
 - SGD vs Adam, and the 16-bytes-per-parameter rule
 - Apple Silicon GPU (MPS) acceleration
+- **Turning a problem statement into code** — five questions that take you from a
+  sentence ("classify into 3 classes, two connected layers") to the model, the loss, and
+  a target of the right shape *and dtype*, with four drills and a checker that catches
+  the three mistakes which raise no error
 
 ### 03 — CNN for Sentiment Analysis
 Train a convolutional network on the NLTK movie_reviews corpus (2,000 real reviews).

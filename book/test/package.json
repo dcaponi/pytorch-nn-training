@@ -1,0 +1,12 @@
+{
+  "name": "nnbook-tests",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Headless tests for the book single-page app",
+  "scripts": {
+    "test": "node spa.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  }
+}

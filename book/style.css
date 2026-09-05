@@ -25,6 +25,8 @@
   --warn-soft:     #fbe9e7;
   --library:       #6b4a9e;   /* the production-library equivalent */
   --library-soft:  #f0ebfa;
+  --spec:          #0f7a6c;   /* prose problem statement -> code */
+  --spec-soft:     #e2f5f1;
 
   --code-bg:       #f4f1ec;
   --t-k:           #9b2fae;   /* keyword */
@@ -66,6 +68,8 @@
     --warn-soft:     #3a1d1b;
     --library:       #c0a8f0;
     --library-soft:  #241d33;
+    --spec:          #58cbb8;
+    --spec-soft:     #0d2f2a;
 
     --code-bg:       #121116;
     --t-k:           #d78ce6;
@@ -100,6 +104,8 @@
   --warn-soft:     #3a1d1b;
   --library:       #c0a8f0;
   --library-soft:  #241d33;
+  --spec:          #58cbb8;
+  --spec-soft:     #0d2f2a;
 
   --code-bg:       #121116;
   --t-k:           #d78ce6;
@@ -476,6 +482,22 @@ pre code {
 
 .warn { border-left: 3px solid var(--warn); background: var(--warn-soft); }
 .warn .box-label { color: var(--warn); }
+
+/* prose problem statement -> working PyTorch */
+.spec { border-left: 3px solid var(--spec); background: var(--spec-soft); }
+.spec .box-label { color: var(--spec); }
+.spec .statement {
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-style: italic;
+  line-height: 1.55;
+  border-left: 2px solid var(--spec);
+  padding: 0.15rem 0 0.15rem 0.9rem;
+  margin: 0.2rem 0 0.9rem;
+  color: var(--ink);
+}
+.spec .given { background: rgba(127,127,127,.10); }
+.spec table { font-size: 0.78rem; }
 
 /* the production-library equivalent of something just built by hand */
 .library { border-left: 3px solid var(--library); background: var(--library-soft); }
