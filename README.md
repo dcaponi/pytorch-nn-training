@@ -100,6 +100,11 @@ walkthrough of the book.
 The four areas of mathematics the rest of the curriculum runs on, verified in code
 rather than asserted. Trains no model; it is entirely about the mathematics.
 
+**Mostly review, and meant to be skipped around in.** It is long because the later
+chapters are far more intuitive when this is fresh — not because it is new. Six exercises
+are marked *Must do* (the ones chapters 01–11 lean on), six more are *Recommended*, and
+the rest are there for the reps.
+
 - **Linear algebra** — dot products as similarity, the row *and column* readings of a
   matrix–vector product, the transpose in the backward pass derived from shapes alone,
   outer products and rank (the basis for LoRA), broadcasting traps

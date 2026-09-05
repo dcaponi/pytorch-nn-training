@@ -13,17 +13,34 @@ $\sqrt{d_k}$ in attention are all variance arguments. Probability is what its ou
 
 <p>
 This chapter covers exactly as much of each as the rest of the book needs, with a
-worked example beside every idea and twenty-six pencil-and-paper exercises. It is the
-longest chapter here, deliberately: everything after it is easier if this is solid,
-and much harder if it is not.
+worked example beside every idea and twenty-six pencil-and-paper exercises. It is by
+some distance the longest chapter here.
 </p>
 
+<div class="box note">
+  <span class="box-label">This chapter is mostly review — treat it that way</span>
+  <p>
+  If you have a technical degree, most of this is material you have met before. It is
+  here because the later chapters are <em>far</em> more intuitive when it is fresh, not
+  because it is new. <strong>You are meant to skip around.</strong> Skim the parts you
+  know, read the boxes, and move on.
+  </p>
+  <p style="margin-bottom:0">
+  What is worth doing carefully is a small number of the exercises, marked
+  <span class="tag tag-must">Must do</span> below. Those six are the ones the rest of the
+  book actually leans on — each of them derives a fact you will otherwise have to take on
+  faith in chapters 01 through 11. Everything else is there for the reps, and skipping it
+  costs you nothing but practice.
+  </p>
+</div>
+
 <p>
-If you have seen this material before, skim to the exercises and check whether you can
-do them cold. That is a better test than a feeling of familiarity, because the
+A better test than a feeling of familiarity: pick one of the six and try it cold. The
 specific things a network needs from these subjects are narrow and occasionally
 surprising — shapes matter more than proofs, the chain rule matters more than
-integration, and <em>variance</em> turns out to explain half the architecture.
+integration, and <em>variance</em> turns out to explain half the architecture. If that
+one goes smoothly, skim the rest of the chapter and start at
+<a class="xref" href="#ch01">Chapter 01</a>.
 </p>
 
 <hr>
@@ -1100,14 +1117,27 @@ It is not evidence the variant is worse; it is not evidence of anything.</div>
 <h2>By-hand exercises</h2>
 
 <p>
-Twenty-six exercises, grouped by part. The last four are recognition drills: two that stop at the diagnosis, and two that carry a problem all the way to a decision. Do them on paper. Every solution is folded up
-underneath, and the numbers are chosen so arithmetic never obscures the idea.
+Twenty-six exercises, grouped by part. The last four are recognition drills: two that
+stop at the diagnosis, and two that carry a problem all the way to a decision. Do them on
+paper. Every solution is folded up underneath, and the numbers are chosen so arithmetic
+never obscures the idea.
+</p>
+
+<div class="legend">
+  <span><span class="tag tag-must">Must do</span> the rest of the book leans on it</span>
+  <span><span class="tag tag-rec">Recommended</span> pays off in a specific later chapter</span>
+  <span>everything else — reps, if you want them</span>
+</div>
+
+<p>
+If you are short on time, the six <span class="tag tag-must">Must do</span> exercises take
+under an hour between them and are the ones worth protecting.
 </p>
 
 <h3>Linear algebra</h3>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.1 · shapes, legality, and parameter counts</span>
+  <span class="box-label">By hand — exercise 00.1 · shapes, legality, and parameter counts<span class="tag tag-rec">Recommended</span></span>
   <div class="given">A is (4, 2)      B is (2, 3)      C is (3, 3)      v is (3,)</div>
   <ol>
     <li>Which are legal, and what shape does each produce? <code>A@B</code>,
@@ -1240,7 +1270,7 @@ row2 · x = (0)(1) + (3)(2) + (1)(4) = 10        →  [4, 10]</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.4 · the transpose in the backward pass</span>
+  <span class="box-label">By hand — exercise 00.4 · the transpose in the backward pass<span class="tag tag-must">Must do</span></span>
   <p>A single linear layer with no bias, one example.</p>
   <div class="given">X = [1, 2]                  (1×2)
 
@@ -1290,7 +1320,7 @@ Y = XW                      (1×3)
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.5 · outer products, rank, and LoRA</span>
+  <span class="box-label">By hand — exercise 00.5 · outer products, rank, and LoRA<span class="tag tag-rec">Recommended</span></span>
   <div class="given">u = [1, 2, 3]        v = [4, 5]</div>
   <ol>
     <li>Compute the outer product $\mathbf{u}\mathbf{v}^\top$ (a $3\times 2$ matrix).</li>
@@ -1383,7 +1413,7 @@ pooled = (x * m).sum(1) / m.sum(1).clamp(min=1)</div>
 <h3>Calculus</h3>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.7 · the chain rule as backpropagation</span>
+  <span class="box-label">By hand — exercise 00.7 · the chain rule as backpropagation<span class="tag tag-must">Must do</span></span>
   <p>A one-neuron network, forwards and backwards. A complete training step in miniature.</p>
   <div class="given">x = 2.0     w = 0.5     b = 0.1     true label y = 1
 
@@ -1458,7 +1488,7 @@ path 2:      1 × 3 =  3
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.9 · derivatives of the activations</span>
+  <span class="box-label">By hand — exercise 00.9 · derivatives of the activations<span class="tag tag-rec">Recommended</span></span>
   <p>Derive each from the definition, then evaluate. You will use all three constantly.</p>
   <ol>
     <li>Show that $\sigma'(z) = \sigma(z)(1-\sigma(z))$, starting from
@@ -1593,7 +1623,7 @@ Var(X) = 7.5 − 2.5² = 7.5 − 6.25 = 1.25</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.12 · variance of a sum, and weight initialisation</span>
+  <span class="box-label">By hand — exercise 00.12 · variance of a sum, and weight initialisation<span class="tag tag-must">Must do</span></span>
   <p>
   This exercise derives Xavier initialisation from scratch. It is the single most
   useful piece of statistics in the chapter.
@@ -1649,7 +1679,7 @@ c = 1.0 :  1¹⁰   = 1×         stable at any depth</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.13 · the variance of a dot product, and $\sqrt{d_k}$</span>
+  <span class="box-label">By hand — exercise 00.13 · the variance of a dot product, and $\sqrt{d_k}$<span class="tag tag-must">Must do</span></span>
   <p>
   Exercise 00.2 showed <em>that</em> large scores saturate a softmax. This one shows
   <em>why they become large</em>.
@@ -1788,7 +1818,7 @@ p = 0.9 :  Var = 1 × (0.9/0.1) = 9.0</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.16 · sample mean, standard error, and how many seeds</span>
+  <span class="box-label">By hand — exercise 00.16 · sample mean, standard error, and how many seeds<span class="tag tag-rec">Recommended</span></span>
   <p>You train the same model three times, changing only the random seed.</p>
   <div class="given">test accuracies:  0.812,  0.789,  0.834</div>
   <ol>
@@ -1869,7 +1899,7 @@ Var(y) = (2.25+0.25+2.25+0.25)/4 = 1.25    σ_y = 1.118
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.18 · Bayes, base rates, and class imbalance</span>
+  <span class="box-label">By hand — exercise 00.18 · Bayes, base rates, and class imbalance<span class="tag tag-rec">Recommended</span></span>
   <div class="given">A disease affects 0.5% of the population.
 A test detects it in 99% of sick people          (sensitivity)
 and correctly clears 95% of healthy people       (specificity).</div>
@@ -1958,7 +1988,7 @@ batch loss = 1.244 / 3 = 0.415</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.20 · softmax, cross-entropy, and the gradient</span>
+  <span class="box-label">By hand — exercise 00.20 · softmax, cross-entropy, and the gradient<span class="tag tag-must">Must do</span></span>
   <div class="given">z = [2.0, 1.0, 0.0]        true class c = 1 (the middle one)
 
 e⁰ = 1.000    e¹ = 2.718    e² = 7.389</div>
@@ -2070,7 +2100,7 @@ two carry a problem <em>all the way through</em>: identify, set up, compute, dec
 </p>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.25 · a network that will not train, end to end</span>
+  <span class="box-label">By hand — exercise 00.25 · a network that will not train, end to end<span class="tag tag-must">Must do</span></span>
   <p class="statement" style="font-family:var(--serif);font-style:italic;border-left:2px solid var(--byhand);padding-left:.9rem;margin:.4rem 0 1rem">
     "I built a 12-layer classifier over 10 classes, width 256, ReLU, initialised with
     <code>torch.randn(256, 256) * 1.0</code>. The loss starts at 2.30 and does not move.
@@ -2153,7 +2183,7 @@ sqrt(1.93e25) ≈ 4.4 × 10¹² before the final layer.</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.26 · is the result real, end to end</span>
+  <span class="box-label">By hand — exercise 00.26 · is the result real, end to end<span class="tag tag-rec">Recommended</span></span>
   <p class="statement" style="font-family:var(--serif);font-style:italic;border-left:2px solid var(--byhand);padding-left:.9rem;margin:.4rem 0 1rem">
     "Our new architecture reaches 71.2% on the rare-event detection task, against 69.6%
     for the baseline. It also has 96% accuracy overall. Positives are 4% of the data."
