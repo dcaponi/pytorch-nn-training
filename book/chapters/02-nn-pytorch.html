@@ -399,6 +399,92 @@ D)  model = nn.Sequential(nn.Linear(10, 32), nn.Linear(32, 3))
   </details>
 </div>
 
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 02.5 · reproduce PyTorch's answer on paper</span>
+  <p>
+  The most useful direction to run this in is <em>backwards</em>: let the framework compute
+  the answer, then reproduce it yourself and confirm the two agree. When they do, you have
+  verified your understanding against a reference implementation. When they do not, you
+  have found either a gap in your understanding or a bug — and both are worth knowing.
+  </p>
+  <p>
+  Here is a real run. One linear layer, one example, three classes; the weights were
+  rounded to one decimal place so every step is pencil-friendly.
+  </p>
+  <div class="given">x = [ 1.0,  0.0, -1.0,  2.0 ]        true class c = 1
+
+        W  (3 x 4)                       b  (3,)
+ [  0.0  -0.3   0.2   0.2 ]         [ -0.2, -0.3, -0.1 ]
+ [ -0.3  -0.1  -0.3   0.1 ]
+ [ -0.1   0.4   0.4   0.1 ]
+
+useful values:  e^0 = 1.0000   e^-0.1 = 0.9048   e^-0.4 = 0.6703
+                ln(0.3514) = -1.0459</div>
+  <ol>
+    <li><strong>Logits.</strong> PyTorch computes $xW^\top + b$. Work out all three.</li>
+    <li><strong>Probabilities.</strong> Apply softmax. (The three exponentials are given;
+        you need their sum.)</li>
+    <li><strong>Loss.</strong> Compute the cross-entropy for true class 1.</li>
+    <li><strong>Gradient on the logits.</strong> Use $\hat{y} - y$. Check they sum to zero.</li>
+    <li><strong>Gradient on the parameters.</strong> Using the rule from
+        <a class="xref" href="#ch00">exercise 00.4</a>, $\partial\mathcal{L}/\partial W =
+        \delta^\top x$ and $\partial\mathcal{L}/\partial b = \delta$. Write out the first
+        row of $\partial\mathcal{L}/\partial W$.</li>
+    <li><strong>Check.</strong> Compare against what PyTorch actually printed, below.</li>
+  </ol>
+  <details>
+    <summary>Worked solution, and PyTorch's output</summary>
+    <p><strong>1. Logits.</strong> Each is a row of $W$ dotted with $x$, plus its bias:</p>
+    <div class="given">z₀ = (0.0)(1) + (−0.3)(0) + (0.2)(−1) + (0.2)(2) + (−0.2)
+   = 0 + 0 − 0.2 + 0.4 − 0.2 =  0.0
+z₁ = (−0.3)(1) + (−0.1)(0) + (−0.3)(−1) + (0.1)(2) + (−0.3)
+   = −0.3 + 0 + 0.3 + 0.2 − 0.3 = −0.1
+z₂ = (−0.1)(1) + (0.4)(0) + (0.4)(−1) + (0.1)(2) + (−0.1)
+   = −0.1 + 0 − 0.4 + 0.2 − 0.1 = −0.4
+
+z = [0.0, −0.1, −0.4]</div>
+    <p><strong>2. Probabilities.</strong> Sum of exponentials
+    $= 1.0000 + 0.9048 + 0.6703 = 2.5751$:</p>
+    <div class="given">ŷ₀ = 1.0000 / 2.5751 = 0.3883
+ŷ₁ = 0.9048 / 2.5751 = 0.3514
+ŷ₂ = 0.6703 / 2.5751 = 0.2603      (sums to 1.0000 ✓)</div>
+    <p><strong>3. Loss.</strong> $\mathcal{L} = -\ln \hat{y}_1 = -\ln(0.3514) =
+    \mathbf{1.0459}$ nats. Sanity check: a uniform guess over three classes costs
+    $\ln 3 = 1.0986$, so this barely-initialised model is a hair better than chance —
+    exactly what you would expect before any training.</p>
+    <p><strong>4. Gradient on the logits.</strong> With $y = [0, 1, 0]$:</p>
+    <div class="given">∂L/∂z = ŷ − y = [0.3883 − 0,  0.3514 − 1,  0.2603 − 0]
+              = [ 0.3883, −0.6486,  0.2603 ]
+
+sum = 0.3883 − 0.6486 + 0.2603 = 0.0000 ✓</div>
+    <p><strong>5. Gradient on the parameters.</strong> $\partial\mathcal{L}/\partial b$ is
+    just $\delta$. For $W$, row $i$ is $\delta_i \cdot x$:</p>
+    <div class="given">row 0 = 0.3883 × [1.0, 0.0, −1.0, 2.0]
+      = [ 0.3883,  0.0000, −0.3883,  0.7767 ]
+
+row 1 = −0.6486 × [1.0, 0.0, −1.0, 2.0]
+      = [ −0.6486, 0.0000,  0.6486, −1.2973 ]</div>
+    <p><strong>6. What PyTorch printed.</strong></p>
+    <div class="given">logits     = tensor([[ 0.0000, -0.1000, -0.4000]])
+probs      = tensor([[ 0.3883,  0.3514,  0.2603]])
+loss       = 1.045911
+dL/dz      = tensor([[ 0.3883, -0.6486,  0.2603]])
+dL/db      = tensor([  0.3883, -0.6486,  0.2603])
+dL/dW      = tensor([[ 0.3883,  0.0000, -0.3883,  0.7767],
+                     [-0.6486,  0.0000,  0.6486, -1.2973],
+                     [ 0.2603,  0.0000, -0.2603,  0.5206]])</div>
+    <p>Every figure matches. Two things are worth noticing beyond the agreement.</p>
+    <p>The <strong>second column of $\partial\mathcal{L}/\partial W$ is entirely
+    zero</strong>, because $x_1 = 0$. An input feature that contributed nothing to the
+    forward pass receives no gradient — the same fact you met in
+    <a class="xref" href="#ch01">exercise 01.1</a>, now visible in a real framework's
+    output.</p>
+    <p>And $\partial\mathcal{L}/\partial b$ is <em>exactly</em> $\delta$, because
+    $\partial z/\partial b = 1$. If you ever need to inspect the error signal at a layer
+    and cannot reach it directly, the bias gradient is it.</p>
+  </details>
+</div>
+
 <h2>Devices</h2>
 
 <pre><code class="language-python">device = torch.device('mps' if torch.backends.mps.is_available()

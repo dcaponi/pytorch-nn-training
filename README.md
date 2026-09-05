@@ -50,7 +50,7 @@ needed and deep links survive a refresh.
 
 Every chapter carries **By hand** exercises — small calculations you do on paper
 before writing code, with fully worked solutions folded up underneath. Chapter 00
-alone has twenty-four. That step is the one people skip and the one that does the work:
+alone has twenty-six. That step is the one people skip and the one that does the work:
 a gradient you have computed once with a pencil stops being a symbol and becomes a
 number you know how to check.
 
@@ -114,8 +114,8 @@ rather than asserted. Trains no model; it is entirely about the mathematics.
   three ways, entropy, KL divergence, and perplexity
 - **Recognising which tool applies** — the skill students actually lack. Four triggers
   (applied repeatedly → variance; measured once → standard error; rare → base rates;
-  an output choice → likelihood), three guided diagnoses, and drills where the answer is
-  the *category*, not a number
+  an output choice → likelihood), three guided diagnoses, then two exercises that carry a
+  problem *all the way* from identifying the category to a decision you could defend
 
 ### 01 — Neural Network from Scratch
 Build a 2-layer network (XOR) using **only NumPy**. Every operation — forward pass,
@@ -139,6 +139,9 @@ later lesson.
   sentence ("classify into 3 classes, two connected layers") to the model, the loss, and
   a target of the right shape *and dtype*, with four drills and a checker that catches
   the three mistakes which raise no error
+- **Reproducing PyTorch's answer on paper** — run a real layer, then hand-compute the
+  logits, softmax, loss and every gradient from its printed weights. A checker names the
+  *first* step that diverged, since "your number is wrong" is not useful feedback
 
 ### 03 — CNN for Sentiment Analysis
 Train a convolutional network on the NLTK movie_reviews corpus (2,000 real reviews).
