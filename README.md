@@ -14,8 +14,9 @@ Two halves that are meant to be used together:
   contains interactive figures, and sets pencil-and-paper exercises with worked
   solutions.
 
-Everything runs on a MacBook Air with an M4 chip and 24 GB of memory. No
-data-centre GPU, no API keys, no multi-gigabyte downloads.
+Runs on any laptop: **8 GB of memory is enough**, 16 GB is comfortable, and a GPU is
+optional. No data-centre hardware, no API keys, no multi-gigabyte downloads. The heaviest
+training run in the book peaks at about 860 MB and finishes in minutes.
 
 ---
 
@@ -353,15 +354,17 @@ trained something, 09b answers the "but where do the weights come from?" questio
 
 ## Notes
 
-- All lessons use the **Apple Silicon GPU (MPS)** when available and fall back to CPU
-  otherwise, so everything runs unchanged on other hardware — just slower. For the
-  smallest models MPS is actually *slower* than CPU; the benefit starts at lesson 03.
+- Every lesson picks its device automatically — Apple Silicon's Metal backend, then
+  CUDA, then CPU — so the code is identical on any of them. For the smallest models the
+  CPU is actually *faster* than a GPU, because the transfer costs more than the
+  arithmetic saves; the benefit starts around the convolution lesson.
 - Solution notebooks have already been executed. Lesson 12 has no solution notebook,
   because its projects have no single right answer.
 - The book vendors KaTeX (`book/vendor/`, ~600 KB, woff2 only) so mathematics renders
   with no network connection.
-- The largest training run in the curriculum is lesson 10, at about four minutes on an
-  M4. Nothing here needs to run overnight.
+- The largest training run in the curriculum is the GPT lesson, and it peaks at about
+  860 MB of memory and finishes in minutes on a laptop CPU. Nothing here needs to run
+  overnight, and nothing needs a GPU to finish in reasonable time.
 - Apple-silicon gotchas — including MPS silently returning zeros for out-of-range
   embedding indices where CPU raises `IndexError` — are collected in the book's
   Appendix.

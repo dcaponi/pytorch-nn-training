@@ -219,10 +219,11 @@ anything.
 <h2>Making it fast on Apple silicon</h2>
 
 <p>
-Unified memory is the M4's defining feature: CPU and GPU share one pool, so
+Unified memory is Apple Silicon's defining feature: CPU and GPU share one pool, so
 <code>.to('mps')</code> costs far less than a PCIe transfer to a discrete GPU. It also means
-your model competes with everything else on the machine for the same 24 GB, and there is no
-separate VRAM figure to watch.
+your model competes with the operating system and everything else for the same pool, and
+there is no separate VRAM figure to watch — where a discrete NVIDIA card gives you a fixed
+budget that is yours alone, and tells you when you have exceeded it.
 </p>
 
 <ul>
@@ -253,7 +254,8 @@ activations: measured at ~1.2 KB per token per layer, 6 layers</div>
   <ol>
     <li>Memory for weights, gradients, and Adam's two state tensors.</li>
     <li>Memory for activations retained for the backward pass.</li>
-    <li>Total, and how it compares to a 24 GB budget (assume ~17 GB usable).</li>
+    <li>Total, and how it compares to your own machine's memory (assume about 70% of it is
+        actually usable once the operating system has taken its share).</li>
     <li>You need to double the batch size and cannot. Give three ways to get the effect, and
         state what each one costs.</li>
   </ol>

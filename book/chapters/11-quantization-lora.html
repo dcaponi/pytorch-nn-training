@@ -31,9 +31,10 @@ costs four tensors:
 
 <p>
 Sixteen bytes per parameter, plus activations. A one-billion-parameter model needs
-16 GB before a single activation exists. On 24 GB of unified memory shared with the
-operating system, full fine-tuning tops out around a billion parameters with nothing
-else running.
+16 GB before a single activation exists. Whatever your machine has, subtract what the
+operating system is already using and assume roughly 70% of the rest is actually
+allocatable — full fine-tuning tops out at about that figure divided by sixteen bytes,
+which on most laptops lands somewhere under a billion parameters.
 </p>
 
 <p>
@@ -534,7 +535,7 @@ model.save_pretrained("adapter/")    # a few hundred KB, not a few GB</code></pr
     <tbody>
     <tr><td>7B weights, fp32</td><td>—</td><td>26.1 GiB</td><td>—</td><td>weights alone, before anything else</td></tr>
     <tr><td>7B weights, fp16/bf16</td><td>—</td><td>13.0 GiB</td><td>—</td><td>the usual serving default</td></tr>
-    <tr><td>7B weights, int8</td><td>—</td><td>6.5 GiB</td><td>—</td><td>comfortable on a 24 GB machine</td></tr>
+    <tr><td>7B weights, int8</td><td>—</td><td>6.5 GiB</td><td>—</td><td>fits a 16 GB laptop with room to work</td></tr>
     <tr><td>7B weights, int4</td><td>—</td><td>3.3 GiB</td><td>—</td><td>QLoRA territory</td></tr>
     <tr><td>int8 range</td><td>$-128$</td><td>—</td><td>127</td><td>symmetric quantization uses $-127..127$</td></tr>
     <tr><td>LoRA $r=8$ on a $768^2$ matrix</td><td>—</td><td>2.08%</td><td>—</td><td>$2rd$ against $d^2$</td></tr>
@@ -545,16 +546,18 @@ model.save_pretrained("adapter/")    # a few hundred KB, not a few GB</code></pr
   <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
   the point is knowing <em>which</em> number to reach for.</p>
   <ol>
-    <li>You have 24 GB. Which of those four precisions fit a 7B model's weights, and what have you forgotten to budget for?</li>
+    <li>You have a 16 GB laptop. Which of those four precisions fit a 7B model's weights, and what have you forgotten to budget for?</li>
     <li>LoRA at $r = 16$ on a $768 \times 768$ matrix. What fraction of the original is that, and what fraction of the <em>optimizer state</em>?</li>
     <li>Why does LoRA's $B$ matrix start at zero while $A$ is random? What would happen if both were random?</li>
   </ol>
   <details>
     <summary>Answers</summary>
-    <p><strong>1.</strong> fp32 does not fit; fp16 fits at 13.0 GiB but leaves only
-    11 GB; int8 and int4 are comfortable. Forgotten: activations, the KV cache (which
-    grows with context and batch), gradients and optimizer states if you are training, and
-    the fragmentation that makes the practical ceiling lower than the arithmetic one.
+    <p><strong>1.</strong> fp32 is not close. fp16 at 13.0 GiB technically fits but is a
+    trap: it leaves about 3 GB for the operating system, your editor and every activation,
+    so in practice it will not run. int8 at 6.5 GiB and int4 at 3.3 GiB are the two that
+    genuinely work. Forgotten: activations, the KV cache (which grows with context and
+    batch), gradients and optimizer states if you are training, and the fragmentation that
+    makes the practical ceiling lower than the arithmetic one.
     Chapter 11's measurement is that sequence length, not parameter count, is usually what
     actually exhausts the budget.</p>
     <p><strong>2.</strong> $2 \times 16 \times 768 = 24{,}576$ against $768^2 =

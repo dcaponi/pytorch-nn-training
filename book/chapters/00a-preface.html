@@ -170,17 +170,40 @@ and never forget.
 <h2>What you need</h2>
 
 <p>
-Everything in this curriculum was written for, and runs on, a MacBook Air with an M4 chip
-and 24&nbsp;GB of unified memory. That constraint is not incidental — it shapes every
-architectural choice in the later chapters. No model here exceeds a few million parameters;
-nothing needs a data-centre GPU, an API key, or a multi-gigabyte checkpoint download. The
-largest single download is an NLTK corpus of a few dozen megabytes.
+A laptop, and that is genuinely all. Nothing here needs a data-centre GPU, an API key or a
+multi-gigabyte checkpoint download; no model in these lessons exceeds a few million
+parameters, and the largest single download is an NLTK corpus of a few dozen megabytes.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th></th><th>Enough</th><th>Comfortable</th></tr></thead>
+  <tbody>
+    <tr><td>Memory</td><td>8&nbsp;GB</td><td>16&nbsp;GB</td></tr>
+    <tr><td>CPU</td><td>any 64-bit chip from roughly the last five years</td><td>4&nbsp;cores or more</td></tr>
+    <tr><td>Disk</td><td>about 2&nbsp;GB, nearly all of it PyTorch</td><td>—</td></tr>
+    <tr><td>GPU</td><td>none</td><td>Apple&nbsp;Silicon, or an NVIDIA card with CUDA</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+That memory figure is measured rather than guessed. The heaviest thing in the book — the
+full GPT training run — peaks at about <strong>860&nbsp;MB</strong> of resident memory, so
+8&nbsp;GB leaves it room alongside a browser, an editor and the rest of your machine. At
+16&nbsp;GB you will never think about it again.
 </p>
 
 <p>
-PyTorch's Metal Performance Shaders backend (<code>device = "mps"</code>) gives you real GPU
-acceleration on that machine. Every notebook selects it automatically and falls back to CPU
-when it is unavailable, so the code runs unchanged on other hardware — just slower.
+A GPU is a convenience here, not a requirement, and it is worth being clear about what it
+does and does not buy you. Every notebook picks its device automatically —
+Apple&nbsp;Silicon's Metal backend first, then CUDA, then the CPU — so the code is
+identical either way and nothing needs configuring. For the smallest models the CPU is
+actually <em>faster</em>, because moving tensors to a GPU costs more than the arithmetic
+saves; the benefit starts around the convolution lesson and grows from there. A 16&nbsp;GB
+M1 will carry you through the whole book. So will an RTX. So will a several-year-old
+desktop CPU with nothing special in it — you will simply wait a few minutes longer on the
+two or three longest runs, and every one of those is minutes, not hours.
 </p>
 
 <p>

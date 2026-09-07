@@ -613,7 +613,8 @@ path 2 (w → b → L):      1 × 18      = 18
     parameters — in one feed-forward block, of one layer.</p>
     <p>Weights alone: 8.4 MB. But training needs the gradient (another 8.4 MB) and Adam's
     $m$ and $v$ (8.4 MB each), giving <strong>~33.6 MB</strong>, or 16 bytes per parameter.
-    That 16× multiplier is the number that decides what you can train on a 24 GB machine,
+    That 16× multiplier is the number that decides what you can train on whatever machine
+    you have,
     and <a class="xref" href="#ch11">Chapter 11</a> is largely about attacking it.</p>
   </details>
 </div>

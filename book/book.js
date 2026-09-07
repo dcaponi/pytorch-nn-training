@@ -1625,7 +1625,7 @@
           'LoRA(r=' + r + '): <b>' + lora.toLocaleString() + '</b>   ' +
           '(<b>' + (100 * lora / full).toFixed(2) + '%</b>, ' + (full / lora).toFixed(0) + '× fewer)\n' +
           'B starts at zero so BA = 0 and the adapted model is identical to the base model at step 0. ' +
-          'Optimizer state shrinks by the same factor — that is what actually lets this fit in 24 GB.';
+          'Optimizer state shrinks by the same factor, which is what actually gets it onto a laptop.';
       }
     });
   };
@@ -1666,16 +1666,18 @@
   };
 
   /* ----------------------------------------------------------------------
-     Widget: memory budget for a 24 GB Mac                    (chapter 11)
+     Widget: what fits in the memory you have                 (chapter 11)
      ---------------------------------------------------------------------- */
 
   REGISTRY['memory-budget'] = function (el) {
     build(el, {
-      title: 'What actually fits in 24 GB of unified memory',
+      title: 'What actually fits in the memory you have',
       height: 200,
       controls: [
         { name: 'params', label: 'parameters (millions)', type: 'range', min: 5, max: 8000, step: 5, value: 100,
           fmt: function (v) { return v >= 1000 ? (v / 1000).toFixed(1) + 'B' : v + 'M'; } },
+        { name: 'ram', label: 'machine memory (GB)', type: 'range', min: 8, max: 96, step: 8, value: 16,
+          fmt: function (v) { return v + ' GB'; } },
         { name: 'mode', label: 'mode', type: 'select', value: 'adam',
           options: [['adam', 'full fine-tune (Adam, fp32)'], ['lora', 'LoRA r=8 on fp16 base'],
                     ['infer16', 'inference fp16'], ['infer4', 'inference 4-bit']] }
@@ -1705,7 +1707,7 @@
         ctx.clearRect(0, 0, W, H);
         var p = palette();
 
-        var BUDGET = 24 * 1e9 * 0.72;   // the OS and everything else needs a share
+        var BUDGET = v.ram * 1e9 * 0.72;   // the OS and everything else needs a share
         var total = parts.reduce(function (a, x) { return a + x[1]; }, 0);
         var barW = W - 30, x = 15, y = 60, h = 44;
         var cols = [p.accent, p.concept, p.notebook, p.byhand, p.warn];
@@ -1732,7 +1734,8 @@
         ctx.setLineDash([]);
         ctx.fillStyle = p.warn; ctx.font = '10px ui-sans-serif, sans-serif';
         ctx.textAlign = bx > W - 120 ? 'right' : 'left'; ctx.textBaseline = 'bottom';
-        ctx.fillText(' usable budget ≈ 17 GB', bx + (bx > W - 120 ? -4 : 4), y - 24);
+        ctx.fillText(' usable ≈ ' + (BUDGET / 1e9).toFixed(0) + ' GB of ' + v.ram + ' GB',
+                     bx + (bx > W - 120 ? -4 : 4), y - 24);
 
         // legend
         ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
@@ -1753,9 +1756,11 @@
         else if (v.mode === 'lora') total = P * 2 + P * 0.032 + P * 0.7;
         else if (v.mode === 'infer16') total = P * 2.24;
         else total = P * 0.74;
-        var fits = total < 24e9 * 0.72;
+        var budget = v.ram * 1e9 * 0.72;
+        var fits = total < budget;
         return 'estimated peak memory: <b>' + (total / 1e9).toFixed(2) + ' GB</b> — ' +
-          (fits ? '<b>fits</b> on a 24 GB M4 Air' : '<b>does not fit</b>: the allocator will thrash or the process will be killed') +
+          (fits ? '<b>fits</b> in ' + v.ram + ' GB'
+                : '<b>does not fit</b> in ' + v.ram + ' GB: the allocator will thrash or the process will be killed') +
           '\nRule of thumb: full Adam fine-tuning costs ~16 bytes per parameter. That is the number that decides ' +
           'what you can train, and it is why every chapter here keeps models in the few-million-parameter range.';
       }

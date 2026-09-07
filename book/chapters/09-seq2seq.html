@@ -51,29 +51,29 @@ two ways, and both are essential:
     <marker id="blk-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
   </defs>
   <rect x="40" y="46" width="252" height="150" rx="12" fill="none" stroke="var(--notebook)" stroke-width="1.4"/>
-  <text x="52" y="38" font-size="12.0" text-anchor="start" fill="var(--notebook)" font-weight="600">encoder block</text>
+  <text x="52" y="38" font-size="13.0" text-anchor="start" fill="var(--notebook)" font-weight="600">encoder block</text>
   <rect x="62" y="142" width="208" height="34" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.3"/>
-  <text x="166.0" y="158.0" font-size="12.0" text-anchor="middle" fill="var(--ink)">self-attention</text>
-  <text x="166.0" y="171.0" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">bidirectional</text>
+  <text x="166.0" y="158.0" font-size="13.0" text-anchor="middle" fill="var(--ink)">self-attention</text>
+  <text x="166.0" y="171.0" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">bidirectional</text>
   <path d="M166,142 L166,118" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#blk-ink)"/>
   <rect x="62" y="74" width="208" height="34" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.3"/>
-  <text x="166.0" y="94.66666666666667" font-size="12.0" text-anchor="middle" fill="var(--ink)">feed-forward</text>
-  <text x="166" y="216" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">2 sublayers</text>
+  <text x="166.0" y="94.66666666666667" font-size="13.0" text-anchor="middle" fill="var(--ink)">feed-forward</text>
+  <text x="166" y="216" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">2 sublayers</text>
   <rect x="404" y="46" width="300" height="222" rx="12" fill="none" stroke="var(--sayback)" stroke-width="1.4"/>
-  <text x="416" y="38" font-size="12.0" text-anchor="start" fill="var(--sayback)" font-weight="600">decoder block</text>
+  <text x="416" y="38" font-size="13.0" text-anchor="start" fill="var(--sayback)" font-weight="600">decoder block</text>
   <rect x="426" y="214" width="256" height="36" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.3"/>
-  <text x="554.0" y="231.0" font-size="12.0" text-anchor="middle" fill="var(--ink)">self-attention</text>
-  <text x="554.0" y="244.0" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">causally masked</text>
+  <text x="554.0" y="231.0" font-size="13.0" text-anchor="middle" fill="var(--ink)">self-attention</text>
+  <text x="554.0" y="244.0" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">causally masked</text>
   <path d="M554,214 L554,190" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#blk-ink)"/>
   <rect x="426" y="146" width="256" height="38" rx="7" fill="var(--bg-raised)" stroke="var(--concept)" stroke-width="1.3"/>
-  <text x="554.0" y="164.0" font-size="12.0" text-anchor="middle" fill="var(--ink)">cross-attention</text>
-  <text x="554.0" y="177.0" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">Q from below, K and V from the encoder</text>
+  <text x="554.0" y="164.0" font-size="13.0" text-anchor="middle" fill="var(--ink)">cross-attention</text>
+  <text x="554.0" y="177.0" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">Q from below, K and V from the encoder</text>
   <path d="M554,146 L554,122" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#blk-ink)"/>
   <rect x="426" y="78" width="256" height="34" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.3"/>
-  <text x="554.0" y="98.66666666666667" font-size="12.0" text-anchor="middle" fill="var(--ink)">feed-forward</text>
-  <text x="554" y="284" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">3 sublayers</text>
+  <text x="554.0" y="98.66666666666667" font-size="13.0" text-anchor="middle" fill="var(--ink)">feed-forward</text>
+  <text x="554" y="284" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">3 sublayers</text>
   <path d="M292,122 L350,122 L350,165 L420,165" fill="none" stroke="var(--concept)" stroke-width="1.6" stroke-linejoin="round" marker-end="url(#blk-m)"/>
-  <text x="350" y="106" font-size="12.0" text-anchor="middle" fill="var(--concept)" font-weight="600">memory</text>
+  <text x="350" y="106" font-size="13.0" text-anchor="middle" fill="var(--concept)" font-weight="600">memory</text>
 </svg>
 <figcaption><b>The last row of that table, drawn.</b> The decoder's extra sublayer is wedged between the other two, and the arrow entering it from the left is the only route by which anything about the source sentence reaches the decoder at all. Note which side supplies which: the query comes from the decoder below, the keys and values from the encoder. That asymmetry is not a convention — it decides which half of the model each matrix belongs to, and which way the gradient can travel (<a class="xref" href="#ch09b-cross-attention">Chapter 09b</a>). Cut the arrow and you have a language model that ignores its input, which — read the other way round — is exactly how <a class="xref" href="#ch10">Chapter 10</a>'s decoder-only GPT is built.</figcaption>
 </figure>
@@ -155,52 +155,52 @@ between target and source positions.
     <marker id="stk-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
   </defs>
   <rect x="70" y="232" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--notebook)" stroke-width="1.3"/>
-  <text x="145.0" y="248.33333333333334" font-size="12.0" text-anchor="middle" fill="var(--ink)">encoder 1</text>
+  <text x="145.0" y="248.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">encoder 1</text>
   <rect x="500" y="232" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
-  <text x="575.0" y="248.33333333333334" font-size="12.0" text-anchor="middle" fill="var(--ink)">decoder 1</text>
+  <text x="575.0" y="248.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder 1</text>
   <path d="M228,44 L300,44 L300,245 L494,245" fill="none" stroke="var(--concept)" stroke-width="1.1" stroke-linejoin="round" marker-end="url(#stk-m)"/>
   <rect x="70" y="198" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--notebook)" stroke-width="1.3"/>
-  <text x="145.0" y="214.33333333333334" font-size="12.0" text-anchor="middle" fill="var(--ink)">encoder 2</text>
+  <text x="145.0" y="214.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">encoder 2</text>
   <rect x="500" y="198" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
-  <text x="575.0" y="214.33333333333334" font-size="12.0" text-anchor="middle" fill="var(--ink)">decoder 2</text>
+  <text x="575.0" y="214.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder 2</text>
   <path d="M145,232 L145,226" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
   <path d="M575,232 L575,226" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
   <path d="M228,44 L300,44 L300,211 L494,211" fill="none" stroke="var(--concept)" stroke-width="1.1" stroke-linejoin="round" marker-end="url(#stk-m)"/>
   <rect x="70" y="164" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--notebook)" stroke-width="1.3"/>
-  <text x="145.0" y="180.33333333333334" font-size="12.0" text-anchor="middle" fill="var(--ink)">encoder 3</text>
+  <text x="145.0" y="180.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">encoder 3</text>
   <rect x="500" y="164" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
-  <text x="575.0" y="180.33333333333334" font-size="12.0" text-anchor="middle" fill="var(--ink)">decoder 3</text>
+  <text x="575.0" y="180.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder 3</text>
   <path d="M145,198 L145,192" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
   <path d="M575,198 L575,192" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
   <path d="M228,44 L300,44 L300,177 L494,177" fill="none" stroke="var(--concept)" stroke-width="1.1" stroke-linejoin="round" marker-end="url(#stk-m)"/>
   <rect x="70" y="130" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--notebook)" stroke-width="1.3"/>
-  <text x="145.0" y="146.33333333333334" font-size="12.0" text-anchor="middle" fill="var(--ink)">encoder 4</text>
+  <text x="145.0" y="146.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">encoder 4</text>
   <rect x="500" y="130" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
-  <text x="575.0" y="146.33333333333334" font-size="12.0" text-anchor="middle" fill="var(--ink)">decoder 4</text>
+  <text x="575.0" y="146.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder 4</text>
   <path d="M145,164 L145,158" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
   <path d="M575,164 L575,158" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
   <path d="M228,44 L300,44 L300,143 L494,143" fill="none" stroke="var(--concept)" stroke-width="1.1" stroke-linejoin="round" marker-end="url(#stk-m)"/>
   <rect x="70" y="96" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--notebook)" stroke-width="1.3"/>
-  <text x="145.0" y="112.33333333333333" font-size="12.0" text-anchor="middle" fill="var(--ink)">encoder 5</text>
+  <text x="145.0" y="112.33333333333333" font-size="13.0" text-anchor="middle" fill="var(--ink)">encoder 5</text>
   <rect x="500" y="96" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
-  <text x="575.0" y="112.33333333333333" font-size="12.0" text-anchor="middle" fill="var(--ink)">decoder 5</text>
+  <text x="575.0" y="112.33333333333333" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder 5</text>
   <path d="M145,130 L145,124" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
   <path d="M575,130 L575,124" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
   <path d="M228,44 L300,44 L300,109 L494,109" fill="none" stroke="var(--concept)" stroke-width="1.1" stroke-linejoin="round" marker-end="url(#stk-m)"/>
   <rect x="70" y="62" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--notebook)" stroke-width="1.3"/>
-  <text x="145.0" y="78.33333333333333" font-size="12.0" text-anchor="middle" fill="var(--ink)">encoder 6</text>
+  <text x="145.0" y="78.33333333333333" font-size="13.0" text-anchor="middle" fill="var(--ink)">encoder 6</text>
   <rect x="500" y="62" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
-  <text x="575.0" y="78.33333333333333" font-size="12.0" text-anchor="middle" fill="var(--ink)">decoder 6</text>
+  <text x="575.0" y="78.33333333333333" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder 6</text>
   <path d="M145,96 L145,90" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
   <path d="M575,96 L575,90" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
   <path d="M228,44 L300,44 L300,75 L494,75" fill="none" stroke="var(--concept)" stroke-width="1.1" stroke-linejoin="round" marker-end="url(#stk-m)"/>
   <path d="M145,288 L145,266" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#stk-ink)"/>
-  <text x="145" y="302" font-size="12.0" text-anchor="middle" fill="var(--notebook)">source tokens</text>
+  <text x="145" y="302" font-size="13.0" text-anchor="middle" fill="var(--notebook)">source tokens</text>
   <path d="M575,46 L575,26" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#stk-ink)"/>
-  <text x="575" y="18" font-size="12.0" text-anchor="middle" fill="var(--sayback)">next-token logits</text>
+  <text x="575" y="18" font-size="13.0" text-anchor="middle" fill="var(--sayback)">next-token logits</text>
   <path d="M575,288 L575,266" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#stk-ink)"/>
-  <text x="575" y="302" font-size="12.0" text-anchor="middle" fill="var(--sayback)">target so far</text>
-  <text x="300" y="30" font-size="12.0" text-anchor="middle" fill="var(--concept)">memory — the top encoder's output, and only that</text>
+  <text x="575" y="302" font-size="13.0" text-anchor="middle" fill="var(--sayback)">target so far</text>
+  <text x="300" y="30" font-size="13.0" text-anchor="middle" fill="var(--concept)">memory — the top encoder's output, and only that</text>
 </svg>
 <figcaption><b>Which encoder output the decoder reads.</b> Only the <em>top</em> encoder's output becomes the memory, and every decoder layer receives that same tensor — the fan of six arrows, not a diagonal one-to-one wiring, which is the arrangement most people guess first. Two consequences worth carrying: at inference the encoder runs once for the whole sentence no matter how long the translation gets, and on the backward pass the gradients from all six decoder layers <em>sum</em> into that one tensor before any of them reach the encoder (<a class="xref" href="#ch09b-cross-attention">Chapter 09b</a>).</figcaption>
 </figure>
@@ -280,69 +280,69 @@ time.
     <marker id="dec-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--sayback)"/></marker>
   </defs>
   <rect x="24" y="40" width="172" height="200" rx="10" fill="none" stroke="var(--rule-strong)" stroke-width="1.1" stroke-dasharray="4 4"/>
-  <text x="110.0" y="30" font-size="12.5" text-anchor="middle" fill="var(--ink-faint)">step 1</text>
+  <text x="110.0" y="30" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">step 1</text>
   <rect x="38" y="54" width="68" height="30" rx="6" fill="var(--bg-raised)" stroke="var(--concept)" stroke-width="1.3"/>
-  <text x="72.0" y="72.16666666666667" font-size="12.0" text-anchor="middle" fill="var(--ink)">memory</text>
-  <text x="72" y="102" font-size="12.0" text-anchor="middle" fill="var(--concept)">K and V</text>
-  <text x="72" y="118" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">unchanged</text>
-  <text x="110.0" y="144" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">previous outputs</text>
+  <text x="72.0" y="72.16666666666667" font-size="13.0" text-anchor="middle" fill="var(--ink)">memory</text>
+  <text x="72" y="102" font-size="13.0" text-anchor="middle" fill="var(--concept)">K and V</text>
+  <text x="72" y="118" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">unchanged</text>
+  <text x="110.0" y="144" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">previous outputs</text>
   <rect x="38" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
-  <text x="54" y="165" font-size="12.0" text-anchor="middle" fill="var(--ink)">&lt;s&gt;</text>
+  <text x="54" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">&lt;s&gt;</text>
   <rect x="38" y="182" width="144" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
-  <text x="110.0" y="198.16666666666666" font-size="12.0" text-anchor="middle" fill="var(--ink)">decoder</text>
+  <text x="110.0" y="198.16666666666666" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder</text>
   <path d="M110,182 L110,172" fill="none" stroke="var(--sayback)" stroke-width="1.2" marker-end="url(#dec-o)"/>
-  <text x="110" y="230" font-size="12.5" text-anchor="middle" fill="var(--sayback)" font-weight="600">emits &#8220;I&#8221;</text>
+  <text x="110" y="230" font-size="13.0" text-anchor="middle" fill="var(--sayback)" font-weight="600">emits &#8220;I&#8221;</text>
   <rect x="208" y="40" width="172" height="200" rx="10" fill="none" stroke="var(--rule-strong)" stroke-width="1.1" stroke-dasharray="4 4"/>
-  <text x="294.0" y="30" font-size="12.5" text-anchor="middle" fill="var(--ink-faint)">step 2</text>
+  <text x="294.0" y="30" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">step 2</text>
   <rect x="222" y="54" width="68" height="30" rx="6" fill="var(--bg-raised)" stroke="var(--concept)" stroke-width="1.3"/>
-  <text x="256.0" y="72.16666666666667" font-size="12.0" text-anchor="middle" fill="var(--ink)">memory</text>
-  <text x="256" y="102" font-size="12.0" text-anchor="middle" fill="var(--concept)">K and V</text>
-  <text x="256" y="118" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">unchanged</text>
-  <text x="294.0" y="144" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">previous outputs</text>
+  <text x="256.0" y="72.16666666666667" font-size="13.0" text-anchor="middle" fill="var(--ink)">memory</text>
+  <text x="256" y="102" font-size="13.0" text-anchor="middle" fill="var(--concept)">K and V</text>
+  <text x="256" y="118" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">unchanged</text>
+  <text x="294.0" y="144" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">previous outputs</text>
   <rect x="222" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
-  <text x="238" y="165" font-size="12.0" text-anchor="middle" fill="var(--ink)">&lt;s&gt;</text>
+  <text x="238" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">&lt;s&gt;</text>
   <rect x="258" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
-  <text x="274" y="165" font-size="12.0" text-anchor="middle" fill="var(--ink)">I</text>
+  <text x="274" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">I</text>
   <rect x="222" y="182" width="144" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
-  <text x="294.0" y="198.16666666666666" font-size="12.0" text-anchor="middle" fill="var(--ink)">decoder</text>
+  <text x="294.0" y="198.16666666666666" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder</text>
   <path d="M294,182 L294,172" fill="none" stroke="var(--sayback)" stroke-width="1.2" marker-end="url(#dec-o)"/>
-  <text x="294" y="230" font-size="12.5" text-anchor="middle" fill="var(--sayback)" font-weight="600">emits &#8220;am&#8221;</text>
+  <text x="294" y="230" font-size="13.0" text-anchor="middle" fill="var(--sayback)" font-weight="600">emits &#8220;am&#8221;</text>
   <rect x="392" y="40" width="172" height="200" rx="10" fill="none" stroke="var(--rule-strong)" stroke-width="1.1" stroke-dasharray="4 4"/>
-  <text x="478.0" y="30" font-size="12.5" text-anchor="middle" fill="var(--ink-faint)">step 3</text>
+  <text x="478.0" y="30" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">step 3</text>
   <rect x="406" y="54" width="68" height="30" rx="6" fill="var(--bg-raised)" stroke="var(--concept)" stroke-width="1.3"/>
-  <text x="440.0" y="72.16666666666667" font-size="12.0" text-anchor="middle" fill="var(--ink)">memory</text>
-  <text x="440" y="102" font-size="12.0" text-anchor="middle" fill="var(--concept)">K and V</text>
-  <text x="440" y="118" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">unchanged</text>
-  <text x="478.0" y="144" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">previous outputs</text>
+  <text x="440.0" y="72.16666666666667" font-size="13.0" text-anchor="middle" fill="var(--ink)">memory</text>
+  <text x="440" y="102" font-size="13.0" text-anchor="middle" fill="var(--concept)">K and V</text>
+  <text x="440" y="118" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">unchanged</text>
+  <text x="478.0" y="144" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">previous outputs</text>
   <rect x="406" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
-  <text x="422" y="165" font-size="12.0" text-anchor="middle" fill="var(--ink)">&lt;s&gt;</text>
+  <text x="422" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">&lt;s&gt;</text>
   <rect x="442" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
-  <text x="458" y="165" font-size="12.0" text-anchor="middle" fill="var(--ink)">I</text>
+  <text x="458" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">I</text>
   <rect x="478" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
-  <text x="494" y="165" font-size="12.0" text-anchor="middle" fill="var(--ink)">am</text>
+  <text x="494" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">am</text>
   <rect x="406" y="182" width="144" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
-  <text x="478.0" y="198.16666666666666" font-size="12.0" text-anchor="middle" fill="var(--ink)">decoder</text>
+  <text x="478.0" y="198.16666666666666" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder</text>
   <path d="M478,182 L478,172" fill="none" stroke="var(--sayback)" stroke-width="1.2" marker-end="url(#dec-o)"/>
-  <text x="478" y="230" font-size="12.5" text-anchor="middle" fill="var(--sayback)" font-weight="600">emits &#8220;a&#8221;</text>
+  <text x="478" y="230" font-size="13.0" text-anchor="middle" fill="var(--sayback)" font-weight="600">emits &#8220;a&#8221;</text>
   <rect x="576" y="40" width="172" height="200" rx="10" fill="none" stroke="var(--rule-strong)" stroke-width="1.1" stroke-dasharray="4 4"/>
-  <text x="662.0" y="30" font-size="12.5" text-anchor="middle" fill="var(--ink-faint)">step 4</text>
+  <text x="662.0" y="30" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">step 4</text>
   <rect x="590" y="54" width="68" height="30" rx="6" fill="var(--bg-raised)" stroke="var(--concept)" stroke-width="1.3"/>
-  <text x="624.0" y="72.16666666666667" font-size="12.0" text-anchor="middle" fill="var(--ink)">memory</text>
-  <text x="624" y="102" font-size="12.0" text-anchor="middle" fill="var(--concept)">K and V</text>
-  <text x="624" y="118" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">unchanged</text>
-  <text x="662.0" y="144" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">previous outputs</text>
+  <text x="624.0" y="72.16666666666667" font-size="13.0" text-anchor="middle" fill="var(--ink)">memory</text>
+  <text x="624" y="102" font-size="13.0" text-anchor="middle" fill="var(--concept)">K and V</text>
+  <text x="624" y="118" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">unchanged</text>
+  <text x="662.0" y="144" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">previous outputs</text>
   <rect x="590" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
-  <text x="606" y="165" font-size="12.0" text-anchor="middle" fill="var(--ink)">&lt;s&gt;</text>
+  <text x="606" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">&lt;s&gt;</text>
   <rect x="626" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
-  <text x="642" y="165" font-size="12.0" text-anchor="middle" fill="var(--ink)">I</text>
+  <text x="642" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">I</text>
   <rect x="662" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
-  <text x="678" y="165" font-size="12.0" text-anchor="middle" fill="var(--ink)">am</text>
+  <text x="678" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">am</text>
   <rect x="698" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
-  <text x="714" y="165" font-size="12.0" text-anchor="middle" fill="var(--ink)">a</text>
+  <text x="714" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">a</text>
   <rect x="590" y="182" width="144" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
-  <text x="662.0" y="198.16666666666666" font-size="12.0" text-anchor="middle" fill="var(--ink)">decoder</text>
+  <text x="662.0" y="198.16666666666666" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder</text>
   <path d="M662,182 L662,172" fill="none" stroke="var(--sayback)" stroke-width="1.2" marker-end="url(#dec-o)"/>
-  <text x="662" y="230" font-size="12.5" text-anchor="middle" fill="var(--sayback)" font-weight="600">emits &#8220;student&#8221;</text>
+  <text x="662" y="230" font-size="13.0" text-anchor="middle" fill="var(--sayback)" font-weight="600">emits &#8220;student&#8221;</text>
 </svg>
 <figcaption><b>The loop above, running.</b> Three things to watch for, all of which the code makes true. The left half of every panel is identical — that is <code>memory = model.encode(src)</code> hoisted out of the loop, and it is where $K_{\text{encdec}}$ and $V_{\text{encdec}}$ come from. The row of previous outputs grows by one token per step, and the <em>whole</em> row is re-embedded and re-run every time, which is the quadratic waste the KV cache removes. And the run ends because the model emits <code>&lt;EOS&gt;</code>, not because it hit a length limit. <br><br> This is inference. Training does not look like this at all: teacher forcing hands the decoder the entire correct row at once and scores every position in a single parallel pass. The gap between these two pictures is exposure bias, above.</figcaption>
 </figure>

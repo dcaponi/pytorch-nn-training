@@ -168,7 +168,7 @@ body {
 #content {
   margin-left: var(--sidebar-w);
   padding: 3rem 3rem 8rem;
-  max-width: calc(var(--measure) + 12rem);
+  max-width: calc(var(--measure) + 18rem);
 }
 
 @media (max-width: 68rem) {
@@ -664,8 +664,17 @@ figcaption b, .caption b { color: var(--ink-soft); }
    scale to 0.75, which drags a 12px label down to 9px — so figures take the wider
    measure and centre on the column rather than overhanging it. Below the sidebar
    breakpoint they fall back to full width, where max-width:100% already holds. */
-@media (min-width: 68rem) {
-  .figure.wide { margin-left: -4.5rem; }
+@media (min-width: 74rem) {
+  /* Diagrams are not prose: they gain nothing from the 39rem reading measure and
+     lose a lot to it. Left-aligned with the text and run out into the empty right
+     margin, a 760-unit canvas renders slightly over 1:1 instead of at 0.75, which
+     puts the smallest label back above 14px. The .wide rule above pins max-width
+     with !important, so it has to be overridden rather than merely widened; the
+     min() keeps the figure inside the viewport on a narrower window. */
+  .figure.wide {
+    width: min(calc(var(--measure) + 20rem), calc(100vw - 27rem));
+    max-width: min(calc(var(--measure) + 20rem), calc(100vw - 27rem)) !important;
+  }
 }
 
 /* the one link in the book that people need to be able to find at a glance */
