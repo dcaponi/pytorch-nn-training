@@ -1,0 +1,773 @@
+<section class="chapter" id="ch09">
+
+<p class="chapter-meta">Chapter 09 · notebook <code>09_seq2seq_translation</code></p>
+<h1>Encoder–Decoder Translation</h1>
+
+<p class="lede">
+Every model so far has mapped a sequence to a single label or number. Translation maps a
+sequence to <em>another sequence</em>, of different length, in a different language, with
+different word order. This chapter builds the architecture that does it — and confronts the
+new problem that generation creates: the model must consume its own output.
+</p>
+
+<div class="box note">
+  <span class="box-label">The same thing, three names</span>
+  This chapter says <strong>encoder–decoder</strong>, because that names the parts. You
+  will far more often see the same architecture called <strong>seq2seq</strong> — short
+  for sequence-to-sequence, from Sutskever, Vinyals and Le's 2014 paper of that name,
+  which did this with LSTMs before transformers existed. Papers also say
+  <strong>sequence transduction</strong>, which is what "Attention Is All You Need" calls
+  it. All three mean a model that reads one whole sequence and writes another, and the
+  lesson folder is named <code>09_seq2seq_translation</code> because that is the term you
+  will meet in the wild. Nothing distinguishes them; if someone asks whether your model
+  is seq2seq, they are asking whether it has this shape.
+</div>
+
+<h2>Two stacks with different jobs</h2>
+
+<p>
+The encoder reads the source sentence and produces one contextual vector per source token —
+collectively called the <strong>memory</strong>. It is exactly the encoder of
+<a class="xref" href="#ch08">Chapter 08</a>, unchanged, with bidirectional (unmasked)
+attention because the whole source is available at once.
+</p>
+
+<p>
+The decoder generates the target sentence one token at a time. It differs from the encoder in
+two ways, and both are essential:
+</p>
+
+<ol>
+  <li>Its self-attention is <strong>causally masked</strong> — position $t$ may not see
+      $t+1$ — because at generation time those tokens do not exist yet.</li>
+  <li>It has a third sub-layer, <strong>cross-attention</strong>, which is how the source
+      sentence gets in.</li>
+</ol>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th></th><th>Encoder layer</th><th>Decoder layer</th></tr></thead>
+  <tbody>
+    <tr><td>Self-attention</td><td>bidirectional</td><td>causally masked</td></tr>
+    <tr><td>Cross-attention</td><td>—</td><td>Q from decoder, K/V from memory</td></tr>
+    <tr><td>Feed-forward</td><td>yes</td><td>yes</td></tr>
+    <tr><td>Sub-layers</td><td>2</td><td>3</td></tr>
+  </tbody>
+</table>
+</div>
+<figure class="figure wide">
+<svg viewBox="0 0 760 300" role="img" aria-labelledby="f-blk-t f-blk-d" style="font-family:var(--sans)">
+  <title id="f-blk-t">Encoder block against decoder block</title>
+  <desc id="f-blk-d">Side by side. The encoder block has two sublayers: bidirectional self-attention then feed-forward. The decoder block has three: causally masked self-attention, cross-attention, then feed-forward. An arrow labelled memory runs from the encoder into the decoder's cross-attention.</desc>
+  <defs>
+    <marker id="blk-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
+    <marker id="blk-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
+  </defs>
+  <rect x="40" y="46" width="252" height="150" rx="12" fill="none" stroke="var(--notebook)" stroke-width="1.4"/>
+  <text x="52" y="38" font-size="13.0" text-anchor="start" fill="var(--notebook)" font-weight="600">encoder block</text>
+  <rect x="62" y="142" width="208" height="34" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.3"/>
+  <text x="166.0" y="158.0" font-size="13.0" text-anchor="middle" fill="var(--ink)">self-attention</text>
+  <text x="166.0" y="171.0" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">bidirectional</text>
+  <path d="M166,142 L166,118" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#blk-ink)"/>
+  <rect x="62" y="74" width="208" height="34" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.3"/>
+  <text x="166.0" y="94.66666666666667" font-size="13.0" text-anchor="middle" fill="var(--ink)">feed-forward</text>
+  <text x="166" y="216" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">2 sublayers</text>
+  <rect x="404" y="46" width="300" height="222" rx="12" fill="none" stroke="var(--sayback)" stroke-width="1.4"/>
+  <text x="416" y="38" font-size="13.0" text-anchor="start" fill="var(--sayback)" font-weight="600">decoder block</text>
+  <rect x="426" y="214" width="256" height="36" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.3"/>
+  <text x="554.0" y="231.0" font-size="13.0" text-anchor="middle" fill="var(--ink)">self-attention</text>
+  <text x="554.0" y="244.0" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">causally masked</text>
+  <path d="M554,214 L554,190" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#blk-ink)"/>
+  <rect x="426" y="146" width="256" height="38" rx="7" fill="var(--bg-raised)" stroke="var(--concept)" stroke-width="1.3"/>
+  <text x="554.0" y="164.0" font-size="13.0" text-anchor="middle" fill="var(--ink)">cross-attention</text>
+  <text x="554.0" y="177.0" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">Q from below, K and V from the encoder</text>
+  <path d="M554,146 L554,122" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#blk-ink)"/>
+  <rect x="426" y="78" width="256" height="34" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.3"/>
+  <text x="554.0" y="98.66666666666667" font-size="13.0" text-anchor="middle" fill="var(--ink)">feed-forward</text>
+  <text x="554" y="284" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">3 sublayers</text>
+  <path d="M292,122 L350,122 L350,165 L420,165" fill="none" stroke="var(--concept)" stroke-width="1.6" stroke-linejoin="round" marker-end="url(#blk-m)"/>
+  <text x="350" y="106" font-size="13.0" text-anchor="middle" fill="var(--concept)" font-weight="600">memory</text>
+</svg>
+<figcaption><b>The last row of that table, drawn.</b> The decoder's extra sublayer is wedged between the other two, and the arrow entering it from the left is the only route by which anything about the source sentence reaches the decoder at all. Note which side supplies which: the query comes from the decoder below, the keys and values from the encoder. That asymmetry is not a convention — it decides which half of the model each matrix belongs to, and which way the gradient can travel (<a class="xref" href="#ch07-cross-attention">Chapter 07</a>). Cut the arrow and you have a language model that ignores its input, which — read the other way round — is exactly how <a class="xref" href="#ch10">Chapter 10</a>'s decoder-only GPT is built.</figcaption>
+</figure>
+
+
+<h2>Causal masking</h2>
+
+<p>
+The mask is an upper-triangular boolean matrix — <code>True</code> meaning "block this":
+</p>
+
+<pre><code class="language-python">def make_causal_mask(L, device):
+    return torch.triu(torch.ones(L, L, dtype=torch.bool, device=device), diagonal=1)</code></pre>
+
+<p>
+<code>diagonal=1</code> starts the triangle one above the main diagonal, so position $t$ can
+attend to itself and everything before it, but nothing after. Applied as
+<code>scores.masked_fill(mask, float('-inf'))</code> before the softmax, as in
+<a class="xref" href="#ch06">Chapter 06</a>.
+</p>
+
+<div class="widget" data-widget="attention"></div>
+
+<p>
+Tick <em>causal mask</em>: the upper triangle goes dark, and each row's remaining weights
+renormalise to sum to 1.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  Masking is what lets the decoder be trained in parallel. Without it you would have to run
+  the decoder once per output position — $T$ sequential forward passes per example. With it,
+  all $T$ positions are computed in a single pass, each one seeing exactly the prefix it will
+  have at generation time. The mask makes a parallel computation simulate a sequential one,
+  and it is the reason transformers train orders of magnitude faster than RNNs.
+</div>
+
+<div class="box example">
+  <span class="box-label">Example — counting the forward passes</span>
+  <div class="given">A batch of 64 sentences, each 18 tokens long.
+
+WITHOUT masking you would have to run the decoder once per output
+position, feeding it a progressively longer prefix each time:
+    18 sequential forward passes per batch.
+
+WITH the causal mask, all 18 positions go through in ONE pass. Row t
+of the attention matrix sees exactly tokens 1..t — the same prefix
+that pass number t would have supplied.
+
+    64 × 18 = 1,152 supervised predictions, one forward pass.</div>
+  <p style="margin-bottom:0">
+  The mask is not a restriction bolted onto attention; it is the device that lets a
+  fundamentally sequential objective be computed in parallel. Generation is still
+  sequential and always will be — but <em>training</em>, which is where the compute
+  goes, is not.
+  </p>
+</div>
+
+<h2>Cross-attention</h2>
+
+<p>
+One line, and it is the line that makes this a translator:
+</p>
+
+<pre><code class="language-python">ca_out, _ = self.cross_attn(tgt, memory, memory)   # Q=tgt, K=V=memory</code></pre>
+
+<p>
+The query comes from the decoder — <em>what do I need in order to produce the next French
+word?</em> — while keys and values come from the encoder's memory. The resulting attention
+matrix has shape <span class="shape">(B, heads, T_tgt, S_src)</span>: a soft alignment
+between target and source positions.
+</p>
+<figure class="figure wide">
+<svg viewBox="0 0 760 318" role="img" aria-labelledby="f-stk-t f-stk-d" style="font-family:var(--sans)">
+  <title id="f-stk-t">The encoder and decoder stacks, and the memory between them</title>
+  <desc id="f-stk-d">Six encoder blocks stacked on the left, six decoder blocks on the right. The topmost encoder's output fans out along six separate arrows, one into each decoder block, rather than connecting layer to layer.</desc>
+  <defs>
+    <marker id="stk-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
+    <marker id="stk-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
+  </defs>
+  <rect x="70" y="232" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--notebook)" stroke-width="1.3"/>
+  <text x="145.0" y="248.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">encoder 1</text>
+  <rect x="500" y="232" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
+  <text x="575.0" y="248.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder 1</text>
+  <path d="M228,44 L300,44 L300,245 L494,245" fill="none" stroke="var(--concept)" stroke-width="1.1" stroke-linejoin="round" marker-end="url(#stk-m)"/>
+  <rect x="70" y="198" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--notebook)" stroke-width="1.3"/>
+  <text x="145.0" y="214.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">encoder 2</text>
+  <rect x="500" y="198" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
+  <text x="575.0" y="214.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder 2</text>
+  <path d="M145,232 L145,226" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
+  <path d="M575,232 L575,226" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
+  <path d="M228,44 L300,44 L300,211 L494,211" fill="none" stroke="var(--concept)" stroke-width="1.1" stroke-linejoin="round" marker-end="url(#stk-m)"/>
+  <rect x="70" y="164" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--notebook)" stroke-width="1.3"/>
+  <text x="145.0" y="180.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">encoder 3</text>
+  <rect x="500" y="164" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
+  <text x="575.0" y="180.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder 3</text>
+  <path d="M145,198 L145,192" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
+  <path d="M575,198 L575,192" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
+  <path d="M228,44 L300,44 L300,177 L494,177" fill="none" stroke="var(--concept)" stroke-width="1.1" stroke-linejoin="round" marker-end="url(#stk-m)"/>
+  <rect x="70" y="130" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--notebook)" stroke-width="1.3"/>
+  <text x="145.0" y="146.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">encoder 4</text>
+  <rect x="500" y="130" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
+  <text x="575.0" y="146.33333333333334" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder 4</text>
+  <path d="M145,164 L145,158" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
+  <path d="M575,164 L575,158" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
+  <path d="M228,44 L300,44 L300,143 L494,143" fill="none" stroke="var(--concept)" stroke-width="1.1" stroke-linejoin="round" marker-end="url(#stk-m)"/>
+  <rect x="70" y="96" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--notebook)" stroke-width="1.3"/>
+  <text x="145.0" y="112.33333333333333" font-size="13.0" text-anchor="middle" fill="var(--ink)">encoder 5</text>
+  <rect x="500" y="96" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
+  <text x="575.0" y="112.33333333333333" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder 5</text>
+  <path d="M145,130 L145,124" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
+  <path d="M575,130 L575,124" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
+  <path d="M228,44 L300,44 L300,109 L494,109" fill="none" stroke="var(--concept)" stroke-width="1.1" stroke-linejoin="round" marker-end="url(#stk-m)"/>
+  <rect x="70" y="62" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--notebook)" stroke-width="1.3"/>
+  <text x="145.0" y="78.33333333333333" font-size="13.0" text-anchor="middle" fill="var(--ink)">encoder 6</text>
+  <rect x="500" y="62" width="150" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
+  <text x="575.0" y="78.33333333333333" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder 6</text>
+  <path d="M145,96 L145,90" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
+  <path d="M575,96 L575,90" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#stk-ink)"/>
+  <path d="M228,44 L300,44 L300,75 L494,75" fill="none" stroke="var(--concept)" stroke-width="1.1" stroke-linejoin="round" marker-end="url(#stk-m)"/>
+  <path d="M145,288 L145,266" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#stk-ink)"/>
+  <text x="145" y="302" font-size="13.0" text-anchor="middle" fill="var(--notebook)">source tokens</text>
+  <path d="M575,46 L575,26" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#stk-ink)"/>
+  <text x="575" y="18" font-size="13.0" text-anchor="middle" fill="var(--sayback)">next-token logits</text>
+  <path d="M575,288 L575,266" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#stk-ink)"/>
+  <text x="575" y="302" font-size="13.0" text-anchor="middle" fill="var(--sayback)">target so far</text>
+  <text x="300" y="30" font-size="13.0" text-anchor="middle" fill="var(--concept)">memory — the top encoder's output, and only that</text>
+</svg>
+<figcaption><b>Which encoder output the decoder reads.</b> Only the <em>top</em> encoder's output becomes the memory, and every decoder layer receives that same tensor — the fan of six arrows, not a diagonal one-to-one wiring, which is the arrangement most people guess first. Two consequences worth carrying: at inference the encoder runs once for the whole sentence no matter how long the translation gets, and on the backward pass the gradients from all six decoder layers <em>sum</em> into that one tensor before any of them reach the encoder (<a class="xref" href="#ch07-cross-attention">Chapter 07</a>).</figcaption>
+</figure>
+
+
+<p>
+No mask is applied here, and it would be wrong to apply one. The entire source sentence is
+known from the start, and word order differs between languages — producing the first French
+word may well require the last English one. Statistical machine translation spent two decades
+building explicit alignment models; cross-attention learns alignment as a side effect of
+learning to translate, and you can read it straight off the attention weights. The notebook
+plots exactly this.
+</p>
+
+
+<h2>Teacher forcing</h2>
+
+<p>
+Training a generator poses a chicken-and-egg problem. To predict token $t$ the decoder needs
+tokens $1..t-1$ — but early in training the model's own tokens are garbage, so it would be
+learning to continue nonsense.
+</p>
+
+<p>
+<strong>Teacher forcing</strong> feeds the <em>ground-truth</em> prefix instead. The
+implementation is a one-token shift:
+</p>
+
+<pre><code class="language-python">logits = model(src, tgt[:, :-1])              # input:  &lt;SOS&gt; w1 w2 ... w_{T-1}
+loss   = criterion(logits.reshape(-1, V),
+                   tgt[:, 1:].reshape(-1))    # target: w1 w2 ... w_{T-1} &lt;EOS&gt;</code></pre>
+
+<p>
+The decoder input is the target shifted right and prefixed with <code>&lt;SOS&gt;</code>; the
+prediction target is the target shifted left, ending with <code>&lt;EOS&gt;</code>. Position
+$t$ of the input aligns with position $t$ of the output, and the causal mask guarantees no
+position can peek at its own answer.
+</p>
+
+<div class="box warn">
+  <span class="box-label">Exposure bias</span>
+  Training always supplies a perfect prefix; generation never does. The model has therefore
+  never seen its own mistakes and does not know how to recover from them — one wrong token
+  and it is in a state that never occurred during training. This is <strong>exposure
+  bias</strong>, and it is why the sample translations in the notebook sometimes fall into
+  loops ("de la session de la session…"). Mitigations exist — scheduled sampling, sequence-level
+  objectives, beam search — but the mismatch is inherent to teacher forcing, and every
+  autoregressive model in production has it.
+</div>
+
+<h2>Autoregressive decoding</h2>
+
+<pre><code class="language-python">memory  = model.encode(src)          # once — the source never changes
+tgt_ids = [SOS_IDX]
+for _ in range(max_len):
+    out = model.decode(torch.tensor([tgt_ids]), memory)
+    next_token = model.fc_out(out)[0, -1].argmax().item()
+    tgt_ids.append(next_token)
+    if next_token == EOS_IDX:
+        break</code></pre>
+
+<p>
+Three points. The encoder runs <strong>once</strong> — recomputing it every step is a common
+and expensive mistake. Only the <em>last</em> position's logits are used, since the earlier
+ones re-predict tokens already chosen. And generation stops on <code>&lt;EOS&gt;</code>,
+which the model must learn to emit — this is why <code>&lt;EOS&gt;</code> must appear in the
+training targets, and why a model that never learns it will run to <code>max_len</code> every
+time.
+</p>
+<figure class="figure wide">
+<svg viewBox="0 0 760 252" role="img" aria-labelledby="f-dec-t f-dec-d" style="font-family:var(--sans)">
+  <title id="f-dec-t">Autoregressive decoding, one step per panel</title>
+  <desc id="f-dec-d">Four panels. In each, an unchanging memory block supplies keys and values, a row of previously generated tokens grows by one token per panel, and the decoder emits the next word: I, then am, then a, then student.</desc>
+  <defs>
+    <marker id="dec-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
+    <marker id="dec-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
+    <marker id="dec-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--sayback)"/></marker>
+  </defs>
+  <rect x="24" y="40" width="172" height="200" rx="10" fill="none" stroke="var(--rule-strong)" stroke-width="1.1" stroke-dasharray="4 4"/>
+  <text x="110.0" y="30" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">step 1</text>
+  <rect x="38" y="54" width="68" height="30" rx="6" fill="var(--bg-raised)" stroke="var(--concept)" stroke-width="1.3"/>
+  <text x="72.0" y="72.16666666666667" font-size="13.0" text-anchor="middle" fill="var(--ink)">memory</text>
+  <text x="72" y="102" font-size="13.0" text-anchor="middle" fill="var(--concept)">K and V</text>
+  <text x="72" y="118" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">unchanged</text>
+  <text x="110.0" y="144" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">previous outputs</text>
+  <rect x="38" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
+  <text x="54" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">&lt;s&gt;</text>
+  <rect x="38" y="182" width="144" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
+  <text x="110.0" y="198.16666666666666" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder</text>
+  <path d="M110,182 L110,172" fill="none" stroke="var(--sayback)" stroke-width="1.2" marker-end="url(#dec-o)"/>
+  <text x="110" y="230" font-size="13.0" text-anchor="middle" fill="var(--sayback)" font-weight="600">emits &#8220;I&#8221;</text>
+  <rect x="208" y="40" width="172" height="200" rx="10" fill="none" stroke="var(--rule-strong)" stroke-width="1.1" stroke-dasharray="4 4"/>
+  <text x="294.0" y="30" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">step 2</text>
+  <rect x="222" y="54" width="68" height="30" rx="6" fill="var(--bg-raised)" stroke="var(--concept)" stroke-width="1.3"/>
+  <text x="256.0" y="72.16666666666667" font-size="13.0" text-anchor="middle" fill="var(--ink)">memory</text>
+  <text x="256" y="102" font-size="13.0" text-anchor="middle" fill="var(--concept)">K and V</text>
+  <text x="256" y="118" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">unchanged</text>
+  <text x="294.0" y="144" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">previous outputs</text>
+  <rect x="222" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
+  <text x="238" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">&lt;s&gt;</text>
+  <rect x="258" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
+  <text x="274" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">I</text>
+  <rect x="222" y="182" width="144" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
+  <text x="294.0" y="198.16666666666666" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder</text>
+  <path d="M294,182 L294,172" fill="none" stroke="var(--sayback)" stroke-width="1.2" marker-end="url(#dec-o)"/>
+  <text x="294" y="230" font-size="13.0" text-anchor="middle" fill="var(--sayback)" font-weight="600">emits &#8220;am&#8221;</text>
+  <rect x="392" y="40" width="172" height="200" rx="10" fill="none" stroke="var(--rule-strong)" stroke-width="1.1" stroke-dasharray="4 4"/>
+  <text x="478.0" y="30" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">step 3</text>
+  <rect x="406" y="54" width="68" height="30" rx="6" fill="var(--bg-raised)" stroke="var(--concept)" stroke-width="1.3"/>
+  <text x="440.0" y="72.16666666666667" font-size="13.0" text-anchor="middle" fill="var(--ink)">memory</text>
+  <text x="440" y="102" font-size="13.0" text-anchor="middle" fill="var(--concept)">K and V</text>
+  <text x="440" y="118" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">unchanged</text>
+  <text x="478.0" y="144" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">previous outputs</text>
+  <rect x="406" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
+  <text x="422" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">&lt;s&gt;</text>
+  <rect x="442" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
+  <text x="458" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">I</text>
+  <rect x="478" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
+  <text x="494" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">am</text>
+  <rect x="406" y="182" width="144" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
+  <text x="478.0" y="198.16666666666666" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder</text>
+  <path d="M478,182 L478,172" fill="none" stroke="var(--sayback)" stroke-width="1.2" marker-end="url(#dec-o)"/>
+  <text x="478" y="230" font-size="13.0" text-anchor="middle" fill="var(--sayback)" font-weight="600">emits &#8220;a&#8221;</text>
+  <rect x="576" y="40" width="172" height="200" rx="10" fill="none" stroke="var(--rule-strong)" stroke-width="1.1" stroke-dasharray="4 4"/>
+  <text x="662.0" y="30" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">step 4</text>
+  <rect x="590" y="54" width="68" height="30" rx="6" fill="var(--bg-raised)" stroke="var(--concept)" stroke-width="1.3"/>
+  <text x="624.0" y="72.16666666666667" font-size="13.0" text-anchor="middle" fill="var(--ink)">memory</text>
+  <text x="624" y="102" font-size="13.0" text-anchor="middle" fill="var(--concept)">K and V</text>
+  <text x="624" y="118" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">unchanged</text>
+  <text x="662.0" y="144" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">previous outputs</text>
+  <rect x="590" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
+  <text x="606" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">&lt;s&gt;</text>
+  <rect x="626" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
+  <text x="642" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">I</text>
+  <rect x="662" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
+  <text x="678" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">am</text>
+  <rect x="698" y="146" width="32" height="20" rx="4" fill="var(--sayback)" fill-opacity="0.22" stroke="var(--sayback)" stroke-width="1"/>
+  <text x="714" y="165" font-size="13.0" text-anchor="middle" fill="var(--ink)">a</text>
+  <rect x="590" y="182" width="144" height="26" rx="6" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
+  <text x="662.0" y="198.16666666666666" font-size="13.0" text-anchor="middle" fill="var(--ink)">decoder</text>
+  <path d="M662,182 L662,172" fill="none" stroke="var(--sayback)" stroke-width="1.2" marker-end="url(#dec-o)"/>
+  <text x="662" y="230" font-size="13.0" text-anchor="middle" fill="var(--sayback)" font-weight="600">emits &#8220;student&#8221;</text>
+</svg>
+<figcaption><b>The loop above, running.</b> Three things to watch for, all of which the code makes true. The left half of every panel is identical — that is <code>memory = model.encode(src)</code> hoisted out of the loop, and it is where $K_{\text{encdec}}$ and $V_{\text{encdec}}$ come from. The row of previous outputs grows by one token per step, and the <em>whole</em> row is re-embedded and re-run every time, which is the quadratic waste the KV cache removes. And the run ends because the model emits <code>&lt;EOS&gt;</code>, not because it hit a length limit. <br><br> This is inference. Training does not look like this at all: teacher forcing hands the decoder the entire correct row at once and scores every position in a single parallel pass. The gap between these two pictures is exposure bias, above.</figcaption>
+</figure>
+
+
+<p>
+This loop is also quadratic in wasted work: at step $t$ it re-encodes the whole prefix
+$1..t-1$ even though those representations have not changed.
+<a class="xref" href="#ch10-kv-cache">Chapter 10</a> fixes that with a KV cache.
+</p>
+
+<h3>Greedy versus beam search</h3>
+
+<p>
+Taking the argmax at each step is <strong>greedy decoding</strong>, and it is myopic: the
+locally best token can lead to a globally poor sentence. <strong>Beam search</strong> keeps
+the $k$ best partial sequences ranked by total log-probability, expanding all of them at each
+step. It reliably improves translation quality by a point or two of BLEU — and, notably,
+tends to <em>hurt</em> open-ended generation, where it produces bland, repetitive text.
+Translation has one roughly-correct answer; storytelling does not.
+</p>
+
+<h2>Evaluating a translation</h2>
+
+<p>
+Cross-entropy measures how well the model predicts the reference given a perfect prefix.
+That is not the same as translating well, and it is not comparable across vocabularies.
+<strong>BLEU</strong> is the standard alternative: compare $n$-gram overlap between hypothesis
+and reference for $n = 1..4$, take a geometric mean, and apply a brevity penalty so that
+producing three safe words is not rewarded.
+</p>
+
+<p>
+BLEU is a blunt instrument — it has no notion of synonyms or of grammaticality — but it
+correlates well enough in aggregate to be useful. The honest evaluation, for a model this
+size, is to read twenty outputs yourself.
+</p>
+
+<div class="box note">
+  <span class="box-label">A dataset trap worth remembering</span>
+  NLTK's <code>comtrans</code> corpus contains three alignment files: German–English,
+  German–French, and English–French. Calling <code>comtrans.aligned_sents()</code> with no
+  argument concatenates <em>all three</em>, so a model that looks like it is learning
+  English→French is actually being trained on three language pairs at once — and will emit
+  English where you expected French. Always name the file:
+  <code>aligned_sents('alignment-en-fr.txt')</code>. Sanity-check your data by printing a
+  few pairs and reading them. The lesson generalises: almost every corpus has a trap like
+  this, and printing ten examples is the cheapest bug-detector in machine learning.
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 09.1</span>
+  <p>Masking and shifting — the two pieces of bookkeeping most likely to bite you.</p>
+  <div class="given">target sentence:   &lt;SOS&gt;  le  chat  dort  &lt;EOS&gt;
+indices:              1    7    12    23     2</div>
+  <ol>
+    <li>Write out the decoder input and the prediction target after the shift.</li>
+    <li>Draw the $4 \times 4$ causal mask for the decoder input (True = blocked).</li>
+    <li>For each of the four decoder positions, list which target tokens it can attend to and
+        what it must predict.</li>
+    <li>Suppose you forgot the shift and fed the full target as decoder input, predicting the
+        same full target. What loss would you get after a few epochs, and why is it useless?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong></p>
+    <div class="given">decoder input  = tgt[:-1] = [&lt;SOS&gt;, le, chat, dort]     = [1, 7, 12, 23]
+prediction tgt = tgt[1:]  = [le, chat, dort, &lt;EOS&gt;]    = [7, 12, 23, 2]</div>
+    <p><strong>2.</strong> Upper triangle above the main diagonal:</p>
+    <div class="given">        j=0     j=1     j=2     j=3
+i=0    False   True    True    True
+i=1    False   False   True    True
+i=2    False   False   False   True
+i=3    False   False   False   False</div>
+    <p><strong>3.</strong></p>
+    <div class="given">pos 0: sees [&lt;SOS&gt;]                  → predicts "le"
+pos 1: sees [&lt;SOS&gt;, le]              → predicts "chat"
+pos 2: sees [&lt;SOS&gt;, le, chat]        → predicts "dort"
+pos 3: sees [&lt;SOS&gt;, le, chat, dort]  → predicts &lt;EOS&gt;</div>
+    <p>Each position sees exactly the prefix it will have available at generation time. That
+    correspondence is the entire justification for the mask.</p>
+    <p><strong>4.</strong> Without the shift, position $t$'s input contains the token it is
+    being asked to predict. The causal mask allows attending to oneself, so the model learns
+    the identity function — copy the input to the output — and the loss collapses to
+    <strong>near zero within one or two epochs</strong>.</p>
+    <p>That is exactly what makes this bug dangerous: near-zero training loss looks like
+    spectacular success. The tell is that validation loss also looks great (the same trick
+    works there) while generated output is garbage — at generation time the input is not the
+    answer, and the model has learned nothing else. Any time a sequence model's loss drops
+    implausibly fast, check your shift first.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 09.2</span>
+  <p>Cross-attention alignment, computed and then interpreted.</p>
+  <div class="given">source (English):  [ the,  red,  house ]
+encoder memory keys give these raw scores for the decoder query
+at target position 2 (generating the word after "la"):
+
+    score(la → the)   = 0.0
+    score(la → red)   = 2.0
+    score(la → house) = 1.0
+
+d_k = 4, so the scale factor is 1/√4 = 0.5
+e^0 = 1.000   e^0.5 = 1.649   e^1 = 2.718</div>
+  <ol>
+    <li>Apply the scaling and compute the attention distribution over the three source words.</li>
+    <li>The correct French is "la maison rouge". Given that word order, is this alignment
+        sensible for the word the decoder is about to produce?</li>
+    <li>The value vectors are $v_{\text{the}} = [1,0]$, $v_{\text{red}} = [0,1]$,
+        $v_{\text{house}} = [1,1]$. Compute the cross-attention output.</li>
+    <li>Why is it correct that no causal mask is applied here, even though the decoder's
+        self-attention is masked?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Scaled scores are $[0.0, 1.0, 0.5]$. Exponentiating:
+    $[1.000, 2.718, 1.649]$, summing to 5.367.</p>
+    <div class="given">weights = [0.186, 0.506, 0.307]</div>
+    <p><strong>2.</strong> French puts the adjective after the noun: "la <b>maison</b>
+    rouge". So after producing "la", the next word should be "maison" — which aligns to
+    <em>house</em>, not <em>red</em>. This distribution puts most weight (0.506) on
+    <em>red</em>, which suggests the model would produce "rouge" next and generate "la rouge
+    maison" — English word order with French words. That is a recognisable failure of an
+    undertrained translation model, and reading cross-attention weights is precisely how you
+    diagnose it.</p>
+    <p><strong>3.</strong></p>
+    <div class="given">out = 0.186[1,0] + 0.506[0,1] + 0.307[1,1]
+    = [0.186 + 0 + 0.307,  0 + 0.506 + 0.307]
+    = [0.493, 0.813]</div>
+    <p><strong>4.</strong> The mask exists to prevent a position from seeing information it
+    will not have at generation time. The decoder's <em>own future tokens</em> are exactly
+    that. The <em>source sentence</em> is not — it is given in full before generation begins.
+    Masking it would forbid the model from using source words that appear later than the
+    current output position, which is nonsense across languages whose word orders differ.
+    This exercise is a case in point: producing the second French word requires the third
+    English one.</p>
+  </details>
+</div>
+
+<div class="box library">
+  <span class="box-label">In the wild</span>
+  <p>
+  PyTorch ships the entire architecture of this chapter:
+  </p>
+<pre><code class="language-python">model = nn.Transformer(d_model=256, nhead=8,
+                       num_encoder_layers=3, num_decoder_layers=3,
+                       batch_first=True, norm_first=True)
+
+out = model(src_emb, tgt_emb,
+            tgt_mask=nn.Transformer.generate_square_subsequent_mask(T),
+            src_key_padding_mask=(src == PAD_IDX))</code></pre>
+  <p style="margin-bottom:0">
+  Note what you still have to supply: the embeddings, the positional encoding, the
+  causal mask, the padding masks, the output projection, the teacher-forcing shift, and
+  the decode loop. The module is the easy half. Every bug in this chapter —
+  the shift, the padding mask, <code>ignore_index</code>, the <code>&lt;EOS&gt;</code>
+  that never fires — lives in the half the library does not cover, which is exactly why
+  building it once by hand is worth the afternoon.
+  </p>
+</div>
+
+<h2 id="ch07-cross-attention">How the decoder's loss reaches the encoder</h2>
+
+<p>
+One question is left, and it decides how this architecture trains at all. The loss is
+computed entirely on the decoder's output. The encoder has no loss of
+its own — no reconstruction objective, no auxiliary head, nothing. So by what route does it
+learn anything?
+</p>
+
+<p>
+Exactly one route. Write $M$ for the memory, the top encoder layer's output. In decoder layer
+$\ell$, cross-attention forms
+</p>
+
+$$Q_\ell = H_\ell W_\ell^{Q}, \qquad K_\ell = M W_\ell^{K}, \qquad V_\ell = M W_\ell^{V}$$
+
+<p>
+with $H_\ell$ the decoder's own hidden states. In the computational graph, $M$ has out-edges
+to $K_\ell$ and $V_\ell$ and to nothing else — so the gradient it receives is
+</p>
+
+$$\frac{\partial L}{\partial M} = \sum_{\ell=1}^{N}\left(
+   \frac{\partial L}{\partial K_\ell}W_\ell^{K\top}
+ + \frac{\partial L}{\partial V_\ell}W_\ell^{V\top}\right)$$
+
+<p>
+and that sum is the encoder's <em>entire</em> training signal. Three things follow that are
+worth stating out loud, because they are the parts usually left implicit.
+</p>
+
+<ul>
+  <li><strong>There is no $W^Q$ term.</strong> The query projections of cross-attention are
+  decoder parameters, trained from $H_\ell$; the source sentence never supplies a query, so
+  no gradient returns to the encoder along that edge. The asymmetry in
+  <code>cross_attn(tgt, memory, memory)</code> is not a convention — it determines which half
+  of the model each of those three matrices belongs to.</li>
+
+  <li><strong>Every decoder layer contributes, and the contributions add.</strong> This is
+  the fan of arrows in <a class="xref" href="#ch09">Chapter 09</a>'s stack diagram, read
+  backwards. The top encoder layer receives one summed gradient assembled from all $N$
+  decoder layers, which is also why an encoder–decoder is awkward to pipeline across devices:
+  the encoder cannot take its optimizer step until every decoder layer has finished its
+  backward pass.</li>
+
+  <li><strong>The decoder's self-attention sends the encoder nothing directly.</strong> It
+  contributes only by changing $H_\ell$, which changes $\partial L/\partial K_\ell$. The
+  encoder is trained, in a real sense, to be <em>useful to look things up in</em> — the only
+  feedback it ever gets is how well its output served as keys and values.</li>
+</ul>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  This is the general shape of end-to-end training, and it is why the phrase is worth taking
+  literally. No component of a transformer has a target of its own. Encoders learn
+  representations, heads learn to specialise, and embeddings learn geometry — all of it as a
+  consequence of one scalar at the far end of the graph, routed back along whichever edges
+  happen to exist. When you design a new architecture, the question "what gradient does this
+  piece receive, and along which edges?" is usually more informative than "what is this piece
+  supposed to do?"
+</div>
+
+<h2>Teacher forcing severs the recurrence</h2>
+
+<p>
+One more difference from the recurrent models of <a class="xref" href="#ch04">Chapter 04</a>,
+and it is larger than it looks. Under teacher forcing the decoder's input is the ground-truth
+prefix — a constant, with no gradient of its own. So there is no path from the prediction at
+position $t$ back to the input at position $t+1$. The positions are coupled in the forward
+pass, through causal self-attention, but the graph has no edge running from one timestep's
+<em>output</em> to the next timestep's <em>input</em> at all.
+</p>
+
+<p>
+The consequence is that a transformer has no backpropagation through time. Its graph depth is
+the number of layers, full stop — not layers times sequence length. Where an RNN over 200
+timesteps multiplies 200 Jacobians on the way back, a 6-layer decoder over 200 timesteps
+multiplies 6 sub-layer Jacobians, and does all 200 positions in parallel while it is at it.
+Attention pays $O(L^2)$ memory for this; what it buys is not only the path length of
+<a class="xref" href="#ch06">Chapter 06</a> but a backward pass whose cost does not compound
+with sequence length.
+</p>
+
+<figure class="figure wide">
+<svg viewBox="0 0 760 288" role="img" aria-labelledby="f-tg-t f-tg-d" style="font-family:var(--sans)">
+  <title id="f-tg-t">The target distribution at every decoder position at once</title>
+  <desc id="f-tg-d">Five rows, one per output position, over a six-word vocabulary. Each row is one-hot: position 1 marks I, position 2 marks am, position 3 marks a, position 4 marks student, position 5 marks end-of-sentence.</desc>
+  <defs>
+    <marker id="tgt-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
+  </defs>
+  <text x="238.0" y="44" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">a</text>
+  <text x="330.0" y="44" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">am</text>
+  <text x="422.0" y="44" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">I</text>
+  <text x="514.0" y="44" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">thanks</text>
+  <text x="606.0" y="44" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">student</text>
+  <text x="698.0" y="44" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">&lt;eos&gt;</text>
+  <text x="178" y="80" font-size="13.0" text-anchor="end" fill="var(--ink-soft)">position 1</text>
+  <rect x="196" y="58" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="238.0" y="79" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="288" y="58" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="330.0" y="79" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="380" y="58" width="84" height="32" rx="5" fill="var(--notebook)" fill-opacity="0.65" stroke="var(--notebook)" stroke-width="1"/>
+  <text x="422.0" y="79" font-size="13.0" text-anchor="middle" fill="var(--ink)">1</text>
+  <rect x="472" y="58" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="514.0" y="79" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="564" y="58" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="606.0" y="79" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="656" y="58" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="698.0" y="79" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <text x="178" y="122" font-size="13.0" text-anchor="end" fill="var(--ink-soft)">position 2</text>
+  <rect x="196" y="100" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="238.0" y="121" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="288" y="100" width="84" height="32" rx="5" fill="var(--notebook)" fill-opacity="0.65" stroke="var(--notebook)" stroke-width="1"/>
+  <text x="330.0" y="121" font-size="13.0" text-anchor="middle" fill="var(--ink)">1</text>
+  <rect x="380" y="100" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="422.0" y="121" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="472" y="100" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="514.0" y="121" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="564" y="100" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="606.0" y="121" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="656" y="100" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="698.0" y="121" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <text x="178" y="164" font-size="13.0" text-anchor="end" fill="var(--ink-soft)">position 3</text>
+  <rect x="196" y="142" width="84" height="32" rx="5" fill="var(--notebook)" fill-opacity="0.65" stroke="var(--notebook)" stroke-width="1"/>
+  <text x="238.0" y="163" font-size="13.0" text-anchor="middle" fill="var(--ink)">1</text>
+  <rect x="288" y="142" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="330.0" y="163" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="380" y="142" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="422.0" y="163" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="472" y="142" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="514.0" y="163" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="564" y="142" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="606.0" y="163" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="656" y="142" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="698.0" y="163" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <text x="178" y="206" font-size="13.0" text-anchor="end" fill="var(--ink-soft)">position 4</text>
+  <rect x="196" y="184" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="238.0" y="205" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="288" y="184" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="330.0" y="205" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="380" y="184" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="422.0" y="205" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="472" y="184" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="514.0" y="205" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="564" y="184" width="84" height="32" rx="5" fill="var(--notebook)" fill-opacity="0.65" stroke="var(--notebook)" stroke-width="1"/>
+  <text x="606.0" y="205" font-size="13.0" text-anchor="middle" fill="var(--ink)">1</text>
+  <rect x="656" y="184" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="698.0" y="205" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <text x="178" y="248" font-size="13.0" text-anchor="end" fill="var(--ink-soft)">position 5</text>
+  <rect x="196" y="226" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="238.0" y="247" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="288" y="226" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="330.0" y="247" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="380" y="226" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="422.0" y="247" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="472" y="226" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="514.0" y="247" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="564" y="226" width="84" height="32" rx="5" fill="var(--ink-soft)" fill-opacity="0.1" stroke="var(--rule-strong)" stroke-width="1"/>
+  <text x="606.0" y="247" font-size="13.0" text-anchor="middle" fill="var(--ink-faint)">0</text>
+  <rect x="656" y="226" width="84" height="32" rx="5" fill="var(--notebook)" fill-opacity="0.65" stroke="var(--notebook)" stroke-width="1"/>
+  <text x="698.0" y="247" font-size="13.0" text-anchor="middle" fill="var(--ink)">1</text>
+</svg>
+<figcaption><b>Five targets, one backward pass.</b> Teacher forcing turns generation into five independent classification problems that happen to share a network, all scored in parallel and summed into one scalar. Each row here contributes its own $\hat{y} - y$, and the causal mask is what makes this legitimate — position 3 cannot see its own answer, so supplying every answer at once does not leak. Generation cannot be batched this way, which is the entire reason training a language model is compute-bound and serving one is memory-bound.</figcaption>
+</figure>
+
+<div class="box warn">
+  <span class="box-label">The severed edge is also the problem</span>
+  Cut that edge and exposure bias is what grows in its place. Because no gradient ever
+  crosses from one generated token to the next, the model is never penalised for producing a
+  token that makes the <em>rest</em> of the sentence hard — only for producing a token that
+  is wrong given a perfect prefix. Restoring the edge means feeding the model's own output
+  back in, and the <code>argmax</code> that picks that token has zero derivative almost
+  everywhere. That single fact is why sequence-level training needs machinery from somewhere
+  else entirely — policy gradients, Gumbel-softmax relaxations, minimum-risk training — and
+  why none of it is a small change to the training loop.
+</div>
+
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">Translation is the first task in this book whose metric is not a probability, so it is the first place you need a second set of reference points — and the first place a number can look excellent for a bad reason.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td>BLEU</td><td>0</td><td>20–30 usable</td><td>40+ near-human</td><td>below 10 is not a working system</td></tr>
+    <tr><td>Cross-entropy, $V = 10{,}000$</td><td>0</td><td>2–3 trained</td><td>9.21 at chance</td><td>$\ln 10{,}000 = 9.21$</td></tr>
+    <tr><td>Teacher-forced vs free-running loss</td><td>—</td><td>TF always lower</td><td>—</td><td>the gap <em>is</em> exposure bias</td></tr>
+    <tr><td>Sentence length, MT corpora</td><td>5</td><td>20–30</td><td>100</td><td>sets the padding waste and the memory</td></tr>
+    <tr><td>Cross-attention matrix</td><td>—</td><td>$T_{\text{tgt}} \times S_{\text{src}}$</td><td>—</td><td>not square — an alignment, not a self-attention</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li>Validation loss 2.0 over a 10,000-word vocabulary. Perplexity, and how does it compare with chance?</li>
+    <li>Teacher-forced loss is a healthy 1.8, but generated sentences loop — "de la session de la session…". What is that loss not measuring?</li>
+    <li>A colleague reports BLEU 65 on their dev set. Should you believe it?</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> $e^{2.0} = 7.4$ against a chance perplexity of 10,000. The
+    model has narrowed ten thousand options to seven — genuinely good, and far more
+    legible stated that way than "loss 2.0".</p>
+    <p><strong>2.</strong> Its own mistakes. Every number in that loss was computed with a
+    perfect prefix supplied by the data. The model has never been scored on a state it
+    produced itself, so nothing in training penalised entering a loop. A low
+    teacher-forced loss and broken generations are entirely consistent.</p>
+    <p><strong>3.</strong> No. BLEU 65 is above most human inter-annotator agreement.
+    The overwhelmingly likely explanations are test data leaking into training, or
+    evaluating on the training split. A number that is too good is evidence about your
+    pipeline, not your model.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> For every metric, learn three anchors: the chance value, the usable value, and the value that is too good to be true. The third one has saved more projects than the second.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>how does the source sentence actually get into the decoder, and why is teacher forcing both necessary and a problem?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>The encoder produces one vector per source token, collectively the memory, and only the top encoder layer's output is used.</li>
+    <li>Cross-attention takes its query from the decoder and its keys and values from that memory — the asymmetry is what makes it a translator rather than a language model.</li>
+    <li>Teacher forcing feeds the ground-truth prefix, so all target positions can be scored in one parallel pass instead of one at a time.</li>
+    <li>It is necessary because early in training the model's own output is noise, and learning to continue noise teaches nothing.</li>
+    <li>It is a problem because the model is then never scored on its own mistakes, so it has no way to learn to recover from one — exposure bias.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Describing teacher forcing as "just faster training". The speed is a consequence; the reason it exists is that the alternative has no useful signal early on, and the cost is a specific, named failure at generation time.</p>
+  </details>
+</div>
+
+<div class="box nbref">
+  <span class="box-label">Notebook</span>
+  Open <code>09_seq2seq_translation/prompt.ipynb</code>. You will build the causal mask, the
+  decoder layer with its three sub-layers, the full seq2seq model, teacher-forced training,
+  and greedy decoding — then visualise the cross-attention alignments. The model overfits
+  after about epoch 11 on this small corpus, so the training loop keeps the best-validation
+  weights, following <a class="xref" href="#ch03">Chapter 03</a>'s pattern.
+</div>
+
+<div class="box note">
+  <span class="box-label">Where this goes next</span>
+  <a class="xref" href="#ch10">Chapter 10</a> deletes the encoder. If the task is to continue
+  text rather than to transform it, the decoder alone suffices — and that stripped-down
+  architecture, scaled up, is GPT.
+</div>
+
+</section>

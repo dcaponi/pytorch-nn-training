@@ -34,7 +34,7 @@ you compute, and traversed backwards when you ask for gradients.
   discarded after every backward pass. This is why <code>if</code> statements, loops of
   data-dependent length, and ordinary Python control flow all work inside a
   <code>forward()</code> method — there is no static graph to compile against. The
-  <a class="xref" href="#ch05">RNN in Chapter 05</a> exploits this directly, building a graph
+  <a class="xref" href="#ch04">RNN in Chapter 04</a> exploits this directly, building a graph
   whose depth equals the sequence length.
 </div>
 
@@ -65,7 +65,7 @@ and your update uses the sum of every gradient computed since the beginning of t
 the model will appear to train, badly, in a way that is genuinely hard to diagnose. The
 default seems perverse until you need it: it is exactly what lets you accumulate gradients
 over several small batches to simulate a large one, which is
-<a class="xref" href="#ch12">how you train on limited memory</a>.
+<a class="xref" href="#ch11">how you train on limited memory</a>.
 </p>
 
 <h2>The five-step loop</h2>
@@ -123,7 +123,7 @@ and assign to <code>self</code> is <em>not</em> registered, will not move to the
 model, and will not be passed to the optimizer. If you need a raw tensor as a parameter, wrap
 it: <code>nn.Parameter(torch.randn(...))</code>. If you need a tensor that should move with
 the model but <em>not</em> be trained — a positional encoding table, say, as in
-<a class="xref" href="#ch09">Chapter 09</a> — use <code>self.register_buffer(...)</code>.
+<a class="xref" href="#ch08">Chapter 08</a> — use <code>self.register_buffer(...)</code>.
 </p>
 
 <p>
@@ -168,7 +168,7 @@ averages starting at zero.
 The practical upshot: Adam converges far faster on the XOR problem (hundreds of epochs
 rather than ten thousand) and is much less sensitive to the learning rate. It costs two
 extra tensors per parameter in memory, which is a detail here and a
-<a class="xref" href="#ch12">hard constraint</a> when models get large.
+<a class="xref" href="#ch11">hard constraint</a> when models get large.
 </p>
 
 <div class="box note">
@@ -510,7 +510,7 @@ nothing, you must reassign.
   case setting <code>PYTORCH_ENABLE_MPS_FALLBACK=1</code> routes just that operation to the
   CPU. For the tiny models in this chapter, MPS is often <em>slower</em> than CPU: kernel
   launch overhead dominates when there are only four examples. The benefit shows up from
-  <a class="xref" href="#ch04">Chapter 04</a> onward.
+  <a class="xref" href="#ch03">Chapter 03</a> onward.
 </div>
 
 <h2><code>train()</code>, <code>eval()</code>, and <code>no_grad()</code></h2>
@@ -524,7 +524,7 @@ Three separate switches that beginners routinely conflate.
 behaviour of exactly two kinds of layer: dropout (active in train, identity in eval) and
 batch norm (batch statistics in train, running averages in eval). This network contains
 neither, so the calls do nothing here — but forget <code>model.eval()</code> in
-<a class="xref" href="#ch04">Chapter 04</a> and your reported accuracy will be wrong,
+<a class="xref" href="#ch03">Chapter 03</a> and your reported accuracy will be wrong,
 because dropout will be randomly deleting activations at test time.
 </p>
 
@@ -615,7 +615,118 @@ path 2 (w → b → L):      1 × 18      = 18
     $m$ and $v$ (8.4 MB each), giving <strong>~33.6 MB</strong>, or 16 bytes per parameter.
     That 16× multiplier is the number that decides what you can train on whatever machine
     you have,
-    and <a class="xref" href="#ch12">Chapter 12</a> is largely about attacking it.</p>
+    and <a class="xref" href="#ch11">Chapter 11</a> is largely about attacking it.</p>
+  </details>
+</div>
+
+<h2>When it does not train</h2>
+
+<p>
+Every loop above works. Most loops you write will not, and the failures are
+disappointingly repetitive — there are perhaps seven of them, they announce themselves in
+the first few printed losses, and each has a different fix. It is worth learning them as a
+list now rather than rediscovering them one at a time.
+</p>
+
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Symptom</th><th>Most likely cause</th><th>Check</th></tr></thead>
+  <tbody>
+    <tr><td>Loss is <code>nan</code> immediately</td><td>learning rate far too high; $\log 0$; all-masked attention row</td><td>drop lr 10×; clip probabilities; check for empty sequences</td></tr>
+    <tr><td>Loss is <code>nan</code> after a while</td><td>exploding gradients</td><td>add <code>clip_grad_norm_</code>; print grad norms</td></tr>
+    <tr><td>Loss flat from step 0</td><td>missing <code>zero_grad()</code>; frozen params; lr ≈ 0</td><td>print <code>p.grad.norm()</code> for a few params</td></tr>
+    <tr><td>Train falls, val rises</td><td>overfitting</td><td>more dropout/weight decay; less capacity; best-checkpoint restore</td></tr>
+    <tr><td>Both plateau high</td><td>underfitting or bad lr</td><td>overfit a batch of 8 first — see below</td></tr>
+    <tr><td>Val far better than train</td><td>dropout on during eval, or a leak</td><td><code>model.eval()</code>; check vocabulary construction</td></tr>
+    <tr><td>Great val, terrible in production</td><td>train/test leakage</td><td>rebuild preprocessing from the train split only</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box concept">
+  <span class="box-label">Key concept — the single best debugging move</span>
+  Before training on the full dataset, take <strong>eight examples and overfit them
+  completely</strong>. Turn off dropout and regularisation and train until the loss is
+  essentially zero. If you cannot drive the loss to zero on eight examples, the bug is in your
+  model, loss, or data pipeline — not in your hyperparameters — and no amount of tuning on the
+  full dataset will find it. This takes two minutes and saves entire afternoons.
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 02.7</span>
+  <p>Memory arithmetic for a training run — the calculation you should do <em>before</em>
+  starting one.</p>
+  <div class="given">model: 12M parameters, fp32, trained with Adam
+batch: 64 sequences × 512 tokens
+activations: measured at ~1.2 KB per token per layer, 6 layers</div>
+  <ol>
+    <li>Memory for weights, gradients, and Adam's two state tensors.</li>
+    <li>Memory for activations retained for the backward pass.</li>
+    <li>Total, and how it compares to your own machine's memory (assume about 70% of it is
+        actually usable once the operating system has taken its share).</li>
+    <li>You need to double the batch size and cannot. Give three ways to get the effect, and
+        state what each one costs.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> 12M parameters × 4 bytes = 48 MB each for weights, gradients,
+    Adam $m$, and Adam $v$ = <strong>192 MB</strong>, i.e. 16 bytes per parameter.</p>
+    <p><strong>2.</strong> $64 \times 512 \times 1.2\text{ KB} \times 6 =
+    \mathbf{236\text{ MB}}$.</p>
+    <p><strong>3.</strong> About <strong>428 MB</strong> plus framework overhead — comfortably
+    inside 17 GB. Worth noticing which term dominates: activations exceed the entire model,
+    and they scale with batch size and sequence length while the model does not. On small
+    models, activations are the thing that actually runs you out of memory.</p>
+    <p><strong>4.</strong></p>
+    <ul>
+      <li><strong>Gradient accumulation</strong> — run two batches of 64, calling
+      <code>backward()</code> on each and <code>step()</code> only after the second. Gradients
+      accumulate by default (<a class="xref" href="#ch02">Chapter 02</a>), so this is
+      mathematically identical to batch 128. Costs: two forward/backward passes of wall-clock
+      time, and you must scale the loss by 1/2 to keep the gradient magnitude right.</li>
+      <li><strong>Gradient checkpointing</strong> — store only some activations and recompute
+      the rest during the backward pass. Cuts activation memory by roughly $\sqrt{N}$ for $N$
+      layers. Costs about 30% extra compute.</li>
+      <li><strong>Shorter sequences</strong> — halve the sequence length. Costs the model any
+      dependency longer than the new window, and for attention it is a
+      <em>quadratic</em> saving, so it is the most effective of the three per unit of harm.</li>
+    </ul>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 02.8</span>
+  <p>Reading a training log. Diagnose each, and name the first thing you would change.</p>
+  <div class="given">Run A          Run B          Run C          Run D
+ep  tr    val    tr    val    tr    val    tr    val
+ 1  2.31  2.30   2.30  2.29   2.31  2.28   4.02  3.81
+ 5  2.30  2.30   1.41  1.52   0.98  1.61   nan   nan
+10  2.30  2.31   0.88  1.19   0.31  2.04    -     -
+15  2.30  2.30   0.71  1.14   0.09  2.55    -     -</div>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>Run A — not learning at all.</strong> The loss sits at 2.30, which for a
+    10-class problem is exactly $\ln 10 = 2.303$: the model is outputting a uniform
+    distribution and never moving. Nothing is reaching the weights. Check for a missing
+    <code>zero_grad()</code>, a learning rate of zero, parameters not passed to the
+    optimizer, or a <code>requires_grad=False</code> left somewhere. <em>First move:</em>
+    print <code>p.grad.norm()</code> after <code>backward()</code> — if it is zero or
+    <code>None</code>, you have found it.</p>
+    <p><strong>Run B — healthy.</strong> Both losses fall, with a modest and stable gap
+    (0.71 vs 1.14) that is normal generalisation error. Validation is still improving at
+    epoch 15. <em>First move:</em> keep training, and consider a larger model.</p>
+    <p><strong>Run C — textbook overfitting.</strong> Validation bottoms out around epoch 5
+    at 1.61 and then climbs steadily while training loss drives towards zero. The model is
+    memorising. <em>First move:</em> restore the epoch-5 weights, then add regularisation —
+    dropout, weight decay, more data, or less capacity. Note that without best-checkpoint
+    restore you would have shipped the epoch-15 model at val 2.55, which is worse than the
+    model was after five epochs.</p>
+    <p><strong>Run D — divergence.</strong> Starting loss of 4.02 is already high and it
+    reaches <code>nan</code> within five epochs. Almost always too large a learning rate;
+    occasionally a $\log 0$ or an all-masked attention row. <em>First move:</em> cut the
+    learning rate by 10× and add <code>clip_grad_norm_</code>. If it still diverges, print
+    the loss every batch rather than every epoch to find the exact step where it breaks.</p>
   </details>
 </div>
 
@@ -626,6 +737,9 @@ path 2 (w → b → L):      1 × 18      = 18
   <table>
     <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
     <tbody>
+    <tr><td>Gradient norm, healthy</td><td>0.01</td><td>0.1–10</td><td>100</td><td>$10^{-8}$ means a severed path, not a small update</td></tr>
+    <tr><td>Steps to overfit 8 examples</td><td>10</td><td>50–200</td><td>—</td><td>if it cannot, it is a bug and no hyperparameter will help</td></tr>
+    <tr><td>Loss plateau</td><td>—</td><td>—</td><td>$\ln K$</td><td>a plateau exactly at $\ln K$ is a wiring bug, not a hard problem</td></tr>
     <tr><td>First printed loss, $K$ classes</td><td>$\ln K$</td><td>$\ln K$</td><td>$\ln K$</td><td>the check from Chapter 01, now automatic</td></tr>
     <tr><td>Learning rate, Adam</td><td>$10^{-5}$</td><td>$10^{-3}$</td><td>$10^{-2}$</td><td>$3\times10^{-4}$ is the default that usually works</td></tr>
     <tr><td>Learning rate, SGD + momentum</td><td>$10^{-3}$</td><td>$10^{-2}$</td><td>1</td><td>an order of magnitude larger than Adam's</td></tr>
@@ -675,6 +789,30 @@ path 2 (w → b → L):      1 × 18      = 18
     <li><code>step()</code> only reads <code>.grad</code> and updates the parameters — the optimizer never computes a derivative itself.</li>
     </ol>
     <p style="margin-bottom:0"><b>Most common miss.</b> Saying it "clears the old gradients" without saying why they would otherwise still be there. The accumulation is a feature; if you cannot name the use case it serves, you have memorised a ritual.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 02.6 · a debugging order<span class="tag tag-must">Must do</span></span>
+  <p>
+  No code. Someone shows you a model that will not learn. Write down what you check, in
+  what order — and, for each step, what a failure at that step rules out. The order is the
+  content here; a list of things to try is what you had before reading this chapter.
+  </p>
+  <details>
+    <summary>Worked solution</summary>
+    <ol>
+      <li>First that the loss at step 0 is $\ln K$ — it separates initialisation and wiring bugs from optimisation problems, and costs nothing.</li>
+      <li>Then overfit a handful of examples, which separates "the model cannot represent this" from "the training loop is broken".</li>
+      <li>Then gradient norms per parameter group, distinguishing <code>None</code> (disconnected) from tiny (saturated).</li>
+      <li>Only then the learning rate and schedule, because tuning an optimiser that is stepping on wrong gradients is wasted effort.</li>
+      <li>The order is cheapest-and-most-decisive first: each step rules out a whole class of cause rather than adjusting a knob.</li>
+    </ol>
+    <p style="margin-bottom:0">The principle is cheapest-and-most-decisive first. Each step
+    eliminates an entire class of cause rather than adjusting a knob, so by the time you
+    reach the learning rate you know the gradients it is stepping on are correct. Tuning an
+    optimiser that is stepping on wrong gradients is the most common way to waste an
+    afternoon.</p>
   </details>
 </div>
 

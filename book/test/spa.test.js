@@ -84,15 +84,15 @@ setTimeout(() => {
   check('hash normalised to a route', window.location.hash === '#/preface', window.location.hash);
 
   console.log('\n--- routing ---');
-  go('#/ch07');
-  check('route #/ch07 shows ch07', visible()[0] && visible()[0].id === 'ch07',
+  go('#/ch06');
+  check('route #/ch06 shows ch06', visible()[0] && visible()[0].id === 'ch06',
         visible().map(c => c.id).join(','));
   check('document title updated', /Self-Attention/.test(doc.title), doc.title);
 
   console.log('\n--- legacy anchors ---');
-  go('#ch04');
-  check('legacy #ch04 resolves', visible()[0] && visible()[0].id === 'ch04');
-  check('legacy hash rewritten', window.location.hash === '#/ch04', window.location.hash);
+  go('#ch03');
+  check('legacy #ch03 resolves', visible()[0] && visible()[0].id === 'ch03');
+  check('legacy hash rewritten', window.location.hash === '#/ch03', window.location.hash);
   go('#ch00-cross-entropy');
   check('legacy deep anchor finds its chapter', visible()[0] && visible()[0].id === 'ch00');
   check('deep anchor becomes a two-part route',
@@ -101,31 +101,31 @@ setTimeout(() => {
   check('unknown route falls back', visible()[0] && visible()[0].id === 'preface');
 
   console.log('\n--- chapter navigation ---');
-  go('#/ch06');
+  go('#/ch05');
   const prev = doc.getElementById('prev-chapter');
   const next = doc.getElementById('next-chapter');
-  check('prev points at ch05', prev.getAttribute('href') === '#/ch05', prev.getAttribute('href'));
-  check('next points at ch07', next.getAttribute('href') === '#/ch07', next.getAttribute('href'));
+  check('prev points at ch04', prev.getAttribute('href') === '#/ch04', prev.getAttribute('href'));
+  check('next points at ch06', next.getAttribute('href') === '#/ch06', next.getAttribute('href'));
   go('#/preface');
   check('prev hidden on the first chapter', prev.hidden === true);
   go('#/appendix');
   check('next hidden on the last chapter', next.hidden === true);
 
   console.log('\n--- cross-reference click and back ---');
-  go('#/ch06');
-  const xref = [...doc.querySelectorAll('#ch06 a.xref')]
-    .find(a => a.getAttribute('href') === '#ch05');
+  go('#/ch05');
+  const xref = [...doc.querySelectorAll('#ch05 a.xref')]
+    .find(a => a.getAttribute('href') === '#ch04');
   if (xref) {
     xref.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
     window.dispatchEvent(new window.HashChangeEvent('hashchange'));
-    check('clicking an xref routes to its chapter', visible()[0] && visible()[0].id === 'ch05');
+    check('clicking an xref routes to its chapter', visible()[0] && visible()[0].id === 'ch04');
     const back = doc.getElementById('back-btn');
     check('back button appears', back.hidden === false);
     back.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     window.dispatchEvent(new window.HashChangeEvent('hashchange'));
-    check('back returns to the origin chapter', visible()[0] && visible()[0].id === 'ch06');
+    check('back returns to the origin chapter', visible()[0] && visible()[0].id === 'ch05');
   } else {
-    check('found an xref to click', false, 'no #ch05 xref inside ch06');
+    check('found an xref to click', false, 'no #ch04 xref inside ch05');
   }
 
   console.log('\n--- search ---');
@@ -185,7 +185,7 @@ setTimeout(() => {
           .filter(id => !['preface', 'appendix'].includes(id));
         const noSay = chapters.filter(id => !doc.querySelector(`#${id} .box.sayback`));
         const noFeel = chapters.filter(
-          id => id !== 'ch13' && !doc.querySelector(`#${id} .box.feel`));
+          id => id !== 'ch12' && !doc.querySelector(`#${id} .box.feel`));
         check('every teaching chapter has a say-it-back drill', noSay.length === 0,
               noSay.join(', '));
         check('every teaching chapter has a feel-for-the-numbers drill', noFeel.length === 0,

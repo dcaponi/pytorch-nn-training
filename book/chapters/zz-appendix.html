@@ -11,9 +11,37 @@ scratch to the library</a> maps every hand-rolled component to its production
 equivalent. <a class="xref" href="#appendix-reading-the-literature">Reading the
 literature</a> is how to get at a paper's actual contribution.
 <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">The modern
-stack</a> covers the roughly eight substitutions that separate Chapter 09's transformer
+stack</a> covers the roughly eight substitutions that separate Chapter 08's transformer
 from a current frontier model — all of them readable with the mathematics you now have.
 </p>
+
+<h2>Making it fast on Apple silicon</h2>
+
+<p>
+Unified memory is Apple Silicon's defining feature: CPU and GPU share one pool, so
+<code>.to('mps')</code> costs far less than a PCIe transfer to a discrete GPU. It also means
+your model competes with the operating system and everything else for the same pool, and
+there is no separate VRAM figure to watch — where a discrete NVIDIA card gives you a fixed
+budget that is yours alone, and tells you when you have exceeded it.
+</p>
+
+<ul>
+  <li><strong>Measure before optimising.</strong> MPS is asynchronous, so wall-clock timing
+      around a forward pass measures only queueing. Call
+      <code>torch.mps.synchronize()</code> before stopping the clock.</li>
+  <li><strong>Batch size is the first lever.</strong> Small models are launch-overhead-bound;
+      going from batch 16 to 128 is often nearly free in time and a large gain in throughput.</li>
+  <li><strong>Watch for silent CPU fallback.</strong> With
+      <code>PYTORCH_ENABLE_MPS_FALLBACK=1</code>, unsupported ops run on CPU — correct, but
+      each one forces a synchronisation. One fallback op inside your inner loop can cost more
+      than everything else combined.</li>
+  <li><strong><code>torch.compile</code> is not the answer here.</strong> Its MPS support
+      lags CUDA considerably; on these model sizes it usually costs more in compile time than
+      it returns.</li>
+  <li><strong>float16 halves memory</strong> and is well supported on MPS, but Apple's backend
+      lacks the mature autocast/GradScaler story CUDA has. Use it for inference freely; for
+      training, treat it as an experiment (see <a class="xref" href="#ch11">Chapter 11</a>).</li>
+</ul>
 
 <h2>Notation</h2>
 
@@ -96,39 +124,39 @@ padding.
   <tbody>
     <tr><td><strong>Autograd</strong></td><td>PyTorch's automatic differentiation. Records operations into a graph during the forward pass, traverses it in reverse on <code>backward()</code>. <a class="xref" href="#ch02">Ch. 02</a></td></tr>
     <tr><td><strong>Backpropagation</strong></td><td>The chain rule applied layer by layer, caching intermediate results. Not a separate algorithm from the chain rule. <a class="xref" href="#ch01">Ch. 01</a></td></tr>
-    <tr><td><strong>BLEU</strong></td><td>$n$-gram overlap metric for translation, with a brevity penalty. Blunt but comparable. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
+    <tr><td><strong>BLEU</strong></td><td>$n$-gram overlap metric for translation, with a brevity penalty. Blunt but comparable. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
     <tr><td><strong>Broadcasting</strong></td><td>Automatic stretching of size-1 dimensions to match. Convenient; a rich source of silent bugs. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
-    <tr><td><strong>Causal mask</strong></td><td>Upper-triangular $-\infty$ added before the softmax so position $t$ cannot see the future. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
-    <tr><td><strong>Cross-attention</strong></td><td>Q from the decoder, K and V from encoder memory. The bridge in a seq2seq model. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
+    <tr><td><strong>Causal mask</strong></td><td>Upper-triangular $-\infty$ added before the softmax so position $t$ cannot see the future. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
+    <tr><td><strong>Cross-attention</strong></td><td>Q from the decoder, K and V from encoder memory. The bridge in a seq2seq model. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
     <tr><td><strong>Cross-entropy</strong></td><td>$-\sum p\log q$; the negative log-likelihood of a categorical model. <a class="xref" href="#ch00-cross-entropy">Ch. 00</a></td></tr>
-    <tr><td><strong>Dropout</strong></td><td>Randomly zero activations during training, scaling survivors. Off at eval. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
-    <tr><td><strong>Embedding</strong></td><td>Learned dense vector per token; a lookup table equivalent to a linear layer on a one-hot. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
-    <tr><td><strong>Exposure bias</strong></td><td>A model trained on perfect prefixes has never seen its own mistakes and cannot recover from them. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
-    <tr><td><strong>Gradient clipping</strong></td><td>Rescale the gradient vector if its norm exceeds a threshold. Fixes explosion, not vanishing. <a class="xref" href="#ch05">Ch. 05</a></td></tr>
-    <tr><td><strong>KV cache</strong></td><td>Stored keys and values so each generation step processes one token instead of $t$. <a class="xref" href="#ch11-kv-cache">Ch. 11</a></td></tr>
-    <tr><td><strong>Layer norm</strong></td><td>Normalise across features within one token. Batch-size independent, unlike batch norm. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
+    <tr><td><strong>Dropout</strong></td><td>Randomly zero activations during training, scaling survivors. Off at eval. <a class="xref" href="#ch03">Ch. 03</a></td></tr>
+    <tr><td><strong>Embedding</strong></td><td>Learned dense vector per token; a lookup table equivalent to a linear layer on a one-hot. <a class="xref" href="#ch03">Ch. 03</a></td></tr>
+    <tr><td><strong>Exposure bias</strong></td><td>A model trained on perfect prefixes has never seen its own mistakes and cannot recover from them. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
+    <tr><td><strong>Gradient clipping</strong></td><td>Rescale the gradient vector if its norm exceeds a threshold. Fixes explosion, not vanishing. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
+    <tr><td><strong>KV cache</strong></td><td>Stored keys and values so each generation step processes one token instead of $t$. <a class="xref" href="#ch10-kv-cache">Ch. 10</a></td></tr>
+    <tr><td><strong>Layer norm</strong></td><td>Normalise across features within one token. Batch-size independent, unlike batch norm. <a class="xref" href="#ch08">Ch. 08</a></td></tr>
     <tr><td><strong>Logit</strong></td><td>A raw unbounded score before softmax or sigmoid. Pass these to the loss, not probabilities. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
-    <tr><td><strong>LoRA</strong></td><td>Freeze $W$, train a low-rank $BA$ alongside it. $B$ starts at zero. <a class="xref" href="#ch12">Ch. 12</a></td></tr>
-    <tr><td><strong>Nucleus (top-p)</strong></td><td>Sample from the smallest set of tokens whose cumulative probability exceeds $p$. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
+    <tr><td><strong>LoRA</strong></td><td>Freeze $W$, train a low-rank $BA$ alongside it. $B$ starts at zero. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
+    <tr><td><strong>Nucleus (top-p)</strong></td><td>Sample from the smallest set of tokens whose cumulative probability exceeds $p$. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
     <tr><td><strong>Perplexity</strong></td><td>$e^{\mathcal{L}}$: the effective number of choices the model is deciding between. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
-    <tr><td><strong>Positional encoding</strong></td><td>Position information added to embeddings, because attention is order-blind. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
-    <tr><td><strong>Pre-norm / post-norm</strong></td><td>Whether LayerNorm sits inside or outside the residual path. Pre-norm trains deeper, more stably. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
-    <tr><td><strong>Quantization</strong></td><td>Representing weights on a coarse integer grid. Error is bounded by half the step size. <a class="xref" href="#ch12">Ch. 12</a></td></tr>
-    <tr><td><strong>Residual connection</strong></td><td>$x + F(x)$. Gives gradients an unobstructed additive path to every layer. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
+    <tr><td><strong>Positional encoding</strong></td><td>Position information added to embeddings, because attention is order-blind. <a class="xref" href="#ch08">Ch. 08</a></td></tr>
+    <tr><td><strong>Pre-norm / post-norm</strong></td><td>Whether LayerNorm sits inside or outside the residual path. Pre-norm trains deeper, more stably. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
+    <tr><td><strong>Quantization</strong></td><td>Representing weights on a coarse integer grid. Error is bounded by half the step size. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
+    <tr><td><strong>Residual connection</strong></td><td>$x + F(x)$. Gives gradients an unobstructed additive path to every layer. <a class="xref" href="#ch08">Ch. 08</a></td></tr>
     <tr><td><strong>FlashAttention</strong></td><td>Tiled attention with an online softmax; the $L\times L$ matrix is never materialised, so memory is linear in $L$. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>GQA / MQA</strong></td><td>Heads share key/value projections, in groups or entirely. Shrinks the KV cache, which is what limits concurrent users. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>GRPO</strong></td><td>Group Relative Policy Optimization: preference optimisation without a value network, normalising advantages within a sampled group. Used for reasoning training. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
-    <tr><td><strong>MLA</strong></td><td>Multi-head latent attention: cache a low-rank latent instead of full K and V. Chapter 12's factorisation, applied to the cache. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>MLA</strong></td><td>Multi-head latent attention: cache a low-rank latent instead of full K and V. Chapter 11's factorisation, applied to the cache. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>MoE</strong></td><td>Mixture of experts: many feed-forward blocks, a router picking top-$k$ per token. Total parameters grow; active parameters do not. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>RMSNorm</strong></td><td>LayerNorm without the mean subtraction or shift — scale only. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
-    <tr><td><strong>RoPE</strong></td><td>Rotary position embedding: rotate $q$ and $k$ by an angle proportional to position, making the dot product depend on relative offset. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
+    <tr><td><strong>RoPE</strong></td><td>Rotary position embedding: rotate $q$ and $k$ by an angle proportional to position, making the dot product depend on relative offset. <a class="xref" href="#ch08">Ch. 08</a></td></tr>
     <tr><td><strong>Speculative decoding</strong></td><td>A small draft model proposes tokens; the large model verifies them in one parallel pass. Same output distribution, faster. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>SwiGLU</strong></td><td>A gated feed-forward block — the LSTM gating idea applied to the MLP. Better per parameter. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>Softmax</strong></td><td>Logits to a distribution. Invariant to adding a constant — which is why you subtract the max. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
-    <tr><td><strong>Teacher forcing</strong></td><td>Feed the ground-truth prefix during training rather than the model's own output. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
-    <tr><td><strong>Temperature</strong></td><td>Divide logits before softmax: below 1 sharpens, above 1 flattens. Never changes the ranking. <a class="xref" href="#ch05">Ch. 05</a></td></tr>
-    <tr><td><strong>Vanishing gradient</strong></td><td>A product of many sub-1 factors decaying geometrically with depth or time. <a class="xref" href="#ch05">Ch. 05</a></td></tr>
-    <tr><td><strong>Weight tying</strong></td><td>Sharing the embedding matrix with the output head. Saves parameters, usually improves quality. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
+    <tr><td><strong>Teacher forcing</strong></td><td>Feed the ground-truth prefix during training rather than the model's own output. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
+    <tr><td><strong>Temperature</strong></td><td>Divide logits before softmax: below 1 sharpens, above 1 flattens. Never changes the ranking. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
+    <tr><td><strong>Vanishing gradient</strong></td><td>A product of many sub-1 factors decaying geometrically with depth or time. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
+    <tr><td><strong>Weight tying</strong></td><td>Sharing the embedding matrix with the output head. Saves parameters, usually improves quality. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
   </tbody>
 </table>
 </div>
@@ -169,7 +197,7 @@ time to discover.
   <span class="box-label">MPS silently returns zeros for out-of-range embedding indices</span>
   <p>
   This is the sharpest edge in the backend, and it produced a real bug while writing
-  Chapter 11 — cached generation ran past <code>block_size</code>, so
+  Chapter 10 — cached generation ran past <code>block_size</code>, so
   <code>pos_emb</code> was indexed out of range.
   </p>
 <pre><code class="language-python">e = nn.Embedding(128, 8)
@@ -198,7 +226,7 @@ e.to('mps')(torch.tensor([200], device='mps'))    # mps : a row of zeros</code><
       <code>F.scaled_dot_product_attention</code> is still the right call — it is
       correct and never meaningfully slower — but on MPS it dispatches to a math or
       memory-efficient fallback rather than a flash kernel, so do not expect the
-      published speedups. Chapter 11's notebook measures this: the fused path is not
+      published speedups. Chapter 10's notebook measures this: the fused path is not
       measurably faster here, while the memory argument holds on every backend. The
       general habit is worth keeping: when a library advertises a speedup, check
       whether the fast path exists on your hardware before attributing anything to it.</li>
@@ -207,7 +235,7 @@ e.to('mps')(torch.tensor([200], device='mps'))    # mps : a row of zeros</code><
       <code>torch.mps.synchronize()</code> before stopping the clock.</li>
   <li><strong>MPS can be slower than CPU on tiny models.</strong> Kernel-launch
       overhead dominates when there are only a handful of examples. The benefit
-      appears from <a class="xref" href="#ch04">Chapter 04</a> onwards.</li>
+      appears from <a class="xref" href="#ch03">Chapter 03</a> onwards.</li>
   <li><strong>Watch for silent CPU fallback.</strong> With
       <code>PYTORCH_ENABLE_MPS_FALLBACK=1</code> an unsupported op runs on CPU —
       correct, but each occurrence forces a synchronisation. One such op in an inner
@@ -277,7 +305,7 @@ wrong. The map:
   The stacks that actually deliver quantized inference on an M-series Mac are
   <strong>MLX</strong> (Apple's own array framework, designed around unified memory)
   and <strong>llama.cpp / GGUF</strong>. Both are worth an afternoon, and reimplementing
-  <a class="xref" href="#ch11">Chapter 11</a>'s GPT in MLX is an unusually good way to
+  <a class="xref" href="#ch10">Chapter 10</a>'s GPT in MLX is an unusually good way to
   see what PyTorch abstracts away.
 </div>
 
@@ -336,7 +364,7 @@ surrounded by experiments. What follows is how to get at it.
   <tbody>
     <tr><td>01</td><td>Rumelhart, Hinton &amp; Williams (1986), <em>Learning representations by back-propagating errors</em></td><td>backprop stated in four pages; still the clearest description</td></tr>
     <tr><td>02</td><td>Kingma &amp; Ba (2014), <em>Adam</em></td><td>read §2 and the bias-correction derivation; skip the convergence proof (later shown flawed)</td></tr>
-    <tr><td>03</td><td>Kim (2014), <em>CNNs for Sentence Classification</em></td><td>the whole architecture of Chapter 04, in six pages</td></tr>
+    <tr><td>03</td><td>Kim (2014), <em>CNNs for Sentence Classification</em></td><td>the whole architecture of Chapter 03, in six pages</td></tr>
     <tr><td>05</td><td>Hochreiter &amp; Schmidhuber (1997), <em>LSTM</em></td><td>hard going; Olah's "Understanding LSTMs" is the better entry point</td></tr>
     <tr><td>06–07</td><td>Vaswani et al. (2017), <em>Attention Is All You Need</em></td><td>§3 is the entire architecture; note how little justification the $\sqrt{d_k}$ gets — you derived it in exercise 00.14</td></tr>
     <tr><td>07</td><td>Xiong et al. (2020), <em>On Layer Normalization in the Transformer</em></td><td>why pre-norm removes the need for warmup</td></tr>
@@ -352,7 +380,7 @@ surrounded by experiments. What follows is how to get at it.
 <h2>The modern stack: what changed after 2017</h2>
 
 <p>
-Chapter 09's transformer is the 2017 design. A current frontier model is recognisably
+Chapter 08's transformer is the 2017 design. A current frontier model is recognisably
 the same block with roughly eight substitutions, each of which is a small, readable
 idea. Knowing all eight is most of what separates "can implement a transformer" from
 "can read a frontier model's technical report and reimplement it".
@@ -381,7 +409,7 @@ $$\operatorname{SwiGLU}(x) = \big(\operatorname{Swish}(xW_1) \odot xV\big)W_2
 
 <p>
 A <em>gated</em> feed-forward block: one projection produces content, a second produces
-a multiplicative gate, exactly as an <a class="xref" href="#ch06">LSTM gate</a> does.
+a multiplicative gate, exactly as an <a class="xref" href="#ch05">LSTM gate</a> does.
 It needs three weight matrices instead of two, so implementations shrink the hidden
 width to $\tfrac{2}{3}\cdot 4d$ to keep the parameter count fixed. Consistently better
 per parameter. <em>Buys: quality at equal size.</em>
@@ -398,8 +426,8 @@ the attention operation.
 </p>
 
 <p>
-This directly fixes the hard context limit from <a class="xref" href="#ch11">Chapter
-11</a>: there is no position-embedding table to run out of, and interpolating or
+This directly fixes the hard context limit from <a class="xref" href="#ch10">Chapter
+10</a>: there is no position-embedding table to run out of, and interpolating or
 rescaling the frequencies extends the context of an already-trained model.
 <em>Buys: length generalisation.</em>
 </p>
@@ -407,7 +435,7 @@ rescaling the frequencies extends the context of an already-trained model.
 <h3>KV cache: MHA → GQA/MQA → latent attention</h3>
 
 <p>
-<a class="xref" href="#ch11-kv-cache">Chapter 11</a> showed the KV cache is what limits
+<a class="xref" href="#ch10-kv-cache">Chapter 10</a> showed the KV cache is what limits
 concurrent users. Three successive attacks on it:
 </p>
 
@@ -420,7 +448,7 @@ concurrent users. Three successive attacks on it:
   <li><strong>Multi-head latent attention (MLA)</strong>, introduced in DeepSeek-V2 —
       compress keys and values into a low-rank latent vector and cache <em>that</em>,
       reconstructing per-head projections on the fly. It is
-      <a class="xref" href="#ch12">Chapter 12's low-rank factorisation</a> applied to
+      <a class="xref" href="#ch11">Chapter 11's low-rank factorisation</a> applied to
       the cache instead of to the weights, and it is a good example of an idea you
       already own being moved to a new place.</li>
 </ul>
@@ -471,7 +499,7 @@ prediction</strong> objective, predicting more than one future token per positio
 <h3>Post-training: SFT, then preference optimisation</h3>
 
 <p>
-A base model trained as in <a class="xref" href="#ch11">Chapter 11</a> continues text;
+A base model trained as in <a class="xref" href="#ch10">Chapter 10</a> continues text;
 it does not follow instructions. Turning one into an assistant is a separate stage:
 supervised fine-tuning on demonstrations, then optimisation against preferences —
 <strong>RLHF/PPO</strong> classically, <strong>DPO</strong> without a reward model, and
@@ -487,7 +515,7 @@ learning against verifiable answers with little or no supervised bootstrapping.
   Look at that list and notice how few entries are new mathematics. Two are
   factorisations you already implemented (LoRA's low rank, reused for the KV cache),
   two are gating (SwiGLU, MoE routing) which is the LSTM idea from
-  <a class="xref" href="#ch06">Chapter 06</a>, one is a kernel rewrite, one is a
+  <a class="xref" href="#ch05">Chapter 05</a>, one is a kernel rewrite, one is a
   rotation, and one is a change of training objective. <strong>The frontier is
   reachable from here.</strong> What separates you from it is not a body of
   mathematics you have not seen — it is engineering scale, data, and the habit of

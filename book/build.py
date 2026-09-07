@@ -412,7 +412,7 @@ def check_figures(chapters: list[Chapter]) -> list[str]:
 # appendix are navigation rather than instruction, and the capstones chapter has no
 # equations of its own to bound.
 NO_SAYBACK = {"preface", "appendix"}
-NO_FEEL = {"preface", "appendix", "ch13"}
+NO_FEEL = {"preface", "appendix", "ch12"}
 
 
 def check_drills(chapters: list[Chapter]) -> list[str]:
@@ -493,7 +493,7 @@ XREF_LABEL_RE = re.compile(
 
 
 def check_xref_labels(chapters: list[Chapter]) -> list[str]:
-    """A link saying "Chapter 07" must actually point at chapter 07.
+    """A link saying "Chapter 06" must actually point at chapter 06.
 
     Reordering the book rewrote every href, but four labels were split across a line
     break — "Chapter\n07" — and silently kept their old number, so the text and the
