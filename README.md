@@ -6,12 +6,13 @@ you trained yourself.
 
 Two halves that are meant to be used together:
 
-- **The notebooks** — thirteen lessons, each a pair of Jupyter notebooks: a
+- **The notebooks** — fourteen lessons, each a pair of Jupyter notebooks: a
   **prompt** with guided `TODO`s and a **solution** that is complete and already
   executed, so you can read its outputs without running anything.
-- **[The book](book/index.html)** — a single long-form companion volume you keep open
-  beside the notebooks. It derives the mathematics, contains interactive figures, and
-  sets pencil-and-paper exercises with worked solutions.
+- **[The book](https://dcaponi.github.io/pytorch-nn-training/)** — a single long-form
+  companion volume you keep open beside the notebooks. It derives the mathematics,
+  contains interactive figures, and sets pencil-and-paper exercises with worked
+  solutions.
 
 Everything runs on a MacBook Air with an M4 chip and 24 GB of memory. No
 data-centre GPU, no API keys, no multi-gigabyte downloads.
@@ -33,17 +34,18 @@ is what you want when you would rather Cmd+F than search.
 Everything is in one file with no fetches, so it behaves identically opened from
 `file://` and served over HTTP. Mathematics renders offline via a vendored KaTeX; the
 interactive figures are canvas widgets computing the same arithmetic as the text beside
-them. Around 850 KB, roughly 240 KB gzipped.
+them. Around 1.1 MB, roughly 310 KB gzipped, plus 11 MB of diagrams that load lazily.
 
 ### Publishing it to GitHub Pages
 
 `.github/workflows/pages.yml` builds and deploys `book/` on every push to `main` that
-touches it. To turn it on: **Settings → Pages → Source → GitHub Actions**. The workflow
-rebuilds `index.html`, fails the run if any cross-reference is dangling, and publishes
-`index.html` plus `vendor/` with a `.nojekyll` marker.
+touches it, and is already on (**Settings → Pages → Source → GitHub Actions**). The
+workflow rebuilds `index.html`, fails the run if any cross-reference is dangling, and
+publishes `index.html`, `vendor/` and `images/` with a `.nojekyll` marker.
 
 All asset paths are relative and nothing is fetched from a third party, so it works
-unchanged at a project URL like `https://<user>.github.io/pytorch_nn_training/`.
+unchanged from a project URL, from a local `file://`, or from any static host. This
+repository publishes to <https://dcaponi.github.io/pytorch-nn-training/>.
 
 The routing is hash-based rather than path-based, which means no 404 fallback trick is
 needed and deep links survive a refresh.
