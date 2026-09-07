@@ -338,7 +338,7 @@ surrounded by experiments. What follows is how to get at it.
     <tr><td>02</td><td>Kingma &amp; Ba (2014), <em>Adam</em></td><td>read §2 and the bias-correction derivation; skip the convergence proof (later shown flawed)</td></tr>
     <tr><td>03</td><td>Kim (2014), <em>CNNs for Sentence Classification</em></td><td>the whole architecture of Chapter 03, in six pages</td></tr>
     <tr><td>05</td><td>Hochreiter &amp; Schmidhuber (1997), <em>LSTM</em></td><td>hard going; Olah's "Understanding LSTMs" is the better entry point</td></tr>
-    <tr><td>06–07</td><td>Vaswani et al. (2017), <em>Attention Is All You Need</em></td><td>§3 is the entire architecture; note how little justification the $\sqrt{d_k}$ gets — you derived it in exercise 00.13</td></tr>
+    <tr><td>06–07</td><td>Vaswani et al. (2017), <em>Attention Is All You Need</em></td><td>§3 is the entire architecture; note how little justification the $\sqrt{d_k}$ gets — you derived it in exercise 00.14</td></tr>
     <tr><td>07</td><td>Xiong et al. (2020), <em>On Layer Normalization in the Transformer</em></td><td>why pre-norm removes the need for warmup</td></tr>
     <tr><td>10</td><td>Radford et al. (2019), <em>Language Models are Unsupervised Multitask Learners</em> (GPT-2)</td><td>the architecture is your notebook; the contribution is the framing</td></tr>
     <tr><td>10</td><td>Holtzman et al. (2019), <em>The Curious Case of Neural Text Degeneration</em></td><td>where nucleus sampling comes from, and why likelihood ≠ quality</td></tr>
@@ -506,7 +506,7 @@ handful of habits, all of which appear elsewhere in this book and are collected 
 <table>
   <thead><tr><th>Habit</th><th>Why it persuades</th></tr></thead>
   <tbody>
-    <tr><td>Report a spread, never a single number</td><td>seed variance often exceeds the effect being claimed (exercise 00.16)</td></tr>
+    <tr><td>Report a spread, never a single number</td><td>seed variance often exceeds the effect being claimed (exercise 00.17)</td></tr>
     <tr><td>Compare at matched parameters and matched compute</td><td>otherwise you have measured capacity, not your idea</td></tr>
     <tr><td>Tune the baseline as hard as the method</td><td>an undertuned baseline is the most common way good-faith work becomes wrong</td></tr>
     <tr><td>Ablate one thing at a time</td><td>the ablation is the only controlled comparison you will have</td></tr>

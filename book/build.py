@@ -468,8 +468,13 @@ def check_exercise_refs(chapters: list[Chapter]) -> list[str]:
     the wrong exercise since it was written: the number was plausible, so nothing
     caught it.
     """
-    defined = {m.group(1) for ch in chapters for m in EX_LABEL_RE.finditer(ch.body)}
     problems: list[str] = []
+    seen: list[str] = []
+    for ch in chapters:
+        seen += [m.group(1) for m in EX_LABEL_RE.finditer(ch.body)]
+    for num in sorted({n for n in seen if seen.count(n) > 1}):
+        problems.append(f"exercise {num} is used as a label {seen.count(num)} times")
+    defined = set(seen)
     for ch in chapters:
         for m in EX_CITE_RE.finditer(ch.body):
             if EX_LABEL_RE.search(ch.body, max(0, m.start() - 20), m.end()):

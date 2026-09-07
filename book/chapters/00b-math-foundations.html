@@ -435,7 +435,7 @@ Y = XW                      (1×3)
     <p>This is the general rule stated in the chapter — <em>gradient = (what came in)ᵀ ×
     (what wants to change on the way out)</em> — and it explains why an input feature
     with large magnitude produces proportionally large weight gradients. That is the
-    argument for feature scaling, and it is the same effect you saw in the one-neuron
+    argument for feature scaling, and it is the same effect you saw in the single-row
     exercise where $x = 2$ made $\partial\mathcal{L}/\partial w$ twice
     $\partial\mathcal{L}/\partial b$.</p>
   </details>
@@ -773,10 +773,10 @@ $$f'(x) = \lim_{h\to 0}\frac{f(x+h)-f(x)}{h}
     $z=0$ — frameworks pick 0 by convention. This never matters in practice: hitting
     exactly 0.0 in floating point has probability ~0, and the choice affects a measure-zero
     set.</p>
-    <p><strong>5.</strong> The best case requires every unit at $z = 0$, giving 0.25 per
+    <p><strong>5.</strong> The best case requires every pre-activation at $z = 0$, giving 0.25 per
     layer:</p>
     <div class="given">0.25¹⁰ = 9.5 × 10⁻⁷</div>
-    <p>Under a million times attenuated — and that is the <em>optimum</em>. Real units sit
+    <p>Under a million times attenuated — and that is the <em>optimum</em>. Real pre-activations sit
     away from zero, so the true factor is far smaller. This single number is the vanishing
     gradient problem, and it is why ReLU (derivative exactly 1 on the positive half) and
     residual connections replaced deep sigmoid stacks.</p>
@@ -818,7 +818,7 @@ numerically: ((3(2.001)+1)² − 49)/0.001 = 42.0  ✓</div>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 00.8 · the chain rule as backpropagation<span class="tag tag-must">Must do</span></span>
-  <p>A one-neuron network, forwards and backwards. A complete training step in miniature.</p>
+  <p>The smallest possible case — one row of $W$, one input, one output — forwards and backwards. Everything larger is this, stacked.</p>
   <div class="given">x = 2.0     w = 0.5     b = 0.1     true label y = 1
 
 z = wx + b            (linear)
@@ -934,6 +934,161 @@ path 2:      1 × 3 =  3
   </details>
 </div>
 
+<h3>Backpropagation, in matrices</h3>
+
+<p>
+Everything so far has been one number at a time, which is how the chain rule is easiest to
+learn and not how anything is ever computed. A real network holds no scalars: it is a
+sequence of matrix multiplies with an elementwise function wedged between them, and the
+backward pass is that same sequence read in reverse. This section derives it once, in
+full, because it is the last piece of mathematics the rest of the book needs — every later
+chapter is this, with different matrices in it.
+</p>
+
+<p>
+Take a two-layer network over a batch of $N$ examples with $d$ inputs, $h$ in the middle
+and $K$ classes. The forward pass is five lines:
+</p>
+
+<div class="box example">
+  <span class="box-label">Forward</span>
+  <div class="given">Z1 = X  W1 + b1        (N,d)(d,h) -> (N,h)
+A1 = f(Z1)             elementwise, shape unchanged
+Z2 = A1 W2 + b2        (N,h)(h,K) -> (N,K)
+P  = softmax(Z2)       row by row
+L  = mean over the batch of  -log P[i, correct class]</div>
+  <p style="margin-bottom:0">
+  Two matrix multiplies, one elementwise function, one softmax, one average. There is
+  nothing else in it. $f$ is whatever activation you chose; nothing below depends on which.
+  </p>
+</div>
+
+<p>
+Now differentiate. Write $G_2 = \partial\mathcal{L}/\partial Z_2$ and
+$G_1 = \partial\mathcal{L}/\partial Z_1$ — the gradient of the loss with respect to each
+layer's pre-activation. The whole backward pass is these six lines:
+</p>
+
+<div class="box example">
+  <span class="box-label">Backward</span>
+  <div class="given">G2      = (P - Y) / N          (N,K)     Y is the one-hot targets
+dL/dW2  = A1^T G2              (h,K)
+dL/db2  = column sums of G2    (K,)
+G1      = (G2 W2^T) * f'(Z1)   (N,h)     * is elementwise
+dL/dW1  = X^T G1               (d,h)
+dL/db1  = column sums of G1    (h,)</div>
+  <p style="margin-bottom:0">
+  Read down the right-hand column and the claim in the section title is just true. Every
+  line is a matrix multiply, an elementwise multiply, or a sum. No derivative of anything
+  complicated appears, because all of that collapsed into the first line — the
+  $\hat{y} - y$ you will meet again in Part 4 — and into $f'$, which for ReLU is a matrix
+  of ones and zeros.
+  </p>
+</div>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  <p>
+  There is one rule underneath all six lines. To push a gradient backwards through a
+  product $Y = AB$, you <strong>multiply by the other factor, transposed</strong> — on the
+  left or the right, whichever makes the shapes fit:
+  </p>
+  <div class="given">going back to A:   dL/dA = (dL/dY) B^T
+going back to B:   dL/dB = A^T (dL/dY)</div>
+  <p style="margin-bottom:0">
+  That is the entire mechanism. Backpropagation through a network of matrix multiplies is
+  multiplying the incoming gradient by a transposed matrix, once per layer, all the way
+  down — with an elementwise factor slipped in wherever an activation sat.
+  </p>
+</div>
+
+<div class="box note">
+  <span class="box-label">You can recover every line from the shapes alone</span>
+  <p style="margin-top:0">
+  This is worth doing once, because it means you never have to memorise the backward pass
+  — you can rebuild it at a whiteboard from nothing but the forward shapes.
+  </p>
+  <p style="margin-bottom:0">
+  $\partial\mathcal{L}/\partial W_2$ has to be the same shape as $W_2$, which is
+  <span class="shape">(h, K)</span>. The two things available are $A_1$ at
+  <span class="shape">(N, h)</span> and $G_2$ at <span class="shape">(N, K)</span>. There
+  is exactly one way to multiply those and get <span class="shape">(h, K)</span>: transpose
+  $A_1$ and put it on the left. Likewise $\partial\mathcal{L}/\partial A_1$ must be
+  <span class="shape">(N, h)</span>, and the only arrangement of $G_2$
+  <span class="shape">(N, K)</span> and $W_2$ <span class="shape">(h, K)</span> giving that
+  is $G_2 W_2^\top$. The shapes leave you no choice, which is why
+  <a class="xref" href="#ch00-transpose-and-why-the-backward-pass-needs-it">the transpose
+  section</a> claimed the backward pass is where transposes come from.
+  </p>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.10 · backpropagation in matrices<span class="tag tag-must">Must do</span></span>
+  <p>
+  One example, two inputs, two hidden, two classes, ReLU in the middle. Small enough to do
+  entirely on paper, and it is a complete training step of a real network.
+  </p>
+  <div class="given">X  = [ 1   2 ]          W1 = [ 1   0 ]        W2 = [ 1  -1 ]
+                             [ 0   1 ]             [ 0   2 ]
+
+biases are zero        correct class is the FIRST one,  so  Y = [ 1   0 ]
+
+e^1 = 2.718     e^3 = 20.086     ln(0.1192) = -2.127</div>
+  <ol>
+    <li>Forward: compute $Z_1$, $A_1$, $Z_2$, then $P = \operatorname{softmax}(Z_2)$ and
+        the loss.</li>
+    <li>Compute $G_2 = (P - Y)/N$ with $N = 1$.</li>
+    <li>Compute $\partial\mathcal{L}/\partial W_2 = A_1^\top G_2$. Check the shape is
+        <span class="shape">(2, 2)</span> before you compute a single entry.</li>
+    <li>Compute $G_2 W_2^\top$, then $G_1$. What does ReLU's derivative do here, and when
+        would it not be so kind?</li>
+    <li>Compute $\partial\mathcal{L}/\partial W_1 = X^\top G_1$.</li>
+    <li>Which entry of $\partial\mathcal{L}/\partial W_1$ is largest in magnitude, and
+        which input is responsible?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $W_1$ is the identity, so $Z_1 = [1, 2]$ and, since both are
+    positive, $A_1 = [1, 2]$ unchanged.</p>
+    <div class="given">Z2 = A1 W2 = [ 1(1) + 2(0) ,  1(-1) + 2(2) ] = [ 1 , 3 ]
+
+softmax: e^1 = 2.718, e^3 = 20.086, sum = 22.804
+P = [ 2.718/22.804 , 20.086/22.804 ] = [ 0.1192 , 0.8808 ]
+
+L = -ln(0.1192) = 2.127</div>
+    <p>The model puts 12% on the correct class, so the loss is well above the
+    $\ln 2 = 0.69$ you would get by guessing. It is confidently wrong.</p>
+    <p><strong>2.</strong> $G_2 = [0.1192 - 1,\ 0.8808 - 0] = [-0.8808,\ 0.8808]$. It
+    sums to zero, as every softmax-with-cross-entropy gradient does.</p>
+    <p><strong>3.</strong> $A_1^\top$ is <span class="shape">(2, 1)</span> and $G_2$ is
+    <span class="shape">(1, 2)</span>, so the product is <span class="shape">(2, 2)</span>
+    — the shape of $W_2$, as it must be.</p>
+    <div class="given">dL/dW2 = [ 1 ] [ -0.8808   0.8808 ]  =  [ -0.8808   0.8808 ]
+         [ 2 ]                           [ -1.7616   1.7616 ]</div>
+    <p><strong>4.</strong></p>
+    <div class="given">G2 W2^T = [ -0.8808  0.8808 ] [  1   0 ]  =  [ -1.7616   1.7616 ]
+                                [ -1   2 ]</div>
+    <p>ReLU's derivative is 1 wherever the pre-activation was positive, and both entries of
+    $Z_1$ were, so $f'(Z_1) = [1, 1]$ and $G_1 = [-1.7616,\ 1.7616]$ — the elementwise
+    step changes nothing at all. It would not be so kind if either entry of $Z_1$ had been
+    negative: that coordinate's gradient would be multiplied by zero and the corresponding
+    row of $W_1$ would receive nothing from this example. That is what a dead ReLU is.</p>
+    <p><strong>5.</strong></p>
+    <div class="given">dL/dW1 = X^T G1 = [ 1 ] [ -1.7616   1.7616 ]
+                  [ 2 ]
+
+       = [ -1.7616   1.7616 ]
+         [ -3.5232   3.5232 ]</div>
+    <p><strong>6.</strong> The bottom row, at $\pm 3.5232$ — exactly twice the top row.
+    The second input was 2 and the first was 1, and $X^\top G_1$ scales each row of the
+    weight gradient by the corresponding input. A weight is adjusted in proportion to how
+    much the input it multiplies actually contributed, which is the whole reason feature
+    scaling matters and the reason an input stuck at zero can never move its own weights.</p>
+    <p>Every number above agrees with <code>autograd</code> to the last digit printed. The
+    notebook has you check exactly that.</p>
+  </details>
+</div>
+
 <h3>Gradient descent</h3>
 
 $$\theta \leftarrow \theta - \eta\,\frac{\partial\mathcal{L}}{\partial\theta}$$
@@ -957,7 +1112,7 @@ optimum, on the other side. Above that, it diverges.</div>
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.10 · gradient descent and the learning rate</span>
+  <span class="box-label">By hand — exercise 00.11 · gradient descent and the learning rate</span>
   <p>Minimise $\mathcal{L}(w) = (w-4)^2$ from $w_0 = 1$.</p>
   <ol>
     <li>Write $d\mathcal{L}/dw$ and evaluate at $w = 1$.</li>
@@ -1036,7 +1191,7 @@ Bernoulli(p): X is 1 with probability p, else 0.
   <strong>0.25</strong> — and it is the <em>same expression</em> as the sigmoid
   derivative $\sigma'(z) = \sigma(z)(1-\sigma(z))$. That is not a coincidence: a sigmoid
   output <em>is</em> a Bernoulli parameter, and its derivative is that Bernoulli's
-  variance. A saturated unit ($p \to 0$ or $1$) has near-zero variance, which is exactly
+  variance. A saturated output ($p \to 0$ or $1$) has near-zero variance, which is exactly
   the same fact as having near-zero gradient. Certainty and unlearnability are the same
   condition.
   </p>
@@ -1044,7 +1199,7 @@ Bernoulli(p): X is 1 with probability p, else 0.
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.11 · expectation and variance from the definition</span>
+  <span class="box-label">By hand — exercise 00.12 · expectation and variance from the definition</span>
   <ol>
     <li>A fair four-sided die shows 1, 2, 3, 4. Compute $\mathbb{E}[X]$,
         $\mathbb{E}[X^2]$, and $\operatorname{Var}(X)$.</li>
@@ -1054,7 +1209,7 @@ Bernoulli(p): X is 1 with probability p, else 0.
     <li>For what $p$ is a Bernoulli's variance largest, and what is that value?</li>
     <li>A sigmoid output is a Bernoulli parameter. Using part 3, state the maximum
         possible value of $\sigma'(z)$ and explain the connection.</li>
-    <li>A network's unit outputs $\sigma(z) = 0.99$. What is the variance of the
+    <li>One coordinate of a layer's output is $\sigma(z) = 0.99$. What is the variance of the
         corresponding Bernoulli, and what does that say about the gradient?</li>
   </ol>
   <details>
@@ -1075,11 +1230,11 @@ Var(X) = 7.5 − 2.5² = 7.5 − 6.25 = 1.25</div>
     <strong>0.25</strong>, at $z = 0$ where $\sigma = 0.5$.</p>
     <p>The connection is not a coincidence but an identity: a sigmoid output <em>is</em> a
     Bernoulli parameter, and its derivative <em>is</em> that Bernoulli's variance. Which
-    means <strong>a confident unit and an unlearnable unit are the same thing</strong>.
+    means <strong>a confident output and an unlearnable one are the same thing</strong>.
     The model's certainty and its gradient are two readings of one number.</p>
-    <p><strong>5.</strong> $0.99(0.01) = \mathbf{0.0099}$. The gradient through that unit
-    is attenuated by a factor of about 100 relative to an uncertain unit — and by 25
-    relative to the best case. If the unit is confidently <em>wrong</em>, that is exactly
+    <p><strong>5.</strong> $0.99(0.01) = \mathbf{0.0099}$. The gradient through that coordinate
+    is attenuated by a factor of about 100 relative to an uncertain one — and by 25
+    relative to the best case. If it is confidently <em>wrong</em>, that is exactly
     the situation where you most need a large gradient and least get one, which is the
     whole argument in <a class="xref" href="#ch00-cross-entropy">Part 4</a> for why
     cross-entropy's cancellation matters.</p>
@@ -1099,7 +1254,7 @@ follows from these two lines.
 <div class="box concept">
   <span class="box-label">Key concept — why weights are initialised at $1/\sqrt{n}$</span>
   <p>
-  A unit computes $z = \sum_{i=1}^{n} w_ix_i$. Take the inputs to have variance 1 and the
+  One row of $W$ computes $z = \sum_{i=1}^{n} w_ix_i$ against the input. Take the inputs to have variance 1 and the
   weights to be independent with variance $\sigma_w^2$, all with mean zero. Then each
   term has variance $\sigma_w^2$, and $n$ independent terms add:
   </p>
@@ -1127,7 +1282,7 @@ follows from these two lines.
 
 σ(30) = 1.0000 to ten decimals, and σ′(30) ≈ 1e−13.</div>
   <p style="margin-bottom:0">
-  Every unit is saturated before training starts, every gradient is ~$10^{-13}$, and the
+  Every output is saturated before training starts, every gradient is ~$10^{-13}$, and the
   network never learns anything. Not a subtle degradation — a total failure, caused by
   one factor of $\sqrt{n}$.
   </p>
@@ -1135,12 +1290,12 @@ follows from these two lines.
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.12 · variance of a sum, and weight initialisation<span class="tag tag-must">Must do</span></span>
+  <span class="box-label">By hand — exercise 00.13 · variance of a sum, and weight initialisation<span class="tag tag-must">Must do</span></span>
   <p>
   This exercise derives Xavier initialisation from scratch. It is the single most
   useful piece of statistics in the chapter.
   </p>
-  <div class="given">A unit computes  z = Σᵢ wᵢxᵢ  over n = 100 inputs.
+  <div class="given">One row of W computes  z = Σᵢ wᵢxᵢ  over n = 100 inputs.
 Inputs xᵢ: independent, mean 0, variance 1.
 Weights wᵢ: independent of each other and of x, mean 0, variance σ²_w.</div>
   <ol>
@@ -1166,7 +1321,7 @@ Weights wᵢ: independent of each other and of x, mean 0, variance σ²_w.</div>
     $\text{SD}(z) = \mathbf{10}$.</p>
     <p><strong>3.</strong> Pre-activations land in roughly $[-30, 30]$. At $|z| = 10$ the
     sigmoid is already 0.99995 and its derivative is $4.5\times10^{-5}$ — so essentially
-    every unit is saturated <em>before training begins</em>, and every gradient is
+    every output is saturated <em>before training begins</em>, and every gradient is
     attenuated by ~$10^{-5}$ per layer. The network does not train slowly; it does not
     train at all. And nothing in the code is wrong — only one factor.</p>
     <p><strong>4.</strong> $n\sigma_w^2 = 1 \Rightarrow \sigma_w = 1/\sqrt{n} =
@@ -1213,7 +1368,7 @@ Var(q·k) = d_k          SD(q·k) = √d_k</div>
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.13 · the variance of a dot product, and $\sqrt{d_k}$<span class="tag tag-must">Must do</span></span>
+  <span class="box-label">By hand — exercise 00.14 · the variance of a dot product, and $\sqrt{d_k}$<span class="tag tag-must">Must do</span></span>
   <p>
   Exercise 00.2 showed <em>that</em> large scores saturate a softmax. This one shows
   <em>why they become large</em>.
@@ -1255,7 +1410,7 @@ SCALED    z = [0, 1, −1]
   e⁰ = 1,  e¹ = 2.718,  e⁻¹ = 0.368       sum = 4.086
   softmax = [0.245, 0.665, 0.090]                ← soft</div>
     <p><strong>6.</strong> The softmax Jacobian's diagonal is $p(1-p)$ — the same
-    Bernoulli variance from exercise 00.11.</p>
+    Bernoulli variance from exercise 00.12.</p>
     <div class="given">unscaled: p = 0.99966  →  p(1−p) = 0.00034
 scaled:   p = 0.665    →  p(1−p) = 0.223
 
@@ -1286,7 +1441,7 @@ the model can express.
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.14 · standardisation and layer normalisation</span>
+  <span class="box-label">By hand — exercise 00.15 · standardisation and layer normalisation</span>
   <div class="given">One token's features:   x = [2, 4, 4, 4, 5, 5, 7, 9]</div>
   <ol>
     <li>Compute the mean $\mu$.</li>
@@ -1354,9 +1509,9 @@ Inverted dropout divides by the keep probability:  y = xB/(1 − p)
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.15 · dropout and preserved expectation</span>
+  <span class="box-label">By hand — exercise 00.16 · dropout and preserved expectation</span>
   <div class="given">A layer outputs four activations, all equal to 1.0.
-Dropout with p = 0.5 (each unit kept with probability 0.5).</div>
+Dropout with p = 0.5 (each coordinate kept with probability 0.5).</div>
   <ol>
     <li>Without any rescaling, what is the expected sum of the four activations during
         training? What is it at test time, when dropout is off?</li>
@@ -1370,7 +1525,7 @@ Dropout with p = 0.5 (each unit kept with probability 0.5).</div>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> Each unit survives with probability 0.5, so the expected sum is
+    <p><strong>1.</strong> Each coordinate survives with probability 0.5, so the expected sum is
     $4 \times 1.0 \times 0.5 = \mathbf{2}$ during training and $\mathbf{4}$ at test time.
     Every downstream layer therefore sees inputs at <em>half</em> the scale in training
     that it sees in deployment — a systematic distribution shift baked into the model.</p>
@@ -1417,7 +1572,7 @@ s^2 = \frac{1}{n-1}\sum_i (x_i - \bar{x})^2
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.16 · sample mean, standard error, and how many seeds<span class="tag tag-rec">Recommended</span></span>
+  <span class="box-label">By hand — exercise 00.17 · sample mean, standard error, and how many seeds<span class="tag tag-rec">Recommended</span></span>
   <p>You train the same model three times, changing only the random seed.</p>
   <div class="given">test accuracies:  0.812,  0.789,  0.834</div>
   <ol>
@@ -1471,7 +1626,7 @@ initialisation arithmetic optimistic and deep networks drift out of scale anyway
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.17 · covariance and correlation</span>
+  <span class="box-label">By hand — exercise 00.18 · covariance and correlation</span>
   <div class="given">x = [1, 2, 3, 4]        y = [2, 3, 5, 4]</div>
   <ol>
     <li>Compute both means.</li>
@@ -1506,8 +1661,8 @@ Var(y) = (2.25+0.25+2.25+0.25)/4 = 1.25    σ_y = 1.118
     <p><strong>5.</strong></p>
     $$\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y) + 2\operatorname{Cov}(X,Y)$$
     <p>With positively correlated inputs the cross terms are positive, so the true
-    variance of a unit's pre-activation is <em>larger</em> than the $n\sigma_w^2$ that
-    exercise 00.12 predicted. Initialisation calibrated on the independence assumption is
+    variance of a pre-activation is <em>larger</em> than the $n\sigma_w^2$ that
+    exercise 00.13 predicted. Initialisation calibrated on the independence assumption is
     therefore optimistic, and activations drift upward with depth anyway — which is part
     of why explicit normalisation layers earn their place even in a well-initialised
     network. It is also an argument for decorrelating inputs where you cheaply can.</p>
@@ -1522,14 +1677,14 @@ $$P(A \mid B) = \frac{P(B \mid A)\,P(A)}{P(B)}$$
 The practical content is that <strong>a highly accurate test for a rare condition is
 mostly wrong when it fires</strong>, because the false positives are drawn from a much
 larger pool. This is the same arithmetic as class imbalance in
-<a class="xref" href="#ch03">classification</a>, and exercise 00.18 works it through.
+<a class="xref" href="#ch03">classification</a>, and exercise 00.19 works it through.
 </p>
 
 <hr>
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.18 · Bayes, base rates, and class imbalance<span class="tag tag-rec">Recommended</span></span>
+  <span class="box-label">By hand — exercise 00.19 · Bayes, base rates, and class imbalance<span class="tag tag-rec">Recommended</span></span>
   <div class="given">A disease affects 0.5% of the population.
 A test detects it in 99% of sick people          (sensitivity)
 and correctly clears 95% of healthy people       (specificity).</div>
@@ -1735,7 +1890,7 @@ ratio: about 1,500×</div>
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.19 · binary cross-entropy on a batch</span>
+  <span class="box-label">By hand — exercise 00.20 · binary cross-entropy on a batch</span>
   <div class="given">example   true y    predicted ŷ
    1         1         0.9
    2         0         0.2
@@ -1812,7 +1967,7 @@ therefore free — and it makes overflow impossible.</div>
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.20 · softmax, cross-entropy, and the gradient<span class="tag tag-must">Must do</span></span>
+  <span class="box-label">By hand — exercise 00.21 · softmax, cross-entropy, and the gradient<span class="tag tag-must">Must do</span></span>
   <div class="given">z = [2.0, 1.0, 0.0]        true class c = 1 (the middle one)
 
 e⁰ = 1.000    e¹ = 2.718    e² = 7.389</div>
@@ -1881,7 +2036,7 @@ are the same story told twice.
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.21 · entropy, cross-entropy, and KL</span>
+  <span class="box-label">By hand — exercise 00.22 · entropy, cross-entropy, and KL</span>
   <p>
   A weather model claims rain with probability $q = 0.25$ every day. It actually rains
   half the time, $p = 0.5$. Work in bits, with $\log_2 3 \approx 1.585$.
@@ -1944,7 +2099,7 @@ a bug.
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.22 · choosing the loss</span>
+  <span class="box-label">By hand — exercise 00.23 · choosing the loss</span>
   <p>No arithmetic. For each, name the loss and justify it from the distribution.</p>
   <ol>
     <li>Predicting apartment rents, where 2% of the data is penthouses at 30× the median.</li>
@@ -2108,7 +2263,7 @@ It is not evidence the variant is worse; it is not evidence of anything.</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.23 · name the tool</span>
+  <span class="box-label">By hand — exercise 00.24 · name the tool</span>
   <p>
   For each, name the trigger and the tool <em>before</em> computing anything, then say in
   one line what you would check. No arithmetic required.
@@ -2152,13 +2307,13 @@ It is not evidence the variant is worse; it is not evidence of anything.</div>
     <p><strong>6. Rare → base rates.</strong> Sensitivity alone says nothing about
     $P(\text{disease} \mid +)$ — that needs the prevalence and the false-positive rate.
     At 0.5% prevalence and 95% specificity, a positive result means roughly a
-    <strong>9%</strong> chance of disease (exercise 00.18). <em>Check:</em> ask for
+    <strong>9%</strong> chance of disease (exercise 00.19). <em>Check:</em> ask for
     prevalence and specificity, or just count bodies in a population of 10,000.</p>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.24 · spot the flawed claim</span>
+  <span class="box-label">By hand — exercise 00.25 · spot the flawed claim</span>
   <p>
   Each of these is something a reasonable person might say. One is fine. Find the flaw in
   the other three and name the tool that exposes it.
@@ -2218,7 +2373,7 @@ it is the one that does not survive being told.
 </p>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.25 · a network that will not train, end to end<span class="tag tag-must">Must do</span></span>
+  <span class="box-label">By hand — exercise 00.26 · a network that will not train, end to end<span class="tag tag-must">Must do</span></span>
   <p class="statement" style="font-family:var(--serif);font-style:italic;border-left:2px solid var(--byhand);padding-left:.9rem;margin:.4rem 0 1rem">
     "I built a 12-layer classifier over 10 classes, width 256, ReLU, initialised with
     <code>torch.randn(256, 256) * 1.0</code>. The loss starts at 2.30 and does not move.
@@ -2292,7 +2447,7 @@ sqrt(1.93e25) ≈ 4.4 × 10¹² before the final layer.</div>
     you and can read $\sigma_w$ straight off it. This costs one forward pass and settles
     the question outright.</p>
     <p><strong>8.</strong> Because the learning rate multiplies the gradient, and the
-    gradient here is <em>zero</em> — every unit is saturated, so $\sigma'$ or the ReLU
+    gradient here is <em>zero</em> — every output is saturated, so $\sigma'$ or the ReLU
     derivative contributes nothing to propagate. Any multiple of zero is zero. A sweep can
     only help when there <em>is</em> a signal whose magnitude is wrong; it cannot
     manufacture one. Recognising the difference between "wrong magnitude" and "no signal"
@@ -2301,7 +2456,7 @@ sqrt(1.93e25) ≈ 4.4 × 10¹² before the final layer.</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.26 · is the result real, end to end<span class="tag tag-rec">Recommended</span></span>
+  <span class="box-label">By hand — exercise 00.27 · is the result real, end to end<span class="tag tag-rec">Recommended</span></span>
   <p class="statement" style="font-family:var(--serif);font-style:italic;border-left:2px solid var(--byhand);padding-left:.9rem;margin:.4rem 0 1rem">
     "Our new architecture reaches 71.2% on the rare-event detection task, against 69.6%
     for the baseline. It also has 96% accuracy overall. Positives are 4% of the data."
