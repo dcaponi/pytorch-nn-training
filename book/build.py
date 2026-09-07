@@ -457,6 +457,30 @@ def check_answers(chapters: list[Chapter]) -> list[str]:
     return problems
 
 
+EX_LABEL_RE = re.compile(r"By hand — exercise (\d\d[a-z]?\.\d+)")
+EX_CITE_RE = re.compile(r"exercise (\d\d[a-z]?\.\d+)")
+
+
+def check_exercise_refs(chapters: list[Chapter]) -> list[str]:
+    """Every "exercise NN.M" mentioned anywhere must be an exercise that exists.
+
+    Added after renumbering chapter 00 surfaced a citation that had been pointing at
+    the wrong exercise since it was written: the number was plausible, so nothing
+    caught it.
+    """
+    defined = {m.group(1) for ch in chapters for m in EX_LABEL_RE.finditer(ch.body)}
+    problems: list[str] = []
+    for ch in chapters:
+        for m in EX_CITE_RE.finditer(ch.body):
+            if EX_LABEL_RE.search(ch.body, max(0, m.start() - 20), m.end()):
+                continue                      # this is the label itself
+            if m.group(1) not in defined:
+                problems.append(
+                    f"{ch.path.name}: cites exercise {m.group(1)}, which does not exist"
+                )
+    return problems
+
+
 def check_links(chapters: list[Chapter], full_html: str) -> list[str]:
     anchors = {h.anchor for ch in chapters for h in ch.headings}
     anchors |= set(re.findall(r'\bid="([^"]+)"', full_html))
@@ -568,6 +592,7 @@ def build(check_only: bool = False) -> int:
         + check_figures(chapters)
         + check_drills(chapters)
         + check_answers(chapters)
+        + check_exercise_refs(chapters)
     )
     for p in problems:
         print(f"warning: {p}", file=sys.stderr)

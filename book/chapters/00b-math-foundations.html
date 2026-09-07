@@ -86,11 +86,63 @@ and the geometry:
   [1, 0] · [0, 1]  =  0     perpendicular     → zero
   [1, 0] · [−1, 0] = −1     opposite          → negative</div>
   <p style="margin-bottom:0">
-  When <a class="xref" href="#ch06">attention</a> computes $QK^\top$, every entry is a
-  dot product asking "how relevant is this position to that one?" — and the answer is
-  literally an angle between two learned vectors. The entire mechanism is this one
-  geometric fact applied to every pair.
+  The sign is the whole point. A dot product collapses two vectors into a single number
+  saying how much they agree: large and positive when they point the same way, zero when
+  they are unrelated, negative when they oppose. Every "how well do these two things
+  match?" computation in this book is this number — usually millions of them at once,
+  which is what the rest of this section is about.
   </p>
+</div>
+
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.1 · the geometry of the dot product</span>
+  <p>
+  The exercise that makes <a class="xref" href="#ch06">attention</a> feel inevitable.
+  Three "word embeddings" in two dimensions:
+  </p>
+  <div class="given">cat  = [ 1.0,  0.0 ]
+dog  = [ 0.8,  0.6 ]
+idea = [−0.6,  0.8 ]</div>
+  <ol>
+    <li>Confirm all three have length 1. (For unit vectors the dot product <em>is</em>
+        the cosine.)</li>
+    <li>Compute all three pairwise dot products.</li>
+    <li>Rank the pairs by similarity. Does it match your intuition about the words?</li>
+    <li>A query $q = [0.9, 0.4]$ arrives. Compute its score against each key and apply
+        softmax with no scaling.</li>
+    <li>Scale $q$ to $[9, 4]$ — same direction, ten times longer. Recompute. What
+        happened, and which part of the attention formula prevents it?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $\sqrt{1+0} = 1$; $\sqrt{0.64+0.36} = 1$;
+    $\sqrt{0.36+0.64} = 1$ ✓.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">cat · dog  = (1.0)(0.8) + (0.0)(0.6)  =  0.80
+cat · idea = (1.0)(−0.6) + (0.0)(0.8) = −0.60
+dog · idea = (0.8)(−0.6) + (0.6)(0.8) =  0.00</div>
+    <p><strong>3.</strong> cat–dog (0.80) &gt; dog–idea (0.00) &gt; cat–idea (−0.60). Two
+    concrete animals are similar; "idea" is perpendicular to "dog" and points away from
+    "cat". This is what a learned embedding space does, and why every attention score is
+    a dot product.</p>
+    <p><strong>4.</strong></p>
+    <div class="given">q · cat  = 0.90     q · dog  = 0.96     q · idea = −0.22
+
+e^0.90 = 2.460   e^0.96 = 2.612   e^{−0.22} = 0.803   sum = 5.875
+softmax = [0.419, 0.445, 0.137]</div>
+    <p>It attends most to <strong>dog</strong>, but only just. The distribution is soft,
+    so gradients flow to all three.</p>
+    <p><strong>5.</strong> Every score is multiplied by 10: $[9.0, 9.6, -2.2]$.</p>
+    <div class="given">e^9.0 = 8103    e^9.6 = 14765    e^{−2.2} = 0.111   sum = 22868
+softmax = [0.354, 0.646, 0.0000049]</div>
+    <p>The <em>direction</em> of $q$ has not changed, so the ranking is identical — but
+    the distribution is far peakier and "idea" has been annihilated to five parts in a
+    million. Push further and the row goes fully one-hot, the softmax gradient goes to
+    zero, and the layer stops learning.</p>
+    <p>This is what the <strong>$1/\sqrt{d_k}$ factor</strong> prevents. Exercise 00.13
+    derives why score magnitude grows with dimension in the first place.</p>
+  </details>
 </div>
 
 <h3>Matrix–vector products, read two ways</h3>
@@ -103,35 +155,99 @@ ever learn the first half of it.
 <div class="box concept">
   <span class="box-label">Key concept</span>
   <p>
-  $A\mathbf{x}$ can be read as <strong>rows</strong>: output $i$ is the dot product of
-  row $i$ with $\mathbf{x}$ — "each output unit takes a weighted vote over all inputs".
+  A matrix–vector product is <strong>the dot product you already know, done once per
+  row</strong>. Nothing new is happening. $A\mathbf{x}$ takes row 1 of $A$, dots it with
+  $\mathbf{x}$ to get the first output number; takes row 2, dots it with $\mathbf{x}$
+  to get the second; and stacks the answers. If $A$ has 512 rows you are doing 512 dot
+  products and writing them in a column.
   </p>
   <p style="margin-bottom:0">
-  Or as <strong>columns</strong>: the output is a <em>linear combination of the columns
-  of $A$</em>, with $\mathbf{x}$ supplying the coefficients — "the input selects and
-  blends a set of stored patterns". Both are always true. The row reading explains the
-  forward pass; the column reading explains embeddings, rank, and LoRA.
+  The same arithmetic can be read a second way, and it is worth having both.
+  Instead of going row by row, go <strong>column by column</strong>: take each column of
+  $A$, scale it by the matching number in $\mathbf{x}$, and add the results together.
+  Both readings give the identical answer, because they are the identical multiplications
+  in a different order. The row reading is how you compute it. The column reading is what
+  makes embeddings and low-rank updates obvious later.
   </p>
 </div>
 
 <div class="box example">
   <span class="box-label">Example — the same product, both ways</span>
-  <div class="given">A = [ 2  1  0 ]        x = [1, 2, 4]
-    [ 0  3  1 ]
+  <div class="given">        A  is 2 x 3                 x  is 3 x 1
 
-ROW reading:
-  row1 · x = (2)(1) + (1)(2) + (0)(4) = 4
-  row2 · x = (0)(1) + (3)(2) + (1)(4) = 10          →  [4, 10]
+      [ 2   1   0 ]                   [ 1 ]
+      [ 0   3   1 ]                   [ 2 ]
+                                      [ 4 ]
 
-COLUMN reading:
-  1·[2,0]  +  2·[1,3]  +  4·[0,1]
-  = [2,0]  +  [2,6]    +  [0,4]                     →  [4, 10]  ✓</div>
+ROW READING   —   one dot product per row of A
+
+      row 1  [ 2  1  0 ] . [ 1  2  4 ]  =  2(1) + 1(2) + 0(4)  =   4
+      row 2  [ 0  3  1 ] . [ 1  2  4 ]  =  0(1) + 3(2) + 1(4)  =  10
+
+                                                    [  4 ]
+                                             Ax  =  [ 10 ]
+
+COLUMN READING   —   scale each column of A, then add
+
+      x is 1  ->  1 x  [ 2 ]   =   [ 2 ]      <- column 1 of A
+                       [ 0 ]       [ 0 ]
+
+      x is 2  ->  2 x  [ 1 ]   =   [ 2 ]      <- column 2 of A
+                       [ 3 ]       [ 6 ]
+
+      x is 4  ->  4 x  [ 0 ]   =   [ 0 ]      <- column 3 of A
+                       [ 1 ]       [ 4 ]
+                                  -------
+                            add:   [  4 ]     same answer
+                                   [ 10 ]</div>
   <p style="margin-bottom:0">
-  Now set $\mathbf{x} = [0,0,1]$. The column reading makes the answer immediate: the
-  output is just column 3, $[0,1]$. That is precisely what an
-  <a class="xref" href="#ch03">embedding lookup</a> is — a one-hot vector selecting one
-  column — and it is why a lookup table and a linear layer are the same object.
+  Now set $\mathbf{x} = [0,0,1]$. Going column by column, the answer is immediate:
+  columns 1 and 2 are scaled by zero and vanish, so the output is column 3 exactly,
+  $[0,1]$. Doing it row by row would give the same thing but you would have to grind
+  through the arithmetic to see it. That is precisely what an
+  <a class="xref" href="#ch03">embedding lookup</a> is — a vector of all zeros with a
+  single 1 in it, pulling out one column — and it is why a lookup table and a matrix
+  multiply are the same object wearing different clothes.
   </p>
+</div>
+
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.2 · matrix–vector, both readings</span>
+  <div class="given">A = [ 2  1  0 ]           x = [1, 2, 4]
+    [ 0  3  1 ]</div>
+  <ol>
+    <li>Compute $A\mathbf{x}$ using the <em>row</em> reading (dot products).</li>
+    <li>Compute it again column by column (scale each column of
+        columns, with $\mathbf{x}$ as coefficients). Confirm they agree.</li>
+    <li>Now let $\mathbf{x} = [0, 0, 1]$. Use the column reading to write down the answer
+        immediately, without arithmetic.</li>
+    <li>An <code>nn.Embedding(4, 3)</code> holds a $4\times 3$ table. Explain, using
+        part 3, why looking up token 2 is the same operation as multiplying a one-hot
+        vector by that table — and what that implies about which rows receive gradient.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Row reading:</p>
+    <div class="given">row1 · x = (2)(1) + (1)(2) + (0)(4) = 4
+row2 · x = (0)(1) + (3)(2) + (1)(4) = 10        →  [4, 10]</div>
+    <p><strong>2.</strong> Column reading:</p>
+    <div class="given">1·[2,0] + 2·[1,3] + 4·[0,1]
+= [2,0] + [2,6] + [0,4]                          →  [4, 10]   ✓</div>
+    <p><strong>3.</strong> The coefficients are $0, 0, 1$, so the result is simply the
+    third column: <strong>[0, 1]</strong>. No arithmetic required — and that is the whole
+    value of the column reading.</p>
+    <p><strong>4.</strong> A one-hot vector has a single 1 in position $k$, so the linear
+    combination keeps exactly one row (or column, depending on which side you multiply)
+    and discards the rest. The lookup <em>is</em> the multiplication, executed
+    efficiently.</p>
+    <p>The consequence for training is direct. Since the output depends on only that one
+    row, the gradient with respect to every other row is exactly zero — not small,
+    <em>zero</em>. Only the tokens that actually appeared in a batch get updated, and a
+    token appearing three times accumulates three contributions, as
+    <a class="xref" href="#ch00">summing over paths</a> requires. It is also why rare
+    words have poor embeddings: they simply receive very few updates.</p>
+  </details>
 </div>
 
 <h3>Matrix multiplication</h3>
@@ -196,6 +312,52 @@ x @ (B @ A) :  B@A alone is 1000×4×1000 = 4,000,000 mults
 Same answer. 500x the work.</div>
 </div>
 
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.3 · shapes, legality, and parameter counts<span class="tag tag-rec">Recommended</span></span>
+  <div class="given">A is (4, 2)      B is (2, 3)      C is (3, 3)      v is (3,)</div>
+  <ol>
+    <li>Which are legal, and what shape does each produce? <code>A@B</code>,
+        <code>B@A</code>, <code>A@B@C</code>, <code>B@C</code>, <code>C@B</code>.</li>
+    <li>What shape is <code>(A@B) + v</code>, and why?</li>
+    <li>A batch of 32 examples with 10 features passes through
+        <code>nn.Linear(10, 64)</code> then <code>nn.Linear(64, 3)</code>. Give every
+        intermediate shape and the total parameter count.</li>
+    <li>You have $x$ of shape <span class="shape">(1, 1000)</span>, $B$ of shape
+        <span class="shape">(1000, 4)</span>, and $A$ of shape
+        <span class="shape">(4, 1000)</span>. Count the multiplications for
+        <code>(x@B)@A</code> versus <code>x@(B@A)</code>.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Inner dimensions must match and vanish.</p>
+    <div class="given">A@B    (4,2)@(2,3)  → (4, 3)     ✓
+B@A    (2,3)@(4,2)  → ERROR      ✗  3 ≠ 4
+A@B@C  (4,3)@(3,3)  → (4, 3)     ✓  evaluated left to right
+B@C    (2,3)@(3,3)  → (2, 3)     ✓
+C@B    (3,3)@(2,3)  → ERROR      ✗  3 ≠ 2</div>
+    <p><code>A@B</code> is legal while <code>B@A</code> is not — the clearest possible
+    demonstration that matrix multiplication does not commute.</p>
+    <p><strong>2.</strong> <strong>(4, 3)</strong>. Aligning from the right, 3 matches 3;
+    <code>v</code> has no second dimension so it is treated as
+    <span class="shape">(1, 3)</span> and stretched across all four rows. This is exactly
+    how a bias is added to a batch.</p>
+    <p><strong>3.</strong></p>
+    <div class="given">input                (32, 10)
+after Linear(10,64)  (32, 64)     10×64 + 64 = 704
+after Linear(64,3)   (32,  3)     64×3  +  3 = 195
+                                    total     899</div>
+    <p>The batch dimension 32 passes through untouched at every step. Layers transform
+    features, never the batch.</p>
+    <p><strong>4.</strong></p>
+    <div class="given">(x@B)@A : (1×1000×4) + (1×4×1000) = 4,000 + 4,000 = 8,000
+x@(B@A) : (1000×4×1000) + (1×1000×1000)  = 4,000,000 + 1,000,000</div>
+    <p>Identical answers; <strong>625× the work</strong>. Associativity is a free
+    optimisation, and it is precisely why <a class="xref" href="#ch11">LoRA</a> is cheap
+    at inference: you never materialise $BA$.</p>
+  </details>
+</div>
+
 <h3>Transpose, and why the backward pass needs it</h3>
 
 <p>
@@ -228,6 +390,57 @@ Any other arrangement of X, W, δ and their transposes either fails to
 multiply or produces the wrong shape. The shapes force the formula.</div>
 </div>
 
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.4 · the transpose in the backward pass<span class="tag tag-must">Must do</span></span>
+  <p>A single linear layer with no bias, one example.</p>
+  <div class="given">X = [1, 2]                  (1×2)
+
+W = [ 1  0  2 ]             (2×3)
+    [ 0  1  3 ]
+
+Y = XW                      (1×3)
+δ = ∂L/∂Y = [1, 1, 1]       (1×3)   given from downstream</div>
+  <ol>
+    <li>Compute $Y$.</li>
+    <li>Without computing anything, use shapes alone to decide whether
+        $\partial\mathcal{L}/\partial W$ is $X^\top\delta$ or $\delta^\top X$.</li>
+    <li>Compute $\partial\mathcal{L}/\partial W$ and confirm it has the shape of $W$.</li>
+    <li>Compute $\partial\mathcal{L}/\partial X = \delta W^\top$ and confirm its shape.</li>
+    <li>Interpret the first entry of $\partial\mathcal{L}/\partial W$: why is the whole
+        first row equal to 1 and the whole second row equal to 2?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong></p>
+    <div class="given">Y = [ (1)(1)+(2)(0), (1)(0)+(2)(1), (1)(2)+(2)(3) ] = [1, 2, 8]</div>
+    <p><strong>2.</strong> $W$ is <span class="shape">(2, 3)</span>, so the gradient must
+    be <span class="shape">(2, 3)</span>. $X^\top$ is <span class="shape">(2, 1)</span>
+    and $\delta$ is <span class="shape">(1, 3)</span>, giving
+    <span class="shape">(2, 3)</span> ✓. The alternative $\delta^\top X$ is
+    <span class="shape">(3, 1)</span> @ <span class="shape">(1, 2)</span> =
+    <span class="shape">(3, 2)</span> ✗. <strong>The shapes decide it</strong>, with no
+    calculus needed.</p>
+    <p><strong>3.</strong></p>
+    <div class="given">Xᵀδ = [1]  @  [1  1  1]   =   [ 1  1  1 ]
+      [2]                      [ 2  2  2 ]        (2×3)  ✓</div>
+    <p><strong>4.</strong></p>
+    <div class="given">δWᵀ = [1 1 1] @ [ 1  0 ]  = [ 1+0+2 , 0+1+3 ] = [3, 4]
+                [ 0  1 ]                                  (1×2)  ✓
+                [ 2  3 ]</div>
+    <p><strong>5.</strong> $\partial\mathcal{L}/\partial W_{ij} = X_i\delta_j$ — the input
+    that fed the weight, times the error that came back through it. Since every
+    $\delta_j = 1$ here, each row is just its input value repeated: row 1 is $X_1 = 1$
+    and row 2 is $X_2 = 2$.</p>
+    <p>This is the general rule stated in the chapter — <em>gradient = (what came in)ᵀ ×
+    (what wants to change on the way out)</em> — and it explains why an input feature
+    with large magnitude produces proportionally large weight gradients. That is the
+    argument for feature scaling, and it is the same effect you saw in the one-neuron
+    exercise where $x = 2$ made $\partial\mathcal{L}/\partial w$ twice
+    $\partial\mathcal{L}/\partial b$.</p>
+  </details>
+</div>
+
 <h3>Outer products and rank</h3>
 
 <p>
@@ -258,6 +471,54 @@ The 3×2 = 6 entries are generated by just 3 + 2 = 5 numbers.</div>
   </p>
 </div>
 
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.5 · outer products, rank, and LoRA<span class="tag tag-rec">Recommended</span></span>
+  <div class="given">u = [1, 2, 3]        v = [4, 5]</div>
+  <ol>
+    <li>Compute the outer product $\mathbf{u}\mathbf{v}^\top$ (a $3\times 2$ matrix).</li>
+    <li>Show that every row is a multiple of $[4,5]$. How many independent directions
+        does the matrix span?</li>
+    <li>Six entries are stored. How many numbers actually generate them?</li>
+    <li>Determine the rank of $\begin{pmatrix}1&2\\2&4\end{pmatrix}$ and of
+        $\begin{pmatrix}1&2\\3&4\end{pmatrix}$.</li>
+    <li>LoRA writes $\Delta W = BA$ with $B$ of shape <span class="shape">(d, r)</span>
+        and $A$ of shape <span class="shape">(r, d)</span>. Explain why this is a sum of
+        $r$ outer products, and count the parameters against a full $d\times d$ update at
+        $d = 1000$, $r = 4$.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong></p>
+    <div class="given">u vᵀ = [ 1·4  1·5 ]     [  4   5 ]
+       [ 2·4  2·5 ]  =  [  8  10 ]
+       [ 3·4  3·5 ]     [ 12  15 ]</div>
+    <p><strong>2.</strong> Row 1 is $1\times[4,5]$, row 2 is $2\times[4,5]$, row 3 is
+    $3\times[4,5]$. Every row points along the same direction, so the matrix spans
+    exactly <strong>one</strong> direction: it has <strong>rank 1</strong>.</p>
+    <p><strong>3.</strong> Six entries, generated by $3 + 2 = \mathbf{5}$ numbers. (In
+    fact only 4 degrees of freedom, since scaling $\mathbf{u}$ by $c$ and $\mathbf{v}$ by
+    $1/c$ leaves the product unchanged.)</p>
+    <p><strong>4.</strong> In the first, row 2 = 2 × row 1, so the rows are dependent and
+    the rank is <strong>1</strong> (determinant $1\cdot4 - 2\cdot2 = 0$). In the second
+    the determinant is $1\cdot4 - 2\cdot3 = -2 \ne 0$, so the rank is
+    <strong>2</strong> — full rank.</p>
+    <p><strong>5.</strong> Write $B$'s columns as $b_1,\dots,b_r$ and $A$'s rows as
+    $a_1^\top,\dots,a_r^\top$. Then</p>
+    $$BA = \sum_{i=1}^{r} b_i a_i^\top$$
+    <p>a sum of $r$ rank-1 outer products, so $\operatorname{rank}(BA) \le r$.</p>
+    <div class="given">full update  : d² = 1,000,000 parameters
+LoRA (r=4)   : 2dr = 2(1000)(4) = 8,000 parameters
+                                  125× fewer</div>
+    <p>The bet LoRA makes is that the <em>update</em> a model needs in order to adapt has
+    low rank even though the model itself does not — that adaptation moves along a few
+    directions rather than all thousand. <a class="xref" href="#ch11">Chapter 11</a>
+    tests that claim empirically with a rank sweep: rank 1 alone captures well over half
+    the achievable gain, and rank 8 captures 84% of it at a quarter of the parameters of
+    rank 32. Steep diminishing returns, though — measurably — not a flat plateau.</p>
+  </details>
+</div>
+
 <h3>Elementwise operations</h3>
 
 <p>
@@ -283,26 +544,166 @@ a ⊙ b  (elementwise) = [4, 10, 18]            a vector, same shape</div>
 <h3>Broadcasting</h3>
 
 <p>
-When shapes differ, NumPy and PyTorch stretch size-1 dimensions to match. Align from the
-<em>right</em>; each dimension must be equal, or one of them must be 1.
+Broadcasting is a NumPy invention that PyTorch inherited. It is not mathematics — it is a
+convention about how arrays of different shapes are allowed to meet — and it is where a
+large fraction of silent numerical bugs live. If you have not written array code before,
+none of it is guessable, so it is worth doing slowly once.
 </p>
 
-<div class="box example">
-  <span class="box-label">Example — including the one that bites</span>
-  <div class="given">(4, 3) + (3,)      → (4, 3)   the vector is added to every row      ✓
-(4, 3) + (4, 1)    → (4, 3)   the column is added to every column   ✓
-(4, 3) + (4,)      → ERROR    3 and 4 are neither equal nor 1
+<p>
+The problem it solves is this. You constantly need to combine things whose shapes do not
+match: add one bias number to every row of a matrix, subtract a per-column mean from every
+row, scale each row of a batch by its own number. Written literally, each of those is a
+loop, and a Python loop over a large array is hundreds of times slower than the array
+operation it replaces. Broadcasting lets you write the expression as though the shapes
+already agreed, and leaves the library to work out what you meant.
+</p>
 
-(4, 1) + (1, 3)    → (4, 3)   BOTH stretch — and this one is the trap</div>
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  <p>
+  The rule is two steps. <strong>Line the two shapes up from the right</strong>, padding
+  the shorter one with 1s on the left. Then, in every column of that alignment, the two
+  sizes must either be <strong>equal</strong> or <strong>one of them must be 1</strong>.
+  A size of 1 is stretched to match the other side.
+  </p>
   <p style="margin-bottom:0">
-  The last case is legal, silent, and almost never what you meant. A
-  <span class="shape">(4, 1)</span> where you intended <span class="shape">(1, 4)</span>
-  produces a 4×4 grid of nonsense rather than an error. When a loss looks wrong for no
-  visible reason, print your shapes.
+  If any column fails that test you get an error, which is the good outcome. If every
+  column passes you get an answer — and nothing checks whether it is the answer you
+  wanted.
   </p>
 </div>
 
+<div class="box example">
+  <span class="box-label">Example — the rule, then the same thing with numbers</span>
+  <div class="given">SHAPES        (4, 3)  +  (3,)
+
+line up right      4   3
+                       3          the shorter shape is padded on the LEFT
+                   1   3
+
+check              4 vs 1   ->  one side is 1, stretch it
+                   3 vs 3   ->  equal, fine
+result             (4, 3)
+
+WITH NUMBERS
+
+    M  is 4 x 3                      b  is 3
+
+  [ 10  20  30 ]                   [ 1   2   3 ]
+  [ 40  50  60 ]
+  [ 70  80  90 ]
+  [  0   0   0 ]
+
+  M + b   adds b to every row, as if b had been stacked four times:
+
+  [ 11  22  33 ]
+  [ 41  52  63 ]
+  [ 71  82  93 ]
+  [  1   2   3 ]</div>
+  <p style="margin-bottom:0">
+  Nothing is actually stacked. The stretched array is read with a stride of zero along the
+  broadcast dimension — the same three numbers are re-read for every row — so broadcasting
+  a vector across a million-row matrix costs no extra memory at all. That is the second
+  reason it exists, and it is why you should reach for it rather than for
+  <code>repeat</code> or <code>tile</code>.
+  </p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">The one that will cost you an afternoon</span>
+  <p>
+  A <code>Linear(..., 1)</code> layer outputs shape <span class="shape">(N, 1)</span> —
+  a column. Labels usually arrive as <span class="shape">(N,)</span> — a flat list. Both
+  are "N numbers", so it is entirely natural to subtract one from the other:
+  </p>
+  <div class="given">predictions   (N, 1)
+targets       (N,)
+
+line up right      N   1
+                       N
+                   1   N
+
+check              N vs 1   ->  stretch
+                   1 vs N   ->  stretch
+result             (N, N)        every prediction minus every target</div>
+  <p>
+  There is no error and no warning. At $N = 32$ you have quietly built a 32×32 grid,
+  averaged 1,024 numbers instead of 32, and computed something close to the variance of
+  your labels rather than a loss. The model trains, the number goes down a little, and
+  nothing works.
+  </p>
+  <p style="margin-bottom:0">
+  The fix is one call — <code>targets.unsqueeze(1)</code> or
+  <code>predictions.squeeze(1)</code> — and the habit that prevents it is printing
+  <code>.shape</code> on both sides of any subtraction you did not think hard about.
+  <a class="xref" href="#ch02">Chapter 02</a> meets this bug again with a real loss
+  function attached.
+  </p>
+</div>
+
+<div class="box example">
+  <span class="box-label">Example — the four cases worth recognising</span>
+  <div class="given">(4, 3) + (3,)       ->  (4, 3)    one row added to every row          OK
+(4, 3) + (4, 1)     ->  (4, 3)    one column added to every column     OK
+(4, 3) + (4,)       ->  ERROR     lines up as 3 vs 4: not equal, neither is 1
+(4, 1) + (1, 3)     ->  (4, 3)    BOTH sides stretch — the outer-product trap</div>
+  <p style="margin-bottom:0">
+  The third is the good failure: you meant to add something per-row, and got told off
+  because a length-4 vector lines up against the length-3 axis. Transposing your thinking
+  — <span class="shape">(4, 1)</span> instead of <span class="shape">(4,)</span> — fixes
+  it. The fourth is the bad success, and it is the same shape of mistake as the
+  <span class="shape">(N, 1)</span> against <span class="shape">(N,)</span> case above.
+  </p>
+</div>
+
+
 <hr>
+
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.6 · a broadcasting audit</span>
+  <p>For each, give the result shape or say why it errors.</p>
+  <div class="given">1.  (32, 64)    + (64,)
+2.  (32, 64)    + (32,)
+3.  (32, 64)    + (32, 1)
+4.  (8, 1, 64)  + (1, 10, 64)
+5.  (2, 3, 4)   * (2, 3, 1)</div>
+  <ol>
+    <li>Work through all five.</li>
+    <li>You are mean-pooling over non-padding positions: <code>x</code> is
+        <span class="shape">(B, L, C)</span> and <code>mask</code> is
+        <span class="shape">(B, L)</span>. Why does <code>x * mask</code> fail — and what
+        is the fix?</li>
+    <li>Now suppose <code>C == L</code> by coincidence (a batch of 128-token sequences
+        with a 128-dimensional model). What happens to <code>x * mask</code> then, and why
+        is that <em>worse</em> than the error?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong></p>
+    <div class="given">1.  (32, 64) + (64,)      → (32, 64)   64 vs 64 ✓, vector added to every row
+2.  (32, 64) + (32,)      → ERROR      64 vs 32, neither equal nor 1
+3.  (32, 64) + (32, 1)    → (32, 64)   64 vs 1 stretches, 32 vs 32 ✓
+4.  (8,1,64) + (1,10,64)  → (8, 10, 64)  both middle and outer stretch
+5.  (2,3,4)  * (2,3,1)    → (2, 3, 4)   the classic per-position scale</div>
+    <p><strong>2.</strong> Aligning from the right: $C$ vs $L$. Unless they happen to be
+    equal, this errors. The mask indexes <em>positions</em>, so it needs a trailing axis
+    to broadcast across channels:</p>
+    <div class="given">mask.unsqueeze(-1)             → (B, L, 1)
+x * mask.unsqueeze(-1)         → (B, L, C)   ✓
+
+pooled = (x * m).sum(1) / m.sum(1).clamp(min=1)</div>
+    <p><strong>3.</strong> It <strong>succeeds silently</strong> and computes garbage.
+    With $C = L$, the mask broadcasts across the <em>batch</em> dimension instead of the
+    channel dimension — so example 0's mask is applied to every example's feature axis.
+    No error, no warning, and a model that trains to a worse-than-expected accuracy for
+    reasons nothing in the output explains.</p>
+    <p>This is why the error case is the lucky one. It is also why the mask-shape bug is
+    most likely to appear precisely in the square configurations people reach for when
+    prototyping.</p>
+  </details>
+</div>
 
 <h2>Part 2 · Calculus: How a Network Learns</h2>
 
@@ -336,6 +737,52 @@ $$f'(x) = \lim_{h\to 0}\frac{f(x+h)-f(x)}{h}
 </table>
 </div>
 
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.7 · derivatives of the activations<span class="tag tag-rec">Recommended</span></span>
+  <p>Derive each from the definition, then evaluate. You will use all three constantly.</p>
+  <ol>
+    <li>Show that $\sigma'(z) = \sigma(z)(1-\sigma(z))$, starting from
+        $\sigma(z) = (1+e^{-z})^{-1}$.</li>
+    <li>Evaluate $\sigma'(0)$, $\sigma'(2)$, $\sigma'(5)$, given
+        $\sigma(2) = 0.881$ and $\sigma(5) = 0.993$.</li>
+    <li>Show that $\tanh'(z) = 1 - \tanh^2(z)$ and evaluate at $z = 0$.</li>
+    <li>What is $\text{ReLU}'(z)$ for $z > 0$, $z < 0$, and $z = 0$?</li>
+    <li>Using part 2, compute the best-case gradient reaching layer 1 of a 10-layer
+        sigmoid network, and say what that implies.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Write $\sigma = (1+e^{-z})^{-1}$ and apply the chain rule:</p>
+    $$\sigma'(z) = -(1+e^{-z})^{-2}\cdot(-e^{-z}) = \frac{e^{-z}}{(1+e^{-z})^2}$$
+    <p>Now split the fraction: $\frac{e^{-z}}{(1+e^{-z})^2} =
+    \frac{1}{1+e^{-z}}\cdot\frac{e^{-z}}{1+e^{-z}}$. The first factor is $\sigma(z)$; the
+    second is $\frac{(1+e^{-z}) - 1}{1+e^{-z}} = 1 - \sigma(z)$. Hence
+    $\sigma' = \sigma(1-\sigma)$ ∎</p>
+    <p><strong>2.</strong></p>
+    <div class="given">σ′(0) = 0.5(0.5)     = 0.2500     ← the maximum
+σ′(2) = 0.881(0.119) = 0.1048
+σ′(5) = 0.993(0.007) = 0.0070</div>
+    <p>By $z = 5$ the derivative has fallen to under 3% of its peak. That is saturation.</p>
+    <p><strong>3.</strong> With $\tanh z = \frac{e^z - e^{-z}}{e^z + e^{-z}}$, the
+    quotient rule gives numerator $(e^z+e^{-z})^2 - (e^z-e^{-z})^2$ over
+    $(e^z+e^{-z})^2$, which is $1 - \tanh^2 z$. At $z = 0$, $\tanh 0 = 0$ so
+    $\tanh'(0) = \mathbf{1}$ — four times sigmoid's peak, which is why tanh was preferred
+    for hidden layers before ReLU.</p>
+    <p><strong>4.</strong> $1$ for $z>0$, $0$ for $z<0$, and <em>undefined</em> at exactly
+    $z=0$ — frameworks pick 0 by convention. This never matters in practice: hitting
+    exactly 0.0 in floating point has probability ~0, and the choice affects a measure-zero
+    set.</p>
+    <p><strong>5.</strong> The best case requires every unit at $z = 0$, giving 0.25 per
+    layer:</p>
+    <div class="given">0.25¹⁰ = 9.5 × 10⁻⁷</div>
+    <p>Under a million times attenuated — and that is the <em>optimum</em>. Real units sit
+    away from zero, so the true factor is far smaller. This single number is the vanishing
+    gradient problem, and it is why ReLU (derivative exactly 1 on the positive half) and
+    residual connections replaced deep sigmoid stacks.</p>
+  </details>
+</div>
+
 <h3>The chain rule is backpropagation</h3>
 
 <div class="box concept">
@@ -366,6 +813,50 @@ dy/dx = 6(3x + 1) = 18x + 6
 
 at x = 2:  42
 numerically: ((3(2.001)+1)² − 49)/0.001 = 42.0  ✓</div>
+</div>
+
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.8 · the chain rule as backpropagation<span class="tag tag-must">Must do</span></span>
+  <p>A one-neuron network, forwards and backwards. A complete training step in miniature.</p>
+  <div class="given">x = 2.0     w = 0.5     b = 0.1     true label y = 1
+
+z = wx + b            (linear)
+a = σ(z) = 1/(1+e⁻ᶻ)  (sigmoid)
+L = −ln(a)            (BCE, with y = 1)
+
+σ(1.1) = 0.750    ln(0.750) = −0.288</div>
+  <ol>
+    <li>Forward pass: compute $z$, $a$, $\mathcal{L}$.</li>
+    <li>Compute $\partial\mathcal{L}/\partial a$.</li>
+    <li>Compute $\partial a/\partial z$ using $\sigma'(z) = a(1-a)$.</li>
+    <li>Chain them. Simplify, and compare with $a - y$.</li>
+    <li>Compute $\partial\mathcal{L}/\partial w$ and $\partial\mathcal{L}/\partial b$,
+        take one step at $\eta = 0.5$, and verify the loss decreased.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $z = 1.1$, $a = 0.750$, $\mathcal{L} = 0.288$.</p>
+    <p><strong>2.</strong> $-1/a = -1.333$.</p>
+    <p><strong>3.</strong> $a(1-a) = 0.750 \times 0.250 = 0.1875$.</p>
+    <p><strong>4.</strong></p>
+    <div class="given">∂L/∂z = (−1.333)(0.1875) = −0.250
+a − y = 0.750 − 1      = −0.250      identical</div>
+    <p>Algebraically $-\frac{1}{a}\cdot a(1-a) = a-1 = a-y$: the $\sigma'$ factor cancels
+    against the $1/a$ from the log <em>exactly</em>. This is the cancellation in its
+    simplest instance, and it is why sigmoid pairs with BCE and not with MSE.</p>
+    <p><strong>5.</strong></p>
+    <div class="given">∂L/∂w = (−0.250)(2.0) = −0.500
+∂L/∂b = (−0.250)(1.0) = −0.250
+
+w ← 0.5 − 0.5(−0.500) = 0.75
+b ← 0.1 − 0.5(−0.250) = 0.225
+
+new z = 1.725     new a = 0.849     new L = 0.164    was 0.288  ✓</div>
+    <p>$\partial\mathcal{L}/\partial w$ is twice $\partial\mathcal{L}/\partial b$ purely
+    because $x = 2$ — a larger input yields a larger weight gradient, which is the
+    argument for feature scaling.</p>
+  </details>
 </div>
 
 <h3>Partial derivatives, gradients, and paths</h3>
@@ -410,6 +901,39 @@ path 2 (w → b → L):          1 × 18 = 18
   </p>
 </div>
 
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.9 · summing over paths</span>
+  <div class="given">u = w²
+v = u + w
+L = 3v            with w = 2</div>
+  <ol>
+    <li>Compute $u$, $v$, $\mathcal{L}$.</li>
+    <li>Identify every path from $w$ to $\mathcal{L}$.</li>
+    <li>Compute each path's derivative and sum them.</li>
+    <li>Verify numerically with $h = 0.001$.</li>
+    <li>What would <code>w.grad</code> hold after calling <code>backward()</code> twice
+        without <code>zero_grad()</code>?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $u = 4$, $v = 6$, $\mathcal{L} = 18$.</p>
+    <p><strong>2.</strong> Two: $w \to u \to v \to \mathcal{L}$, and the direct
+    $w \to v \to \mathcal{L}$.</p>
+    <p><strong>3.</strong></p>
+    <div class="given">∂L/∂v = 3;   ∂v/∂u = 1,  ∂u/∂w = 2w = 4;   ∂v/∂w = 1
+
+path 1:  4 × 1 × 3 = 12
+path 2:      1 × 3 =  3
+             ∂L/∂w = 15</div>
+    <p><strong>4.</strong> At $w = 2.001$: $u = 4.004001$, $v = 6.005001$,
+    $\mathcal{L} = 18.015003$, so $(18.015003-18)/0.001 = 15.003 \approx 15$ ✓.</p>
+    <p><strong>5.</strong> <strong>30</strong> — the sum of two independent backward
+    passes, the derivative of nothing in particular. Note how plausible 30 looks: nothing
+    crashes, no warning appears, and the model trains steadily towards the wrong thing.</p>
+  </details>
+</div>
+
 <h3>Gradient descent</h3>
 
 $$\theta \leftarrow \theta - \eta\,\frac{\partial\mathcal{L}}{\partial\theta}$$
@@ -430,6 +954,52 @@ optimum, on the other side. Above that, it diverges.</div>
 <div class="widget" data-widget="gradient-descent"></div>
 
 <hr>
+
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.10 · gradient descent and the learning rate</span>
+  <p>Minimise $\mathcal{L}(w) = (w-4)^2$ from $w_0 = 1$.</p>
+  <ol>
+    <li>Write $d\mathcal{L}/dw$ and evaluate at $w = 1$.</li>
+    <li>Take three steps at $\eta = 0.1$, tabulating $w$ and $\mathcal{L}$. Are the steps
+        growing or shrinking, and why?</li>
+    <li>Take one step at $\eta = 1.0$. Where do you land?</li>
+    <li>Take two steps at $\eta = 1.5$ and describe the pattern.</li>
+    <li>Solve for the exact range of $\eta$ that converges, and the value that converges
+        fastest.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $2(w-4)$, which at $w=1$ is $\mathbf{-6}$ — negative, so $w$
+    should increase.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">step  w        dL/dw     Δw       L(w)
+ 0    1.000    −6.000             9.000
+ 1    1.600    −4.800    +0.600   5.760
+ 2    2.080    −3.840    +0.480   3.686
+ 3    2.464    −3.072    +0.384   2.359</div>
+    <p>The steps <strong>shrink</strong>, because the gradient shrinks as $w$ approaches
+    the minimum — descent slows automatically near an optimum. Each step is exactly 0.8×
+    the last, because $w_{t+1} - 4 = (1-2\eta)(w_t - 4)$ with $1-2\eta = 0.8$.</p>
+    <p><strong>3.</strong> $w = 1 + 6 = \mathbf{7}$, and $\mathcal{L}(7) = 9$ — the
+    <em>same loss it started with</em>, on the far side. The ratio is $-1$: it oscillates
+    between 1 and 7 forever.</p>
+    <p><strong>4.</strong> Ratio $1 - 3 = -2$:</p>
+    <div class="given">w₀ = 1   (distance 3)    L = 9
+w₁ = 10  (distance 6)    L = 36
+w₂ = −8  (distance 12)   L = 144</div>
+    <p>Distance doubles each step, loss quadruples, and within ten steps you are heading
+    for <code>inf</code> and then <code>nan</code>. Nothing about the problem is wrong —
+    only $\eta$.</p>
+    <p><strong>5.</strong> Convergence needs $|1-2\eta| &lt; 1$, so
+    $\mathbf{0 &lt; \eta &lt; 1}$, with $\eta = 0.5$ giving $1-2\eta = 0$ and landing
+    exactly on the minimum in a <em>single</em> step. The general condition is
+    $\eta &lt; 2/\mathcal{L}''$; here $\mathcal{L}'' = 2$, giving $\eta < 1$ ✓. Real loss
+    surfaces have wildly different curvature in different directions, which is precisely
+    the problem <a class="xref" href="#ch02">Adam</a> attacks by giving each parameter its
+    own effective step size.</p>
+  </details>
+</div>
 
 <h2>Part 3 · Statistics: Why the Architecture Looks Like It Does</h2>
 
@@ -470,6 +1040,50 @@ Bernoulli(p): X is 1 with probability p, else 0.
   the same fact as having near-zero gradient. Certainty and unlearnability are the same
   condition.
   </p>
+</div>
+
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.11 · expectation and variance from the definition</span>
+  <ol>
+    <li>A fair four-sided die shows 1, 2, 3, 4. Compute $\mathbb{E}[X]$,
+        $\mathbb{E}[X^2]$, and $\operatorname{Var}(X)$.</li>
+    <li>A biased coin has $P(\text{heads}) = 0.3$, scored as $X = 1$ for heads and 0 for
+        tails. Compute $\mathbb{E}[X]$ and $\operatorname{Var}(X)$ both from the
+        definition and from the formula $p(1-p)$.</li>
+    <li>For what $p$ is a Bernoulli's variance largest, and what is that value?</li>
+    <li>A sigmoid output is a Bernoulli parameter. Using part 3, state the maximum
+        possible value of $\sigma'(z)$ and explain the connection.</li>
+    <li>A network's unit outputs $\sigma(z) = 0.99$. What is the variance of the
+        corresponding Bernoulli, and what does that say about the gradient?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong></p>
+    <div class="given">E[X]   = (1+2+3+4)/4 = 2.5
+E[X²]  = (1+4+9+16)/4 = 30/4 = 7.5
+Var(X) = 7.5 − 2.5² = 7.5 − 6.25 = 1.25</div>
+    <p><strong>2.</strong> From the definition:
+    $\mathbb{E}[X] = 1(0.3) + 0(0.7) = 0.3$;
+    $\mathbb{E}[X^2] = 1(0.3) + 0(0.7) = 0.3$ (since $X^2 = X$ for a 0/1 variable);
+    $\operatorname{Var}(X) = 0.3 - 0.09 = \mathbf{0.21}$. From the formula:
+    $p(1-p) = 0.3(0.7) = 0.21$ ✓</p>
+    <p><strong>3.</strong> $p(1-p)$ is a downward parabola with roots at 0 and 1, so it
+    peaks at the midpoint $p = 0.5$, where it equals <strong>0.25</strong>.</p>
+    <p><strong>4.</strong> $\sigma'(z) = \sigma(z)(1-\sigma(z))$ is <em>literally</em>
+    $p(1-p)$ evaluated at $p = \sigma(z)$. So the maximum possible sigmoid derivative is
+    <strong>0.25</strong>, at $z = 0$ where $\sigma = 0.5$.</p>
+    <p>The connection is not a coincidence but an identity: a sigmoid output <em>is</em> a
+    Bernoulli parameter, and its derivative <em>is</em> that Bernoulli's variance. Which
+    means <strong>a confident unit and an unlearnable unit are the same thing</strong>.
+    The model's certainty and its gradient are two readings of one number.</p>
+    <p><strong>5.</strong> $0.99(0.01) = \mathbf{0.0099}$. The gradient through that unit
+    is attenuated by a factor of about 100 relative to an uncertain unit — and by 25
+    relative to the best case. If the unit is confidently <em>wrong</em>, that is exactly
+    the situation where you most need a large gradient and least get one, which is the
+    whole argument in <a class="xref" href="#ch00-cross-entropy">Part 4</a> for why
+    cross-entropy's cancellation matters.</p>
+  </details>
 </div>
 
 <h3>The two rules that do all the work</h3>
@@ -519,6 +1133,63 @@ follows from these two lines.
   </p>
 </div>
 
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.12 · variance of a sum, and weight initialisation<span class="tag tag-must">Must do</span></span>
+  <p>
+  This exercise derives Xavier initialisation from scratch. It is the single most
+  useful piece of statistics in the chapter.
+  </p>
+  <div class="given">A unit computes  z = Σᵢ wᵢxᵢ  over n = 100 inputs.
+Inputs xᵢ: independent, mean 0, variance 1.
+Weights wᵢ: independent of each other and of x, mean 0, variance σ²_w.</div>
+  <ol>
+    <li>Using $\operatorname{Var}(aX) = a^2\operatorname{Var}(X)$ and additivity for
+        independent variables, write $\operatorname{Var}(z)$ in terms of $n$ and
+        $\sigma_w^2$.</li>
+    <li>Evaluate $\operatorname{Var}(z)$ and $\text{SD}(z)$ for $\sigma_w = 1$.</li>
+    <li>Given $\sigma(10) \approx 0.99995$ and $\sigma'(10) \approx 4.5\times10^{-5}$,
+        say what happens to this layer at that scale.</li>
+    <li>Solve for the $\sigma_w$ that gives $\operatorname{Var}(z) = 1$.</li>
+    <li>Now stack 10 such layers. If each layer multiplies the variance by a factor $c$,
+        what is the variance at layer 10 for $c = 2$ and for $c = 0.5$? Why must $c = 1$?</li>
+    <li>ReLU zeroes the negative half of its input. Roughly what does that do to the
+        variance, and how should $\sigma_w$ change to compensate?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Each term $w_ix_i$ has variance
+    $\operatorname{Var}(w_i)\operatorname{Var}(x_i) = \sigma_w^2 \cdot 1$ (using
+    independence and zero means). The $n$ terms are independent, so their variances add:</p>
+    $$\operatorname{Var}(z) = n\sigma_w^2$$
+    <p><strong>2.</strong> $\operatorname{Var}(z) = 100 \times 1 = 100$, so
+    $\text{SD}(z) = \mathbf{10}$.</p>
+    <p><strong>3.</strong> Pre-activations land in roughly $[-30, 30]$. At $|z| = 10$ the
+    sigmoid is already 0.99995 and its derivative is $4.5\times10^{-5}$ — so essentially
+    every unit is saturated <em>before training begins</em>, and every gradient is
+    attenuated by ~$10^{-5}$ per layer. The network does not train slowly; it does not
+    train at all. And nothing in the code is wrong — only one factor.</p>
+    <p><strong>4.</strong> $n\sigma_w^2 = 1 \Rightarrow \sigma_w = 1/\sqrt{n} =
+    1/\sqrt{100} = \mathbf{0.1}$. Check: $100 \times 0.01 = 1$ ✓. This is
+    <strong>Xavier/LeCun initialisation</strong>, and you have just derived it in two
+    lines.</p>
+    <p><strong>5.</strong></p>
+    <div class="given">c = 2.0 :  2¹⁰  = 1024×      variance explodes
+c = 0.5 :  0.5¹⁰ = 0.001×     variance collapses to nothing
+c = 1.0 :  1¹⁰   = 1×         stable at any depth</div>
+    <p>Any $c \ne 1$ compounds geometrically with depth. This is the <em>same</em>
+    geometric-product problem as <a class="xref" href="#ch04">vanishing gradients</a>,
+    appearing in the forward pass instead of the backward one — which is why the fix
+    (control the per-layer factor) and the fallback (normalise explicitly, as
+    <a class="xref" href="#ch07">layer norm</a> does) are the same in both directions.</p>
+    <p><strong>6.</strong> ReLU sets roughly half the values to zero, which approximately
+    halves the variance. To restore $\operatorname{Var}(z) = 1$ you need to double
+    $\sigma_w^2$, so $\sigma_w = \sqrt{2/n}$. That is <strong>He initialisation</strong>,
+    the default for ReLU networks — and it differs from Xavier by exactly the factor
+    $\sqrt{2}$ that this one sentence predicts.</p>
+  </details>
+</div>
+
 <h3>The variance of a dot product, and attention's scaling factor</h3>
 
 <div class="box concept">
@@ -540,6 +1211,64 @@ Var(q·k) = d_k          SD(q·k) = √d_k</div>
   </p>
 </div>
 
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.13 · the variance of a dot product, and $\sqrt{d_k}$<span class="tag tag-must">Must do</span></span>
+  <p>
+  Exercise 00.2 showed <em>that</em> large scores saturate a softmax. This one shows
+  <em>why they become large</em>.
+  </p>
+  <div class="given">q · k = Σᵢ qᵢkᵢ  over d_k components.
+All qᵢ, kᵢ independent, mean 0, variance 1.</div>
+  <ol>
+    <li>Compute $\mathbb{E}[q_ik_i]$.</li>
+    <li>Compute $\operatorname{Var}(q_ik_i)$. (Use
+        $\operatorname{Var}(Y) = \mathbb{E}[Y^2] - \mathbb{E}[Y]^2$ and independence.)</li>
+    <li>Compute $\operatorname{Var}(q\cdot k)$ and $\text{SD}(q\cdot k)$ in terms of
+        $d_k$.</li>
+    <li>Evaluate the standard deviation for $d_k = 16$, $64$, and $256$.</li>
+    <li>Take three logits at roughly $\pm 1$ SD for $d_k = 64$ — say $[0, 8, -8]$ — and
+        compute their softmax. Then do the same after dividing by $\sqrt{d_k}$, i.e.
+        $[0, 1, -1]$. Compare.</li>
+    <li>Using $\sigma'$-style reasoning, estimate how much smaller the gradient is in the
+        unscaled case.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> By independence,
+    $\mathbb{E}[q_ik_i] = \mathbb{E}[q_i]\mathbb{E}[k_i] = 0 \times 0 = \mathbf{0}$.</p>
+    <p><strong>2.</strong> Since the mean is 0,
+    $\operatorname{Var}(q_ik_i) = \mathbb{E}[q_i^2k_i^2] =
+    \mathbb{E}[q_i^2]\mathbb{E}[k_i^2] = 1 \times 1 = \mathbf{1}$.</p>
+    <p><strong>3.</strong> The $d_k$ terms are independent, so variances add:
+    $\operatorname{Var}(q\cdot k) = \mathbf{d_k}$ and
+    $\text{SD} = \mathbf{\sqrt{d_k}}$.</p>
+    <p><strong>4.</strong> $\sqrt{16} = 4$, $\sqrt{64} = 8$, $\sqrt{256} = 16$. Scores
+    routinely reach three standard deviations, so at $d_k = 64$ they span roughly
+    $\pm 24$.</p>
+    <p><strong>5.</strong></p>
+    <div class="given">UNSCALED  z = [0, 8, −8]
+  e⁰ = 1,  e⁸ = 2981,  e⁻⁸ = 0.000335     sum = 2982
+  softmax = [0.000335, 0.99966, 0.00000011]      ← effectively one-hot
+
+SCALED    z = [0, 1, −1]
+  e⁰ = 1,  e¹ = 2.718,  e⁻¹ = 0.368       sum = 4.086
+  softmax = [0.245, 0.665, 0.090]                ← soft</div>
+    <p><strong>6.</strong> The softmax Jacobian's diagonal is $p(1-p)$ — the same
+    Bernoulli variance from exercise 00.11.</p>
+    <div class="given">unscaled: p = 0.99966  →  p(1−p) = 0.00034
+scaled:   p = 0.665    →  p(1−p) = 0.223
+
+ratio ≈ 650×</div>
+    <p>So without the scaling the attention weights receive roughly <strong>650 times
+    less gradient</strong> and effectively stop learning — and it gets worse as $d_k$
+    grows. The alarming consequence is that <em>widening your model would break it</em>:
+    performance would degrade as you added capacity, for reasons invisible in the code.
+    Dividing by $\sqrt{d_k}$ restores unit variance and makes score magnitude independent
+    of dimension. See <a class="xref" href="#ch06">Chapter 06</a>.</p>
+  </details>
+</div>
+
 <h3>Standardisation, and layer normalisation</h3>
 
 <p>
@@ -554,6 +1283,50 @@ across features. The learned $\gamma$ and $\beta$ then let the network recover a
 and shift it actually wants — so normalisation stabilises training without reducing what
 the model can express.
 </p>
+
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.14 · standardisation and layer normalisation</span>
+  <div class="given">One token's features:   x = [2, 4, 4, 4, 5, 5, 7, 9]</div>
+  <ol>
+    <li>Compute the mean $\mu$.</li>
+    <li>Compute the variance (dividing by $n$, as layer norm does) and the standard
+        deviation.</li>
+    <li>Standardise: $z_i = (x_i - \mu)/\sigma$.</li>
+    <li>Verify the result has mean 0 and variance 1.</li>
+    <li>Apply learned parameters $\gamma = 2$, $\beta = 1$. What is the output's mean and
+        variance now — and why would a network want to undo the normalisation it just
+        performed?</li>
+    <li>If you had used <em>batch</em> norm instead, which numbers would have entered the
+        mean, and what breaks at inference on a single example?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $\mu = (2+4+4+4+5+5+7+9)/8 = 40/8 = \mathbf{5}$.</p>
+    <p><strong>2.</strong> Deviations: $-3, -1, -1, -1, 0, 0, 2, 4$. Squares:
+    $9, 1, 1, 1, 0, 0, 4, 16$, summing to 32. So
+    $\sigma^2 = 32/8 = \mathbf{4}$ and $\sigma = \mathbf{2}$.</p>
+    <p><strong>3.</strong></p>
+    <div class="given">z = [−1.5, −0.5, −0.5, −0.5, 0, 0, 1.0, 2.0]</div>
+    <p><strong>4.</strong> Sum $= -1.5-0.5-0.5-0.5+0+0+1+2 = 0$, so the mean is 0 ✓.
+    Squares $= 2.25+0.25+0.25+0.25+0+0+1+4 = 8$, and $8/8 = 1$ ✓.</p>
+    <p><strong>5.</strong> Output $= 2z + 1$, which has mean $2(0)+1 = \mathbf{1}$ and
+    variance $2^2(1) = \mathbf{4}$ (by the $a^2$ rule).</p>
+    <p>As for why: forcing every representation to mean 0 and variance 1 is a strong
+    constraint, and sometimes the right answer genuinely involves a large-magnitude or
+    off-centre feature. $\gamma$ and $\beta$ let the network recover any scale and shift,
+    so normalisation stabilises training <em>without</em> restricting what the model can
+    express — in the limit it can learn $\gamma = \sigma$, $\beta = \mu$ and undo the
+    operation entirely. It is a helpful default, not a cage.</p>
+    <p><strong>6.</strong> Batch norm would average feature 0 across every token in the
+    batch, producing one mean and variance per <em>feature</em> rather than per token. At
+    inference on a single example there is no batch to compute statistics from, so it must
+    fall back on running averages accumulated during training — which is why batch norm
+    needs distinct train and eval behaviour and degrades at small batch sizes. Layer norm
+    takes its statistics from within the token, so one example behaves exactly like a
+    thousand. For variable-length sequence data that is decisive.</p>
+  </details>
+</div>
 
 <h3>Dropout and preserved expectation</h3>
 
@@ -579,6 +1352,46 @@ Inverted dropout divides by the keep probability:  y = xB/(1 − p)
   </p>
 </div>
 
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.15 · dropout and preserved expectation</span>
+  <div class="given">A layer outputs four activations, all equal to 1.0.
+Dropout with p = 0.5 (each unit kept with probability 0.5).</div>
+  <ol>
+    <li>Without any rescaling, what is the expected sum of the four activations during
+        training? What is it at test time, when dropout is off?</li>
+    <li>Inverted dropout divides survivors by the keep probability $1-p$. What is the
+        expected sum now?</li>
+    <li>Derive $\mathbb{E}[y]$ for $y = xB/(1-p)$ with
+        $B \sim \text{Bernoulli}(1-p)$.</li>
+    <li>Derive $\operatorname{Var}(y)$, and evaluate it at $p = 0.5$ and $p = 0.9$ for
+        $x = 1$.</li>
+    <li>What does part 4 predict about training with a very high dropout rate?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Each unit survives with probability 0.5, so the expected sum is
+    $4 \times 1.0 \times 0.5 = \mathbf{2}$ during training and $\mathbf{4}$ at test time.
+    Every downstream layer therefore sees inputs at <em>half</em> the scale in training
+    that it sees in deployment — a systematic distribution shift baked into the model.</p>
+    <p><strong>2.</strong> Each survivor is doubled, so the expected sum is
+    $4 \times 1.0 \times 0.5 \times 2 = \mathbf{4}$ ✓ — matching test time exactly.</p>
+    <p><strong>3.</strong> $\mathbb{E}[B] = 1-p$, so</p>
+    $$\mathbb{E}[y] = \frac{x\,\mathbb{E}[B]}{1-p} = \frac{x(1-p)}{1-p} = x$$
+    <p><strong>4.</strong> Since $B^2 = B$ for a 0/1 variable,
+    $\mathbb{E}[y^2] = x^2\mathbb{E}[B]/(1-p)^2 = x^2/(1-p)$, so</p>
+    $$\operatorname{Var}(y) = \frac{x^2}{1-p} - x^2 = x^2\frac{p}{1-p}$$
+    <div class="given">p = 0.5 :  Var = 1 × (0.5/0.5) = 1.0
+p = 0.9 :  Var = 1 × (0.9/0.1) = 9.0</div>
+    <p><strong>5.</strong> Only the <em>mean</em> is preserved; the variance grows without
+    bound as $p \to 1$. At $p = 0.9$ each activation carries nine times the variance of
+    the signal itself, so gradients become extremely noisy and training turns unstable
+    rather than merely slower. That noise is the regularisation — it is what prevents
+    co-adaptation — but it explains why dropout rates above about 0.5 usually hurt, and
+    why the useful range is 0.1–0.5.</p>
+  </details>
+</div>
+
 <h3>Sample statistics, and how much you can conclude</h3>
 
 <p>
@@ -602,6 +1415,44 @@ s^2 = \frac{1}{n-1}\sum_i (x_i - \bar{x})^2
   mean without a spread is not a result — it is an anecdote with a number attached.
 </div>
 
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.16 · sample mean, standard error, and how many seeds<span class="tag tag-rec">Recommended</span></span>
+  <p>You train the same model three times, changing only the random seed.</p>
+  <div class="given">test accuracies:  0.812,  0.789,  0.834</div>
+  <ol>
+    <li>Compute the sample mean.</li>
+    <li>Compute the sample standard deviation $s$ (dividing by $n-1$).</li>
+    <li>Compute the standard error $s/\sqrt{n}$.</li>
+    <li>Give an approximate 95% interval as mean ± 2 SE.</li>
+    <li>A competing architecture scores 0.820 on one run. What can you conclude?</li>
+    <li>You want to halve the standard error. How many seeds do you need?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $(0.812 + 0.789 + 0.834)/3 = 2.435/3 = \mathbf{0.8117}$.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">deviations:  +0.0003,  −0.0227,  +0.0223
+squares:     9e−8,     5.153e−4,  4.973e−4      sum = 1.0127e−3
+
+s² = 1.0127e−3 / (3 − 1) = 5.06e−4
+s  = 0.0225</div>
+    <p><strong>3.</strong> $\text{SE} = 0.0225/\sqrt{3} = 0.0225/1.732 = \mathbf{0.0130}$.</p>
+    <p><strong>4.</strong> $0.8117 \pm 0.026$, i.e. roughly
+    $[\mathbf{0.786},\ \mathbf{0.838}]$.</p>
+    <p><strong>5.</strong> <strong>Nothing.</strong> 0.820 sits comfortably inside the
+    interval — well under one standard error from the mean — so the data cannot
+    distinguish the two architectures. It is also a single run, so it has its own unknown
+    spread; the honest comparison needs three seeds of <em>both</em> and a look at whether
+    the intervals overlap.</p>
+    <p>This is the most common flaw in informal ML comparisons: a 0.8% difference reported
+    as a finding when the seed-to-seed spread is 2.3%.</p>
+    <p><strong>6.</strong> SE scales as $1/\sqrt{n}$, so halving it needs <strong>four
+    times</strong> as many seeds — twelve. That $1/\sqrt{n}$ is unforgiving, and it is why
+    the right response to a noisy result is usually a bigger effect rather than more runs.</p>
+  </details>
+</div>
+
 <h3>Covariance, correlation, and independence</h3>
 
 $$\operatorname{Cov}(X,Y) = \mathbb{E}[(X-\mu_X)(Y-\mu_Y)]
@@ -618,6 +1469,51 @@ $\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y) +
 initialisation arithmetic optimistic and deep networks drift out of scale anyway.
 </p>
 
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.17 · covariance and correlation</span>
+  <div class="given">x = [1, 2, 3, 4]        y = [2, 3, 5, 4]</div>
+  <ol>
+    <li>Compute both means.</li>
+    <li>Compute $\operatorname{Cov}(x,y)$, dividing by $n$.</li>
+    <li>Compute both standard deviations and then the correlation $\rho$.</li>
+    <li>Give an example of two variables with zero covariance that are obviously
+        <em>not</em> independent.</li>
+    <li>Exercise 00.12 assumed independence when adding variances. Write the corrected
+        rule for correlated variables, and say what it implies for a layer whose input
+        features are highly correlated.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $\bar{x} = 10/4 = 2.5$; $\bar{y} = 14/4 = 3.5$.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">dev x:  −1.5, −0.5, +0.5, +1.5
+dev y:  −1.5, −0.5, +1.5, +0.5
+
+products: 2.25, 0.25, 0.75, 0.75      sum = 4.0
+Cov = 4.0 / 4 = 1.0</div>
+    <p><strong>3.</strong></p>
+    <div class="given">Var(x) = (2.25+0.25+0.25+2.25)/4 = 1.25    σ_x = 1.118
+Var(y) = (2.25+0.25+2.25+0.25)/4 = 1.25    σ_y = 1.118
+
+ρ = 1.0 / (1.118 × 1.118) = 1.0 / 1.25 = 0.80</div>
+    <p>Strongly but not perfectly associated — the third and fourth points break the
+    monotonic pattern.</p>
+    <p><strong>4.</strong> Let $X$ be symmetric about zero (say uniform on $[-1,1]$) and
+    $Y = X^2$. Then $\operatorname{Cov}(X,Y) = \mathbb{E}[X^3] = 0$ by symmetry, yet $Y$
+    is a deterministic function of $X$ — maximally dependent. Covariance detects only
+    <em>linear</em> association, so zero covariance never proves independence.</p>
+    <p><strong>5.</strong></p>
+    $$\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y) + 2\operatorname{Cov}(X,Y)$$
+    <p>With positively correlated inputs the cross terms are positive, so the true
+    variance of a unit's pre-activation is <em>larger</em> than the $n\sigma_w^2$ that
+    exercise 00.12 predicted. Initialisation calibrated on the independence assumption is
+    therefore optimistic, and activations drift upward with depth anyway — which is part
+    of why explicit normalisation layers earn their place even in a well-initialised
+    network. It is also an argument for decorrelating inputs where you cheaply can.</p>
+  </details>
+</div>
+
 <h3>Bayes, and base rates</h3>
 
 $$P(A \mid B) = \frac{P(B \mid A)\,P(A)}{P(B)}$$
@@ -630,6 +1526,61 @@ larger pool. This is the same arithmetic as class imbalance in
 </p>
 
 <hr>
+
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.18 · Bayes, base rates, and class imbalance<span class="tag tag-rec">Recommended</span></span>
+  <div class="given">A disease affects 0.5% of the population.
+A test detects it in 99% of sick people          (sensitivity)
+and correctly clears 95% of healthy people       (specificity).</div>
+  <ol>
+    <li>Write down $P(D)$, $P(+|D)$, and $P(+|\neg D)$.</li>
+    <li>Compute $P(+)$ using the law of total probability.</li>
+    <li>Compute $P(D\,|\,+)$ with Bayes' theorem. Is the answer what you expected?</li>
+    <li>Redo the calculation by imagining 10,000 people, counting bodies rather than
+        probabilities.</li>
+    <li>A classifier with these exact rates is deployed. What is its precision? What
+        accuracy would "always predict healthy" achieve?</li>
+    <li>What does this say about reporting accuracy on imbalanced problems, and what
+        would you change in the loss?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $P(D) = 0.005$, $P(+|D) = 0.99$,
+    $P(+|\neg D) = 1 - 0.95 = 0.05$.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">P(+) = P(+|D)P(D) + P(+|¬D)P(¬D)
+     = (0.99)(0.005) + (0.05)(0.995)
+     = 0.00495 + 0.04975
+     = 0.0547</div>
+    <p><strong>3.</strong></p>
+    $$P(D\mid+) = \frac{0.00495}{0.0547} = \mathbf{0.0905}$$
+    <p>A positive result from a 99%-sensitive test means about a <strong>9%</strong>
+    chance of having the disease. Nine times out of ten it is a false alarm.</p>
+    <p><strong>4.</strong> Counting bodies makes it obvious:</p>
+    <div class="given">10,000 people
+  50 sick     → 49.5 test positive     (true positives)
+9,950 healthy → 497.5 test positive    (false positives)
+                ─────
+      total positives = 547
+
+49.5 / 547 = 9.05%   ✓</div>
+    <p>The false positives come from a pool 199 times larger, so even a small false
+    positive rate swamps the true positives. That is the base-rate fallacy, and the body
+    count is the version worth remembering.</p>
+    <p><strong>5.</strong> Precision <em>is</em> $P(D|+)$ = <strong>9.05%</strong>. Meanwhile
+    "always predict healthy" achieves <strong>99.5% accuracy</strong> — better than any
+    number the real classifier will report — while being completely useless.</p>
+    <p><strong>6.</strong> Accuracy is meaningless on imbalanced problems: report precision
+    and recall (or a precision–recall curve), and pick the operating point deliberately.
+    In the loss, note that "always predict negative" genuinely <em>is</em> the maximum
+    likelihood answer — the objective is not malfunctioning, it is faithfully answering the
+    question you asked. Changing the answer means changing the question, via
+    <code>pos_weight</code> in <code>BCEWithLogitsLoss</code> or <code>weight=</code> in
+    <code>CrossEntropyLoss</code>, or by resampling. See
+    <a class="xref" href="#ch03">Chapter 03</a>.</p>
+  </details>
+</div>
 
 <h2>Part 4 · Probability and Loss</h2>
 
@@ -782,6 +1733,40 @@ ratio: about 1,500×</div>
 
 <div class="widget" data-widget="loss-shapes"></div>
 
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.19 · binary cross-entropy on a batch</span>
+  <div class="given">example   true y    predicted ŷ
+   1         1         0.9
+   2         0         0.2
+   3         1         0.4
+
+ln 0.9 ≈ −0.105    ln 0.8 ≈ −0.223    ln 0.4 ≈ −0.916</div>
+  <ol>
+    <li>Write the per-example loss, simplifying away the term multiplied by zero.</li>
+    <li>Evaluate each and average.</li>
+    <li>Which example contributes most, and by how much?</li>
+    <li>Example 2 is 0.2 from perfect and example 3 is 0.6 — three times the error. Is the
+        loss three times larger? What does that say about how batches are dominated?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1 &amp; 2.</strong></p>
+    <div class="given">example 1:  y=1  →  −ln(0.9)      = 0.105
+example 2:  y=0  →  −ln(1 − 0.2) = 0.223
+example 3:  y=1  →  −ln(0.4)     = 0.916
+
+batch loss = 1.244 / 3 = 0.415</div>
+    <p><strong>3.</strong> Example 3, at 0.916, is <strong>74%</strong> of the total.</p>
+    <p><strong>4.</strong> No — it is <strong>4.1× larger</strong> for 3× the error. The
+    log makes the loss superlinear in the error, so a single badly-classified example
+    dominates the gradient. Usually that is what you want (hard examples deserve
+    attention) and occasionally a disaster (a mislabelled example dominates too). It is
+    the same mechanism that makes MSE fragile to outliers, seen from the classification
+    side.</p>
+  </details>
+</div>
+
 <h3>Softmax and the cancellation</h3>
 
 $$\hat{y}_k = \frac{e^{z_k}}{\sum_j e^{z_j}}
@@ -825,6 +1810,48 @@ therefore free — and it makes overflow impossible.</div>
   $y_k = 0$, both are $\hat{y}_k - y_k$.</p>
 </details>
 
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.20 · softmax, cross-entropy, and the gradient<span class="tag tag-must">Must do</span></span>
+  <div class="given">z = [2.0, 1.0, 0.0]        true class c = 1 (the middle one)
+
+e⁰ = 1.000    e¹ = 2.718    e² = 7.389</div>
+  <ol>
+    <li>Apply the max-subtraction trick and confirm it cannot change the answer.</li>
+    <li>Compute $\operatorname{softmax}(z)$ to three decimals.</li>
+    <li>Compute the loss, and compare with a uniform guess.</li>
+    <li>Compute $\partial\mathcal{L}/\partial z_k$ for all three logits. Check they sum to
+        zero and explain why they must.</li>
+    <li>If you added 100 to every logit, what would change about the loss, the gradients,
+        and a naive implementation?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Subtracting 2 gives $[0,-1,-2]$. Since
+    $e^{z_k-m}/\sum_j e^{z_j-m} = (e^{-m}e^{z_k})/(e^{-m}\sum_j e^{z_j})$, the $e^{-m}$
+    cancels.</p>
+    <p><strong>2.</strong> $\sum = 11.107$, so
+    $\hat{y} = [\mathbf{0.665}, \mathbf{0.245}, \mathbf{0.090}]$.</p>
+    <p><strong>3.</strong> $\mathcal{L} = -\ln(0.245) = \mathbf{1.406}$ nats. A uniform
+    guess over 3 classes costs $-\ln(1/3) = 1.099$, so this model is <em>worse than
+    guessing</em> on this example. That comparison is the cheapest sanity check available
+    on any classifier's loss.</p>
+    <p><strong>4.</strong></p>
+    <div class="given">∂L/∂z₀ = 0.665 − 0 = +0.665     push logit 0 DOWN
+∂L/∂z₁ = 0.245 − 1 = −0.755     push logit 1 UP
+∂L/∂z₂ = 0.090 − 0 = +0.090     push logit 2 down slightly
+                sum =  0.000</div>
+    <p>They must sum to zero because softmax outputs are constrained to sum to 1: shifting
+    every logit equally changes nothing, so the gradient can have no component in that
+    direction. Only <em>relative</em> logits are learnable.</p>
+    <p><strong>5.</strong> <strong>Nothing changes</strong> in the loss or the gradients —
+    that is the invariance from part 1, with part 4 as its fingerprint. What changes is the
+    naive implementation: $e^{102}$ is fine, but at $+800$ it overflows to <code>inf</code>
+    and the distribution becomes <code>nan</code>. The mathematics is invariant; the
+    floating-point arithmetic is not.</p>
+  </details>
+</div>
+
 <h3>The information-theoretic reading</h3>
 
 <p>
@@ -850,6 +1877,42 @@ are the same story told twice.
   <a class="xref" href="#ch10">Chapter 10</a> reports a loss of 1.51 over 73 characters,
   that is a perplexity of 4.5: the model has narrowed 73 possibilities down to about
   four or five. Loss curves are hard to read; perplexity is not.
+</div>
+
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.21 · entropy, cross-entropy, and KL</span>
+  <p>
+  A weather model claims rain with probability $q = 0.25$ every day. It actually rains
+  half the time, $p = 0.5$. Work in bits, with $\log_2 3 \approx 1.585$.
+  </p>
+  <ol>
+    <li>Compute $H(p)$.</li>
+    <li>Compute $H(p,q)$.</li>
+    <li>Compute $D_{\mathrm{KL}}(p\|q)$ and say what it means physically.</li>
+    <li>Compute $D_{\mathrm{KL}}(q\|p)$. Why is it different?</li>
+    <li>Training minimises $H(p,q)$, not $D_{\mathrm{KL}}$. Why does that not matter?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $H(p) = -(0.5\log_2 0.5 + 0.5\log_2 0.5) = \mathbf{1}$ bit — a
+    fair coin, maximal uncertainty for a binary event.</p>
+    <p><strong>2.</strong> $\log_2 0.25 = -2$ and $\log_2 0.75 = \log_2 3 - 2 = -0.415$:</p>
+    <div class="given">H(p,q) = −(0.5(−2) + 0.5(−0.415)) = 1 + 0.208 = 1.208 bits</div>
+    <p><strong>3.</strong> $1.208 - 1 = \mathbf{0.208}$ bits. Physically: encoding real
+    weather with this model's beliefs costs 0.21 extra bits per day — about 76 wasted bits
+    a year. That is the price of a wrong model, in the currency of message length.</p>
+    <p><strong>4.</strong>
+    $D_{\mathrm{KL}}(q\|p) = 0.25\log_2(0.5) + 0.75\log_2(1.5) = -0.25 + 0.439
+    = \mathbf{0.189}$ bits. Different because the two average the discrepancy under
+    different distributions — "how surprised will I be" depends on who is doing the
+    expecting. The asymmetry is a feature: forward and reverse KL produce famously
+    different behaviours (mass-covering versus mode-seeking) as objectives.</p>
+    <p><strong>5.</strong> Because $D_{\mathrm{KL}} = H(p,q) - H(p)$ and $H(p)$ depends
+    only on the data. Subtracting a constant shifts a function without moving its minimum,
+    so minimising cross-entropy <em>is</em> minimising divergence from the truth — you
+    simply cannot compute the constant, and do not need to.</p>
+  </details>
 </div>
 
 <h3>Choosing a loss</h3>
@@ -878,6 +1941,37 @@ a bug.
 </p>
 
 <hr>
+
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 00.22 · choosing the loss</span>
+  <p>No arithmetic. For each, name the loss and justify it from the distribution.</p>
+  <ol>
+    <li>Predicting apartment rents, where 2% of the data is penthouses at 30× the median.</li>
+    <li>Tagging a photo with any of 20 labels; a photo can have several.</li>
+    <li>Predicting the next word from a 50,000-word vocabulary.</li>
+    <li>Detecting a disease present in 0.5% of patients.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1. MAE or Huber.</strong> MSE is the Gaussian NLL and this data has heavy
+    tails, so the assumption is false. Under MSE the penthouses' squared errors dominate
+    the gradient and distort predictions for ordinary apartments. Huber is usually best:
+    quadratic near zero, linear in the tail.</p>
+    <p><strong>2. BCE per label</strong> over 20 logits, <em>not</em> cross-entropy.
+    Cross-entropy assumes the categorical distribution, in which exactly one class occurs
+    — its softmax forces the 20 outputs to compete for a fixed probability budget.
+    Multi-label means 20 independent Bernoulli events, each with its own sigmoid and its
+    own BCE term. This is a genuinely common mistake.</p>
+    <p><strong>3. Cross-entropy</strong> over 50,000 logits — categorical, since exactly
+    one word comes next. Report perplexity rather than raw loss; the uniform baseline is
+    $\ln(50000) = 10.8$ nats.</p>
+    <p><strong>4. BCE with <code>pos_weight</code></strong>, and report precision and
+    recall rather than accuracy. Exercise 00.18 is this question with numbers: the
+    unweighted maximum-likelihood answer is "always predict healthy", which scores 99.5%
+    accuracy and is useless.</p>
+  </details>
+</div>
 
 <h2 id="ch00-which-tool">Part 5 · Recognising Which Tool Applies</h2>
 
@@ -1114,989 +2208,13 @@ It is not evidence the variant is worse; it is not evidence of anything.</div>
 
 <hr>
 
-<h2>By-hand exercises</h2>
+<h2>Two problems, end to end</h2>
 
 <p>
-Twenty-six exercises, grouped by part. The last four are recognition drills: two that
-stop at the diagnosis, and two that carry a problem all the way to a decision. Do them on
-paper. Every solution is folded up underneath, and the numbers are chosen so arithmetic
-never obscures the idea.
-</p>
-
-<div class="legend">
-  <span><span class="tag tag-must">Must do</span> the rest of the book leans on it</span>
-  <span><span class="tag tag-rec">Recommended</span> pays off in a specific later chapter</span>
-  <span>everything else — reps, if you want them</span>
-</div>
-
-<p>
-If you are short on time, the six <span class="tag tag-must">Must do</span> exercises take
-under an hour between them and are the ones worth protecting.
-</p>
-
-<h3>Linear algebra</h3>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.1 · shapes, legality, and parameter counts<span class="tag tag-rec">Recommended</span></span>
-  <div class="given">A is (4, 2)      B is (2, 3)      C is (3, 3)      v is (3,)</div>
-  <ol>
-    <li>Which are legal, and what shape does each produce? <code>A@B</code>,
-        <code>B@A</code>, <code>A@B@C</code>, <code>B@C</code>, <code>C@B</code>.</li>
-    <li>What shape is <code>(A@B) + v</code>, and why?</li>
-    <li>A batch of 32 examples with 10 features passes through
-        <code>nn.Linear(10, 64)</code> then <code>nn.Linear(64, 3)</code>. Give every
-        intermediate shape and the total parameter count.</li>
-    <li>You have $x$ of shape <span class="shape">(1, 1000)</span>, $B$ of shape
-        <span class="shape">(1000, 4)</span>, and $A$ of shape
-        <span class="shape">(4, 1000)</span>. Count the multiplications for
-        <code>(x@B)@A</code> versus <code>x@(B@A)</code>.</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> Inner dimensions must match and vanish.</p>
-    <div class="given">A@B    (4,2)@(2,3)  → (4, 3)     ✓
-B@A    (2,3)@(4,2)  → ERROR      ✗  3 ≠ 4
-A@B@C  (4,3)@(3,3)  → (4, 3)     ✓  evaluated left to right
-B@C    (2,3)@(3,3)  → (2, 3)     ✓
-C@B    (3,3)@(2,3)  → ERROR      ✗  3 ≠ 2</div>
-    <p><code>A@B</code> is legal while <code>B@A</code> is not — the clearest possible
-    demonstration that matrix multiplication does not commute.</p>
-    <p><strong>2.</strong> <strong>(4, 3)</strong>. Aligning from the right, 3 matches 3;
-    <code>v</code> has no second dimension so it is treated as
-    <span class="shape">(1, 3)</span> and stretched across all four rows. This is exactly
-    how a bias is added to a batch.</p>
-    <p><strong>3.</strong></p>
-    <div class="given">input                (32, 10)
-after Linear(10,64)  (32, 64)     10×64 + 64 = 704
-after Linear(64,3)   (32,  3)     64×3  +  3 = 195
-                                    total     899</div>
-    <p>The batch dimension 32 passes through untouched at every step. Layers transform
-    features, never the batch.</p>
-    <p><strong>4.</strong></p>
-    <div class="given">(x@B)@A : (1×1000×4) + (1×4×1000) = 4,000 + 4,000 = 8,000
-x@(B@A) : (1000×4×1000) + (1×1000×1000)  = 4,000,000 + 1,000,000</div>
-    <p>Identical answers; <strong>625× the work</strong>. Associativity is a free
-    optimisation, and it is precisely why <a class="xref" href="#ch11">LoRA</a> is cheap
-    at inference: you never materialise $BA$.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.2 · the geometry of the dot product</span>
-  <p>
-  The exercise that makes <a class="xref" href="#ch06">attention</a> feel inevitable.
-  Three "word embeddings" in two dimensions:
-  </p>
-  <div class="given">cat  = [ 1.0,  0.0 ]
-dog  = [ 0.8,  0.6 ]
-idea = [−0.6,  0.8 ]</div>
-  <ol>
-    <li>Confirm all three have length 1. (For unit vectors the dot product <em>is</em>
-        the cosine.)</li>
-    <li>Compute all three pairwise dot products.</li>
-    <li>Rank the pairs by similarity. Does it match your intuition about the words?</li>
-    <li>A query $q = [0.9, 0.4]$ arrives. Compute its score against each key and apply
-        softmax with no scaling.</li>
-    <li>Scale $q$ to $[9, 4]$ — same direction, ten times longer. Recompute. What
-        happened, and which part of the attention formula prevents it?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> $\sqrt{1+0} = 1$; $\sqrt{0.64+0.36} = 1$;
-    $\sqrt{0.36+0.64} = 1$ ✓.</p>
-    <p><strong>2.</strong></p>
-    <div class="given">cat · dog  = (1.0)(0.8) + (0.0)(0.6)  =  0.80
-cat · idea = (1.0)(−0.6) + (0.0)(0.8) = −0.60
-dog · idea = (0.8)(−0.6) + (0.6)(0.8) =  0.00</div>
-    <p><strong>3.</strong> cat–dog (0.80) &gt; dog–idea (0.00) &gt; cat–idea (−0.60). Two
-    concrete animals are similar; "idea" is perpendicular to "dog" and points away from
-    "cat". This is what a learned embedding space does, and why every attention score is
-    a dot product.</p>
-    <p><strong>4.</strong></p>
-    <div class="given">q · cat  = 0.90     q · dog  = 0.96     q · idea = −0.22
-
-e^0.90 = 2.460   e^0.96 = 2.612   e^{−0.22} = 0.803   sum = 5.875
-softmax = [0.419, 0.445, 0.137]</div>
-    <p>It attends most to <strong>dog</strong>, but only just. The distribution is soft,
-    so gradients flow to all three.</p>
-    <p><strong>5.</strong> Every score is multiplied by 10: $[9.0, 9.6, -2.2]$.</p>
-    <div class="given">e^9.0 = 8103    e^9.6 = 14765    e^{−2.2} = 0.111   sum = 22868
-softmax = [0.354, 0.646, 0.0000049]</div>
-    <p>The <em>direction</em> of $q$ has not changed, so the ranking is identical — but
-    the distribution is far peakier and "idea" has been annihilated to five parts in a
-    million. Push further and the row goes fully one-hot, the softmax gradient goes to
-    zero, and the layer stops learning.</p>
-    <p>This is what the <strong>$1/\sqrt{d_k}$ factor</strong> prevents. Exercise 00.13
-    derives why score magnitude grows with dimension in the first place.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.3 · matrix–vector, both readings</span>
-  <div class="given">A = [ 2  1  0 ]           x = [1, 2, 4]
-    [ 0  3  1 ]</div>
-  <ol>
-    <li>Compute $A\mathbf{x}$ using the <em>row</em> reading (dot products).</li>
-    <li>Compute it again using the <em>column</em> reading (a linear combination of
-        columns, with $\mathbf{x}$ as coefficients). Confirm they agree.</li>
-    <li>Now let $\mathbf{x} = [0, 0, 1]$. Use the column reading to write down the answer
-        immediately, without arithmetic.</li>
-    <li>An <code>nn.Embedding(4, 3)</code> holds a $4\times 3$ table. Explain, using
-        part 3, why looking up token 2 is the same operation as multiplying a one-hot
-        vector by that table — and what that implies about which rows receive gradient.</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> Row reading:</p>
-    <div class="given">row1 · x = (2)(1) + (1)(2) + (0)(4) = 4
-row2 · x = (0)(1) + (3)(2) + (1)(4) = 10        →  [4, 10]</div>
-    <p><strong>2.</strong> Column reading:</p>
-    <div class="given">1·[2,0] + 2·[1,3] + 4·[0,1]
-= [2,0] + [2,6] + [0,4]                          →  [4, 10]   ✓</div>
-    <p><strong>3.</strong> The coefficients are $0, 0, 1$, so the result is simply the
-    third column: <strong>[0, 1]</strong>. No arithmetic required — and that is the whole
-    value of the column reading.</p>
-    <p><strong>4.</strong> A one-hot vector has a single 1 in position $k$, so the linear
-    combination keeps exactly one row (or column, depending on which side you multiply)
-    and discards the rest. The lookup <em>is</em> the multiplication, executed
-    efficiently.</p>
-    <p>The consequence for training is direct. Since the output depends on only that one
-    row, the gradient with respect to every other row is exactly zero — not small,
-    <em>zero</em>. Only the tokens that actually appeared in a batch get updated, and a
-    token appearing three times accumulates three contributions, as
-    <a class="xref" href="#ch00">summing over paths</a> requires. It is also why rare
-    words have poor embeddings: they simply receive very few updates.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.4 · the transpose in the backward pass<span class="tag tag-must">Must do</span></span>
-  <p>A single linear layer with no bias, one example.</p>
-  <div class="given">X = [1, 2]                  (1×2)
-
-W = [ 1  0  2 ]             (2×3)
-    [ 0  1  3 ]
-
-Y = XW                      (1×3)
-δ = ∂L/∂Y = [1, 1, 1]       (1×3)   given from downstream</div>
-  <ol>
-    <li>Compute $Y$.</li>
-    <li>Without computing anything, use shapes alone to decide whether
-        $\partial\mathcal{L}/\partial W$ is $X^\top\delta$ or $\delta^\top X$.</li>
-    <li>Compute $\partial\mathcal{L}/\partial W$ and confirm it has the shape of $W$.</li>
-    <li>Compute $\partial\mathcal{L}/\partial X = \delta W^\top$ and confirm its shape.</li>
-    <li>Interpret the first entry of $\partial\mathcal{L}/\partial W$: why is the whole
-        first row equal to 1 and the whole second row equal to 2?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong></p>
-    <div class="given">Y = [ (1)(1)+(2)(0), (1)(0)+(2)(1), (1)(2)+(2)(3) ] = [1, 2, 8]</div>
-    <p><strong>2.</strong> $W$ is <span class="shape">(2, 3)</span>, so the gradient must
-    be <span class="shape">(2, 3)</span>. $X^\top$ is <span class="shape">(2, 1)</span>
-    and $\delta$ is <span class="shape">(1, 3)</span>, giving
-    <span class="shape">(2, 3)</span> ✓. The alternative $\delta^\top X$ is
-    <span class="shape">(3, 1)</span> @ <span class="shape">(1, 2)</span> =
-    <span class="shape">(3, 2)</span> ✗. <strong>The shapes decide it</strong>, with no
-    calculus needed.</p>
-    <p><strong>3.</strong></p>
-    <div class="given">Xᵀδ = [1]  @  [1  1  1]   =   [ 1  1  1 ]
-      [2]                      [ 2  2  2 ]        (2×3)  ✓</div>
-    <p><strong>4.</strong></p>
-    <div class="given">δWᵀ = [1 1 1] @ [ 1  0 ]  = [ 1+0+2 , 0+1+3 ] = [3, 4]
-                [ 0  1 ]                                  (1×2)  ✓
-                [ 2  3 ]</div>
-    <p><strong>5.</strong> $\partial\mathcal{L}/\partial W_{ij} = X_i\delta_j$ — the input
-    that fed the weight, times the error that came back through it. Since every
-    $\delta_j = 1$ here, each row is just its input value repeated: row 1 is $X_1 = 1$
-    and row 2 is $X_2 = 2$.</p>
-    <p>This is the general rule stated in the chapter — <em>gradient = (what came in)ᵀ ×
-    (what wants to change on the way out)</em> — and it explains why an input feature
-    with large magnitude produces proportionally large weight gradients. That is the
-    argument for feature scaling, and it is the same effect you saw in the one-neuron
-    exercise where $x = 2$ made $\partial\mathcal{L}/\partial w$ twice
-    $\partial\mathcal{L}/\partial b$.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.5 · outer products, rank, and LoRA<span class="tag tag-rec">Recommended</span></span>
-  <div class="given">u = [1, 2, 3]        v = [4, 5]</div>
-  <ol>
-    <li>Compute the outer product $\mathbf{u}\mathbf{v}^\top$ (a $3\times 2$ matrix).</li>
-    <li>Show that every row is a multiple of $[4,5]$. How many independent directions
-        does the matrix span?</li>
-    <li>Six entries are stored. How many numbers actually generate them?</li>
-    <li>Determine the rank of $\begin{pmatrix}1&2\\2&4\end{pmatrix}$ and of
-        $\begin{pmatrix}1&2\\3&4\end{pmatrix}$.</li>
-    <li>LoRA writes $\Delta W = BA$ with $B$ of shape <span class="shape">(d, r)</span>
-        and $A$ of shape <span class="shape">(r, d)</span>. Explain why this is a sum of
-        $r$ outer products, and count the parameters against a full $d\times d$ update at
-        $d = 1000$, $r = 4$.</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong></p>
-    <div class="given">u vᵀ = [ 1·4  1·5 ]     [  4   5 ]
-       [ 2·4  2·5 ]  =  [  8  10 ]
-       [ 3·4  3·5 ]     [ 12  15 ]</div>
-    <p><strong>2.</strong> Row 1 is $1\times[4,5]$, row 2 is $2\times[4,5]$, row 3 is
-    $3\times[4,5]$. Every row points along the same direction, so the matrix spans
-    exactly <strong>one</strong> direction: it has <strong>rank 1</strong>.</p>
-    <p><strong>3.</strong> Six entries, generated by $3 + 2 = \mathbf{5}$ numbers. (In
-    fact only 4 degrees of freedom, since scaling $\mathbf{u}$ by $c$ and $\mathbf{v}$ by
-    $1/c$ leaves the product unchanged.)</p>
-    <p><strong>4.</strong> In the first, row 2 = 2 × row 1, so the rows are dependent and
-    the rank is <strong>1</strong> (determinant $1\cdot4 - 2\cdot2 = 0$). In the second
-    the determinant is $1\cdot4 - 2\cdot3 = -2 \ne 0$, so the rank is
-    <strong>2</strong> — full rank.</p>
-    <p><strong>5.</strong> Write $B$'s columns as $b_1,\dots,b_r$ and $A$'s rows as
-    $a_1^\top,\dots,a_r^\top$. Then</p>
-    $$BA = \sum_{i=1}^{r} b_i a_i^\top$$
-    <p>a sum of $r$ rank-1 outer products, so $\operatorname{rank}(BA) \le r$.</p>
-    <div class="given">full update  : d² = 1,000,000 parameters
-LoRA (r=4)   : 2dr = 2(1000)(4) = 8,000 parameters
-                                  125× fewer</div>
-    <p>The bet LoRA makes is that the <em>update</em> a model needs in order to adapt has
-    low rank even though the model itself does not — that adaptation moves along a few
-    directions rather than all thousand. <a class="xref" href="#ch11">Chapter 11</a>
-    tests that claim empirically with a rank sweep: rank 1 alone captures well over half
-    the achievable gain, and rank 8 captures 84% of it at a quarter of the parameters of
-    rank 32. Steep diminishing returns, though — measurably — not a flat plateau.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.6 · a broadcasting audit</span>
-  <p>For each, give the result shape or say why it errors.</p>
-  <div class="given">1.  (32, 64)    + (64,)
-2.  (32, 64)    + (32,)
-3.  (32, 64)    + (32, 1)
-4.  (8, 1, 64)  + (1, 10, 64)
-5.  (2, 3, 4)   * (2, 3, 1)</div>
-  <ol>
-    <li>Work through all five.</li>
-    <li>You are mean-pooling over non-padding positions: <code>x</code> is
-        <span class="shape">(B, L, C)</span> and <code>mask</code> is
-        <span class="shape">(B, L)</span>. Why does <code>x * mask</code> fail — and what
-        is the fix?</li>
-    <li>Now suppose <code>C == L</code> by coincidence (a batch of 128-token sequences
-        with a 128-dimensional model). What happens to <code>x * mask</code> then, and why
-        is that <em>worse</em> than the error?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong></p>
-    <div class="given">1.  (32, 64) + (64,)      → (32, 64)   64 vs 64 ✓, vector added to every row
-2.  (32, 64) + (32,)      → ERROR      64 vs 32, neither equal nor 1
-3.  (32, 64) + (32, 1)    → (32, 64)   64 vs 1 stretches, 32 vs 32 ✓
-4.  (8,1,64) + (1,10,64)  → (8, 10, 64)  both middle and outer stretch
-5.  (2,3,4)  * (2,3,1)    → (2, 3, 4)   the classic per-position scale</div>
-    <p><strong>2.</strong> Aligning from the right: $C$ vs $L$. Unless they happen to be
-    equal, this errors. The mask indexes <em>positions</em>, so it needs a trailing axis
-    to broadcast across channels:</p>
-    <div class="given">mask.unsqueeze(-1)             → (B, L, 1)
-x * mask.unsqueeze(-1)         → (B, L, C)   ✓
-
-pooled = (x * m).sum(1) / m.sum(1).clamp(min=1)</div>
-    <p><strong>3.</strong> It <strong>succeeds silently</strong> and computes garbage.
-    With $C = L$, the mask broadcasts across the <em>batch</em> dimension instead of the
-    channel dimension — so example 0's mask is applied to every example's feature axis.
-    No error, no warning, and a model that trains to a worse-than-expected accuracy for
-    reasons nothing in the output explains.</p>
-    <p>This is why the error case is the lucky one. It is also why the mask-shape bug is
-    most likely to appear precisely in the square configurations people reach for when
-    prototyping.</p>
-  </details>
-</div>
-
-<h3>Calculus</h3>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.7 · the chain rule as backpropagation<span class="tag tag-must">Must do</span></span>
-  <p>A one-neuron network, forwards and backwards. A complete training step in miniature.</p>
-  <div class="given">x = 2.0     w = 0.5     b = 0.1     true label y = 1
-
-z = wx + b            (linear)
-a = σ(z) = 1/(1+e⁻ᶻ)  (sigmoid)
-L = −ln(a)            (BCE, with y = 1)
-
-σ(1.1) = 0.750    ln(0.750) = −0.288</div>
-  <ol>
-    <li>Forward pass: compute $z$, $a$, $\mathcal{L}$.</li>
-    <li>Compute $\partial\mathcal{L}/\partial a$.</li>
-    <li>Compute $\partial a/\partial z$ using $\sigma'(z) = a(1-a)$.</li>
-    <li>Chain them. Simplify, and compare with $a - y$.</li>
-    <li>Compute $\partial\mathcal{L}/\partial w$ and $\partial\mathcal{L}/\partial b$,
-        take one step at $\eta = 0.5$, and verify the loss decreased.</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> $z = 1.1$, $a = 0.750$, $\mathcal{L} = 0.288$.</p>
-    <p><strong>2.</strong> $-1/a = -1.333$.</p>
-    <p><strong>3.</strong> $a(1-a) = 0.750 \times 0.250 = 0.1875$.</p>
-    <p><strong>4.</strong></p>
-    <div class="given">∂L/∂z = (−1.333)(0.1875) = −0.250
-a − y = 0.750 − 1      = −0.250      identical</div>
-    <p>Algebraically $-\frac{1}{a}\cdot a(1-a) = a-1 = a-y$: the $\sigma'$ factor cancels
-    against the $1/a$ from the log <em>exactly</em>. This is the cancellation in its
-    simplest instance, and it is why sigmoid pairs with BCE and not with MSE.</p>
-    <p><strong>5.</strong></p>
-    <div class="given">∂L/∂w = (−0.250)(2.0) = −0.500
-∂L/∂b = (−0.250)(1.0) = −0.250
-
-w ← 0.5 − 0.5(−0.500) = 0.75
-b ← 0.1 − 0.5(−0.250) = 0.225
-
-new z = 1.725     new a = 0.849     new L = 0.164    was 0.288  ✓</div>
-    <p>$\partial\mathcal{L}/\partial w$ is twice $\partial\mathcal{L}/\partial b$ purely
-    because $x = 2$ — a larger input yields a larger weight gradient, which is the
-    argument for feature scaling.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.8 · summing over paths</span>
-  <div class="given">u = w²
-v = u + w
-L = 3v            with w = 2</div>
-  <ol>
-    <li>Compute $u$, $v$, $\mathcal{L}$.</li>
-    <li>Identify every path from $w$ to $\mathcal{L}$.</li>
-    <li>Compute each path's derivative and sum them.</li>
-    <li>Verify numerically with $h = 0.001$.</li>
-    <li>What would <code>w.grad</code> hold after calling <code>backward()</code> twice
-        without <code>zero_grad()</code>?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> $u = 4$, $v = 6$, $\mathcal{L} = 18$.</p>
-    <p><strong>2.</strong> Two: $w \to u \to v \to \mathcal{L}$, and the direct
-    $w \to v \to \mathcal{L}$.</p>
-    <p><strong>3.</strong></p>
-    <div class="given">∂L/∂v = 3;   ∂v/∂u = 1,  ∂u/∂w = 2w = 4;   ∂v/∂w = 1
-
-path 1:  4 × 1 × 3 = 12
-path 2:      1 × 3 =  3
-             ∂L/∂w = 15</div>
-    <p><strong>4.</strong> At $w = 2.001$: $u = 4.004001$, $v = 6.005001$,
-    $\mathcal{L} = 18.015003$, so $(18.015003-18)/0.001 = 15.003 \approx 15$ ✓.</p>
-    <p><strong>5.</strong> <strong>30</strong> — the sum of two independent backward
-    passes, the derivative of nothing in particular. Note how plausible 30 looks: nothing
-    crashes, no warning appears, and the model trains steadily towards the wrong thing.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.9 · derivatives of the activations<span class="tag tag-rec">Recommended</span></span>
-  <p>Derive each from the definition, then evaluate. You will use all three constantly.</p>
-  <ol>
-    <li>Show that $\sigma'(z) = \sigma(z)(1-\sigma(z))$, starting from
-        $\sigma(z) = (1+e^{-z})^{-1}$.</li>
-    <li>Evaluate $\sigma'(0)$, $\sigma'(2)$, $\sigma'(5)$, given
-        $\sigma(2) = 0.881$ and $\sigma(5) = 0.993$.</li>
-    <li>Show that $\tanh'(z) = 1 - \tanh^2(z)$ and evaluate at $z = 0$.</li>
-    <li>What is $\text{ReLU}'(z)$ for $z > 0$, $z < 0$, and $z = 0$?</li>
-    <li>Using part 2, compute the best-case gradient reaching layer 1 of a 10-layer
-        sigmoid network, and say what that implies.</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> Write $\sigma = (1+e^{-z})^{-1}$ and apply the chain rule:</p>
-    $$\sigma'(z) = -(1+e^{-z})^{-2}\cdot(-e^{-z}) = \frac{e^{-z}}{(1+e^{-z})^2}$$
-    <p>Now split the fraction: $\frac{e^{-z}}{(1+e^{-z})^2} =
-    \frac{1}{1+e^{-z}}\cdot\frac{e^{-z}}{1+e^{-z}}$. The first factor is $\sigma(z)$; the
-    second is $\frac{(1+e^{-z}) - 1}{1+e^{-z}} = 1 - \sigma(z)$. Hence
-    $\sigma' = \sigma(1-\sigma)$ ∎</p>
-    <p><strong>2.</strong></p>
-    <div class="given">σ′(0) = 0.5(0.5)     = 0.2500     ← the maximum
-σ′(2) = 0.881(0.119) = 0.1048
-σ′(5) = 0.993(0.007) = 0.0070</div>
-    <p>By $z = 5$ the derivative has fallen to under 3% of its peak. That is saturation.</p>
-    <p><strong>3.</strong> With $\tanh z = \frac{e^z - e^{-z}}{e^z + e^{-z}}$, the
-    quotient rule gives numerator $(e^z+e^{-z})^2 - (e^z-e^{-z})^2$ over
-    $(e^z+e^{-z})^2$, which is $1 - \tanh^2 z$. At $z = 0$, $\tanh 0 = 0$ so
-    $\tanh'(0) = \mathbf{1}$ — four times sigmoid's peak, which is why tanh was preferred
-    for hidden layers before ReLU.</p>
-    <p><strong>4.</strong> $1$ for $z>0$, $0$ for $z<0$, and <em>undefined</em> at exactly
-    $z=0$ — frameworks pick 0 by convention. This never matters in practice: hitting
-    exactly 0.0 in floating point has probability ~0, and the choice affects a measure-zero
-    set.</p>
-    <p><strong>5.</strong> The best case requires every unit at $z = 0$, giving 0.25 per
-    layer:</p>
-    <div class="given">0.25¹⁰ = 9.5 × 10⁻⁷</div>
-    <p>Under a million times attenuated — and that is the <em>optimum</em>. Real units sit
-    away from zero, so the true factor is far smaller. This single number is the vanishing
-    gradient problem, and it is why ReLU (derivative exactly 1 on the positive half) and
-    residual connections replaced deep sigmoid stacks.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.10 · gradient descent and the learning rate</span>
-  <p>Minimise $\mathcal{L}(w) = (w-4)^2$ from $w_0 = 1$.</p>
-  <ol>
-    <li>Write $d\mathcal{L}/dw$ and evaluate at $w = 1$.</li>
-    <li>Take three steps at $\eta = 0.1$, tabulating $w$ and $\mathcal{L}$. Are the steps
-        growing or shrinking, and why?</li>
-    <li>Take one step at $\eta = 1.0$. Where do you land?</li>
-    <li>Take two steps at $\eta = 1.5$ and describe the pattern.</li>
-    <li>Solve for the exact range of $\eta$ that converges, and the value that converges
-        fastest.</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> $2(w-4)$, which at $w=1$ is $\mathbf{-6}$ — negative, so $w$
-    should increase.</p>
-    <p><strong>2.</strong></p>
-    <div class="given">step  w        dL/dw     Δw       L(w)
- 0    1.000    −6.000             9.000
- 1    1.600    −4.800    +0.600   5.760
- 2    2.080    −3.840    +0.480   3.686
- 3    2.464    −3.072    +0.384   2.359</div>
-    <p>The steps <strong>shrink</strong>, because the gradient shrinks as $w$ approaches
-    the minimum — descent slows automatically near an optimum. Each step is exactly 0.8×
-    the last, because $w_{t+1} - 4 = (1-2\eta)(w_t - 4)$ with $1-2\eta = 0.8$.</p>
-    <p><strong>3.</strong> $w = 1 + 6 = \mathbf{7}$, and $\mathcal{L}(7) = 9$ — the
-    <em>same loss it started with</em>, on the far side. The ratio is $-1$: it oscillates
-    between 1 and 7 forever.</p>
-    <p><strong>4.</strong> Ratio $1 - 3 = -2$:</p>
-    <div class="given">w₀ = 1   (distance 3)    L = 9
-w₁ = 10  (distance 6)    L = 36
-w₂ = −8  (distance 12)   L = 144</div>
-    <p>Distance doubles each step, loss quadruples, and within ten steps you are heading
-    for <code>inf</code> and then <code>nan</code>. Nothing about the problem is wrong —
-    only $\eta$.</p>
-    <p><strong>5.</strong> Convergence needs $|1-2\eta| &lt; 1$, so
-    $\mathbf{0 &lt; \eta &lt; 1}$, with $\eta = 0.5$ giving $1-2\eta = 0$ and landing
-    exactly on the minimum in a <em>single</em> step. The general condition is
-    $\eta &lt; 2/\mathcal{L}''$; here $\mathcal{L}'' = 2$, giving $\eta < 1$ ✓. Real loss
-    surfaces have wildly different curvature in different directions, which is precisely
-    the problem <a class="xref" href="#ch02">Adam</a> attacks by giving each parameter its
-    own effective step size.</p>
-  </details>
-</div>
-
-<h3>Statistics</h3>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.11 · expectation and variance from the definition</span>
-  <ol>
-    <li>A fair four-sided die shows 1, 2, 3, 4. Compute $\mathbb{E}[X]$,
-        $\mathbb{E}[X^2]$, and $\operatorname{Var}(X)$.</li>
-    <li>A biased coin has $P(\text{heads}) = 0.3$, scored as $X = 1$ for heads and 0 for
-        tails. Compute $\mathbb{E}[X]$ and $\operatorname{Var}(X)$ both from the
-        definition and from the formula $p(1-p)$.</li>
-    <li>For what $p$ is a Bernoulli's variance largest, and what is that value?</li>
-    <li>A sigmoid output is a Bernoulli parameter. Using part 3, state the maximum
-        possible value of $\sigma'(z)$ and explain the connection.</li>
-    <li>A network's unit outputs $\sigma(z) = 0.99$. What is the variance of the
-        corresponding Bernoulli, and what does that say about the gradient?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong></p>
-    <div class="given">E[X]   = (1+2+3+4)/4 = 2.5
-E[X²]  = (1+4+9+16)/4 = 30/4 = 7.5
-Var(X) = 7.5 − 2.5² = 7.5 − 6.25 = 1.25</div>
-    <p><strong>2.</strong> From the definition:
-    $\mathbb{E}[X] = 1(0.3) + 0(0.7) = 0.3$;
-    $\mathbb{E}[X^2] = 1(0.3) + 0(0.7) = 0.3$ (since $X^2 = X$ for a 0/1 variable);
-    $\operatorname{Var}(X) = 0.3 - 0.09 = \mathbf{0.21}$. From the formula:
-    $p(1-p) = 0.3(0.7) = 0.21$ ✓</p>
-    <p><strong>3.</strong> $p(1-p)$ is a downward parabola with roots at 0 and 1, so it
-    peaks at the midpoint $p = 0.5$, where it equals <strong>0.25</strong>.</p>
-    <p><strong>4.</strong> $\sigma'(z) = \sigma(z)(1-\sigma(z))$ is <em>literally</em>
-    $p(1-p)$ evaluated at $p = \sigma(z)$. So the maximum possible sigmoid derivative is
-    <strong>0.25</strong>, at $z = 0$ where $\sigma = 0.5$.</p>
-    <p>The connection is not a coincidence but an identity: a sigmoid output <em>is</em> a
-    Bernoulli parameter, and its derivative <em>is</em> that Bernoulli's variance. Which
-    means <strong>a confident unit and an unlearnable unit are the same thing</strong>.
-    The model's certainty and its gradient are two readings of one number.</p>
-    <p><strong>5.</strong> $0.99(0.01) = \mathbf{0.0099}$. The gradient through that unit
-    is attenuated by a factor of about 100 relative to an uncertain unit — and by 25
-    relative to the best case. If the unit is confidently <em>wrong</em>, that is exactly
-    the situation where you most need a large gradient and least get one, which is the
-    whole argument in <a class="xref" href="#ch00-cross-entropy">Part 4</a> for why
-    cross-entropy's cancellation matters.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.12 · variance of a sum, and weight initialisation<span class="tag tag-must">Must do</span></span>
-  <p>
-  This exercise derives Xavier initialisation from scratch. It is the single most
-  useful piece of statistics in the chapter.
-  </p>
-  <div class="given">A unit computes  z = Σᵢ wᵢxᵢ  over n = 100 inputs.
-Inputs xᵢ: independent, mean 0, variance 1.
-Weights wᵢ: independent of each other and of x, mean 0, variance σ²_w.</div>
-  <ol>
-    <li>Using $\operatorname{Var}(aX) = a^2\operatorname{Var}(X)$ and additivity for
-        independent variables, write $\operatorname{Var}(z)$ in terms of $n$ and
-        $\sigma_w^2$.</li>
-    <li>Evaluate $\operatorname{Var}(z)$ and $\text{SD}(z)$ for $\sigma_w = 1$.</li>
-    <li>Given $\sigma(10) \approx 0.99995$ and $\sigma'(10) \approx 4.5\times10^{-5}$,
-        say what happens to this layer at that scale.</li>
-    <li>Solve for the $\sigma_w$ that gives $\operatorname{Var}(z) = 1$.</li>
-    <li>Now stack 10 such layers. If each layer multiplies the variance by a factor $c$,
-        what is the variance at layer 10 for $c = 2$ and for $c = 0.5$? Why must $c = 1$?</li>
-    <li>ReLU zeroes the negative half of its input. Roughly what does that do to the
-        variance, and how should $\sigma_w$ change to compensate?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> Each term $w_ix_i$ has variance
-    $\operatorname{Var}(w_i)\operatorname{Var}(x_i) = \sigma_w^2 \cdot 1$ (using
-    independence and zero means). The $n$ terms are independent, so their variances add:</p>
-    $$\operatorname{Var}(z) = n\sigma_w^2$$
-    <p><strong>2.</strong> $\operatorname{Var}(z) = 100 \times 1 = 100$, so
-    $\text{SD}(z) = \mathbf{10}$.</p>
-    <p><strong>3.</strong> Pre-activations land in roughly $[-30, 30]$. At $|z| = 10$ the
-    sigmoid is already 0.99995 and its derivative is $4.5\times10^{-5}$ — so essentially
-    every unit is saturated <em>before training begins</em>, and every gradient is
-    attenuated by ~$10^{-5}$ per layer. The network does not train slowly; it does not
-    train at all. And nothing in the code is wrong — only one factor.</p>
-    <p><strong>4.</strong> $n\sigma_w^2 = 1 \Rightarrow \sigma_w = 1/\sqrt{n} =
-    1/\sqrt{100} = \mathbf{0.1}$. Check: $100 \times 0.01 = 1$ ✓. This is
-    <strong>Xavier/LeCun initialisation</strong>, and you have just derived it in two
-    lines.</p>
-    <p><strong>5.</strong></p>
-    <div class="given">c = 2.0 :  2¹⁰  = 1024×      variance explodes
-c = 0.5 :  0.5¹⁰ = 0.001×     variance collapses to nothing
-c = 1.0 :  1¹⁰   = 1×         stable at any depth</div>
-    <p>Any $c \ne 1$ compounds geometrically with depth. This is the <em>same</em>
-    geometric-product problem as <a class="xref" href="#ch04">vanishing gradients</a>,
-    appearing in the forward pass instead of the backward one — which is why the fix
-    (control the per-layer factor) and the fallback (normalise explicitly, as
-    <a class="xref" href="#ch07">layer norm</a> does) are the same in both directions.</p>
-    <p><strong>6.</strong> ReLU sets roughly half the values to zero, which approximately
-    halves the variance. To restore $\operatorname{Var}(z) = 1$ you need to double
-    $\sigma_w^2$, so $\sigma_w = \sqrt{2/n}$. That is <strong>He initialisation</strong>,
-    the default for ReLU networks — and it differs from Xavier by exactly the factor
-    $\sqrt{2}$ that this one sentence predicts.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.13 · the variance of a dot product, and $\sqrt{d_k}$<span class="tag tag-must">Must do</span></span>
-  <p>
-  Exercise 00.2 showed <em>that</em> large scores saturate a softmax. This one shows
-  <em>why they become large</em>.
-  </p>
-  <div class="given">q · k = Σᵢ qᵢkᵢ  over d_k components.
-All qᵢ, kᵢ independent, mean 0, variance 1.</div>
-  <ol>
-    <li>Compute $\mathbb{E}[q_ik_i]$.</li>
-    <li>Compute $\operatorname{Var}(q_ik_i)$. (Use
-        $\operatorname{Var}(Y) = \mathbb{E}[Y^2] - \mathbb{E}[Y]^2$ and independence.)</li>
-    <li>Compute $\operatorname{Var}(q\cdot k)$ and $\text{SD}(q\cdot k)$ in terms of
-        $d_k$.</li>
-    <li>Evaluate the standard deviation for $d_k = 16$, $64$, and $256$.</li>
-    <li>Take three logits at roughly $\pm 1$ SD for $d_k = 64$ — say $[0, 8, -8]$ — and
-        compute their softmax. Then do the same after dividing by $\sqrt{d_k}$, i.e.
-        $[0, 1, -1]$. Compare.</li>
-    <li>Using $\sigma'$-style reasoning, estimate how much smaller the gradient is in the
-        unscaled case.</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> By independence,
-    $\mathbb{E}[q_ik_i] = \mathbb{E}[q_i]\mathbb{E}[k_i] = 0 \times 0 = \mathbf{0}$.</p>
-    <p><strong>2.</strong> Since the mean is 0,
-    $\operatorname{Var}(q_ik_i) = \mathbb{E}[q_i^2k_i^2] =
-    \mathbb{E}[q_i^2]\mathbb{E}[k_i^2] = 1 \times 1 = \mathbf{1}$.</p>
-    <p><strong>3.</strong> The $d_k$ terms are independent, so variances add:
-    $\operatorname{Var}(q\cdot k) = \mathbf{d_k}$ and
-    $\text{SD} = \mathbf{\sqrt{d_k}}$.</p>
-    <p><strong>4.</strong> $\sqrt{16} = 4$, $\sqrt{64} = 8$, $\sqrt{256} = 16$. Scores
-    routinely reach three standard deviations, so at $d_k = 64$ they span roughly
-    $\pm 24$.</p>
-    <p><strong>5.</strong></p>
-    <div class="given">UNSCALED  z = [0, 8, −8]
-  e⁰ = 1,  e⁸ = 2981,  e⁻⁸ = 0.000335     sum = 2982
-  softmax = [0.000335, 0.99966, 0.00000011]      ← effectively one-hot
-
-SCALED    z = [0, 1, −1]
-  e⁰ = 1,  e¹ = 2.718,  e⁻¹ = 0.368       sum = 4.086
-  softmax = [0.245, 0.665, 0.090]                ← soft</div>
-    <p><strong>6.</strong> The softmax Jacobian's diagonal is $p(1-p)$ — the same
-    Bernoulli variance from exercise 00.11.</p>
-    <div class="given">unscaled: p = 0.99966  →  p(1−p) = 0.00034
-scaled:   p = 0.665    →  p(1−p) = 0.223
-
-ratio ≈ 650×</div>
-    <p>So without the scaling the attention weights receive roughly <strong>650 times
-    less gradient</strong> and effectively stop learning — and it gets worse as $d_k$
-    grows. The alarming consequence is that <em>widening your model would break it</em>:
-    performance would degrade as you added capacity, for reasons invisible in the code.
-    Dividing by $\sqrt{d_k}$ restores unit variance and makes score magnitude independent
-    of dimension. See <a class="xref" href="#ch06">Chapter 06</a>.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.14 · standardisation and layer normalisation</span>
-  <div class="given">One token's features:   x = [2, 4, 4, 4, 5, 5, 7, 9]</div>
-  <ol>
-    <li>Compute the mean $\mu$.</li>
-    <li>Compute the variance (dividing by $n$, as layer norm does) and the standard
-        deviation.</li>
-    <li>Standardise: $z_i = (x_i - \mu)/\sigma$.</li>
-    <li>Verify the result has mean 0 and variance 1.</li>
-    <li>Apply learned parameters $\gamma = 2$, $\beta = 1$. What is the output's mean and
-        variance now — and why would a network want to undo the normalisation it just
-        performed?</li>
-    <li>If you had used <em>batch</em> norm instead, which numbers would have entered the
-        mean, and what breaks at inference on a single example?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> $\mu = (2+4+4+4+5+5+7+9)/8 = 40/8 = \mathbf{5}$.</p>
-    <p><strong>2.</strong> Deviations: $-3, -1, -1, -1, 0, 0, 2, 4$. Squares:
-    $9, 1, 1, 1, 0, 0, 4, 16$, summing to 32. So
-    $\sigma^2 = 32/8 = \mathbf{4}$ and $\sigma = \mathbf{2}$.</p>
-    <p><strong>3.</strong></p>
-    <div class="given">z = [−1.5, −0.5, −0.5, −0.5, 0, 0, 1.0, 2.0]</div>
-    <p><strong>4.</strong> Sum $= -1.5-0.5-0.5-0.5+0+0+1+2 = 0$, so the mean is 0 ✓.
-    Squares $= 2.25+0.25+0.25+0.25+0+0+1+4 = 8$, and $8/8 = 1$ ✓.</p>
-    <p><strong>5.</strong> Output $= 2z + 1$, which has mean $2(0)+1 = \mathbf{1}$ and
-    variance $2^2(1) = \mathbf{4}$ (by the $a^2$ rule).</p>
-    <p>As for why: forcing every representation to mean 0 and variance 1 is a strong
-    constraint, and sometimes the right answer genuinely involves a large-magnitude or
-    off-centre feature. $\gamma$ and $\beta$ let the network recover any scale and shift,
-    so normalisation stabilises training <em>without</em> restricting what the model can
-    express — in the limit it can learn $\gamma = \sigma$, $\beta = \mu$ and undo the
-    operation entirely. It is a helpful default, not a cage.</p>
-    <p><strong>6.</strong> Batch norm would average feature 0 across every token in the
-    batch, producing one mean and variance per <em>feature</em> rather than per token. At
-    inference on a single example there is no batch to compute statistics from, so it must
-    fall back on running averages accumulated during training — which is why batch norm
-    needs distinct train and eval behaviour and degrades at small batch sizes. Layer norm
-    takes its statistics from within the token, so one example behaves exactly like a
-    thousand. For variable-length sequence data that is decisive.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.15 · dropout and preserved expectation</span>
-  <div class="given">A layer outputs four activations, all equal to 1.0.
-Dropout with p = 0.5 (each unit kept with probability 0.5).</div>
-  <ol>
-    <li>Without any rescaling, what is the expected sum of the four activations during
-        training? What is it at test time, when dropout is off?</li>
-    <li>Inverted dropout divides survivors by the keep probability $1-p$. What is the
-        expected sum now?</li>
-    <li>Derive $\mathbb{E}[y]$ for $y = xB/(1-p)$ with
-        $B \sim \text{Bernoulli}(1-p)$.</li>
-    <li>Derive $\operatorname{Var}(y)$, and evaluate it at $p = 0.5$ and $p = 0.9$ for
-        $x = 1$.</li>
-    <li>What does part 4 predict about training with a very high dropout rate?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> Each unit survives with probability 0.5, so the expected sum is
-    $4 \times 1.0 \times 0.5 = \mathbf{2}$ during training and $\mathbf{4}$ at test time.
-    Every downstream layer therefore sees inputs at <em>half</em> the scale in training
-    that it sees in deployment — a systematic distribution shift baked into the model.</p>
-    <p><strong>2.</strong> Each survivor is doubled, so the expected sum is
-    $4 \times 1.0 \times 0.5 \times 2 = \mathbf{4}$ ✓ — matching test time exactly.</p>
-    <p><strong>3.</strong> $\mathbb{E}[B] = 1-p$, so</p>
-    $$\mathbb{E}[y] = \frac{x\,\mathbb{E}[B]}{1-p} = \frac{x(1-p)}{1-p} = x$$
-    <p><strong>4.</strong> Since $B^2 = B$ for a 0/1 variable,
-    $\mathbb{E}[y^2] = x^2\mathbb{E}[B]/(1-p)^2 = x^2/(1-p)$, so</p>
-    $$\operatorname{Var}(y) = \frac{x^2}{1-p} - x^2 = x^2\frac{p}{1-p}$$
-    <div class="given">p = 0.5 :  Var = 1 × (0.5/0.5) = 1.0
-p = 0.9 :  Var = 1 × (0.9/0.1) = 9.0</div>
-    <p><strong>5.</strong> Only the <em>mean</em> is preserved; the variance grows without
-    bound as $p \to 1$. At $p = 0.9$ each activation carries nine times the variance of
-    the signal itself, so gradients become extremely noisy and training turns unstable
-    rather than merely slower. That noise is the regularisation — it is what prevents
-    co-adaptation — but it explains why dropout rates above about 0.5 usually hurt, and
-    why the useful range is 0.1–0.5.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.16 · sample mean, standard error, and how many seeds<span class="tag tag-rec">Recommended</span></span>
-  <p>You train the same model three times, changing only the random seed.</p>
-  <div class="given">test accuracies:  0.812,  0.789,  0.834</div>
-  <ol>
-    <li>Compute the sample mean.</li>
-    <li>Compute the sample standard deviation $s$ (dividing by $n-1$).</li>
-    <li>Compute the standard error $s/\sqrt{n}$.</li>
-    <li>Give an approximate 95% interval as mean ± 2 SE.</li>
-    <li>A competing architecture scores 0.820 on one run. What can you conclude?</li>
-    <li>You want to halve the standard error. How many seeds do you need?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> $(0.812 + 0.789 + 0.834)/3 = 2.435/3 = \mathbf{0.8117}$.</p>
-    <p><strong>2.</strong></p>
-    <div class="given">deviations:  +0.0003,  −0.0227,  +0.0223
-squares:     9e−8,     5.153e−4,  4.973e−4      sum = 1.0127e−3
-
-s² = 1.0127e−3 / (3 − 1) = 5.06e−4
-s  = 0.0225</div>
-    <p><strong>3.</strong> $\text{SE} = 0.0225/\sqrt{3} = 0.0225/1.732 = \mathbf{0.0130}$.</p>
-    <p><strong>4.</strong> $0.8117 \pm 0.026$, i.e. roughly
-    $[\mathbf{0.786},\ \mathbf{0.838}]$.</p>
-    <p><strong>5.</strong> <strong>Nothing.</strong> 0.820 sits comfortably inside the
-    interval — well under one standard error from the mean — so the data cannot
-    distinguish the two architectures. It is also a single run, so it has its own unknown
-    spread; the honest comparison needs three seeds of <em>both</em> and a look at whether
-    the intervals overlap.</p>
-    <p>This is the most common flaw in informal ML comparisons: a 0.8% difference reported
-    as a finding when the seed-to-seed spread is 2.3%.</p>
-    <p><strong>6.</strong> SE scales as $1/\sqrt{n}$, so halving it needs <strong>four
-    times</strong> as many seeds — twelve. That $1/\sqrt{n}$ is unforgiving, and it is why
-    the right response to a noisy result is usually a bigger effect rather than more runs.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.17 · covariance and correlation</span>
-  <div class="given">x = [1, 2, 3, 4]        y = [2, 3, 5, 4]</div>
-  <ol>
-    <li>Compute both means.</li>
-    <li>Compute $\operatorname{Cov}(x,y)$, dividing by $n$.</li>
-    <li>Compute both standard deviations and then the correlation $\rho$.</li>
-    <li>Give an example of two variables with zero covariance that are obviously
-        <em>not</em> independent.</li>
-    <li>Exercise 00.12 assumed independence when adding variances. Write the corrected
-        rule for correlated variables, and say what it implies for a layer whose input
-        features are highly correlated.</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> $\bar{x} = 10/4 = 2.5$; $\bar{y} = 14/4 = 3.5$.</p>
-    <p><strong>2.</strong></p>
-    <div class="given">dev x:  −1.5, −0.5, +0.5, +1.5
-dev y:  −1.5, −0.5, +1.5, +0.5
-
-products: 2.25, 0.25, 0.75, 0.75      sum = 4.0
-Cov = 4.0 / 4 = 1.0</div>
-    <p><strong>3.</strong></p>
-    <div class="given">Var(x) = (2.25+0.25+0.25+2.25)/4 = 1.25    σ_x = 1.118
-Var(y) = (2.25+0.25+2.25+0.25)/4 = 1.25    σ_y = 1.118
-
-ρ = 1.0 / (1.118 × 1.118) = 1.0 / 1.25 = 0.80</div>
-    <p>Strongly but not perfectly associated — the third and fourth points break the
-    monotonic pattern.</p>
-    <p><strong>4.</strong> Let $X$ be symmetric about zero (say uniform on $[-1,1]$) and
-    $Y = X^2$. Then $\operatorname{Cov}(X,Y) = \mathbb{E}[X^3] = 0$ by symmetry, yet $Y$
-    is a deterministic function of $X$ — maximally dependent. Covariance detects only
-    <em>linear</em> association, so zero covariance never proves independence.</p>
-    <p><strong>5.</strong></p>
-    $$\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y) + 2\operatorname{Cov}(X,Y)$$
-    <p>With positively correlated inputs the cross terms are positive, so the true
-    variance of a unit's pre-activation is <em>larger</em> than the $n\sigma_w^2$ that
-    exercise 00.12 predicted. Initialisation calibrated on the independence assumption is
-    therefore optimistic, and activations drift upward with depth anyway — which is part
-    of why explicit normalisation layers earn their place even in a well-initialised
-    network. It is also an argument for decorrelating inputs where you cheaply can.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.18 · Bayes, base rates, and class imbalance<span class="tag tag-rec">Recommended</span></span>
-  <div class="given">A disease affects 0.5% of the population.
-A test detects it in 99% of sick people          (sensitivity)
-and correctly clears 95% of healthy people       (specificity).</div>
-  <ol>
-    <li>Write down $P(D)$, $P(+|D)$, and $P(+|\neg D)$.</li>
-    <li>Compute $P(+)$ using the law of total probability.</li>
-    <li>Compute $P(D\,|\,+)$ with Bayes' theorem. Is the answer what you expected?</li>
-    <li>Redo the calculation by imagining 10,000 people, counting bodies rather than
-        probabilities.</li>
-    <li>A classifier with these exact rates is deployed. What is its precision? What
-        accuracy would "always predict healthy" achieve?</li>
-    <li>What does this say about reporting accuracy on imbalanced problems, and what
-        would you change in the loss?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> $P(D) = 0.005$, $P(+|D) = 0.99$,
-    $P(+|\neg D) = 1 - 0.95 = 0.05$.</p>
-    <p><strong>2.</strong></p>
-    <div class="given">P(+) = P(+|D)P(D) + P(+|¬D)P(¬D)
-     = (0.99)(0.005) + (0.05)(0.995)
-     = 0.00495 + 0.04975
-     = 0.0547</div>
-    <p><strong>3.</strong></p>
-    $$P(D\mid+) = \frac{0.00495}{0.0547} = \mathbf{0.0905}$$
-    <p>A positive result from a 99%-sensitive test means about a <strong>9%</strong>
-    chance of having the disease. Nine times out of ten it is a false alarm.</p>
-    <p><strong>4.</strong> Counting bodies makes it obvious:</p>
-    <div class="given">10,000 people
-  50 sick     → 49.5 test positive     (true positives)
-9,950 healthy → 497.5 test positive    (false positives)
-                ─────
-      total positives = 547
-
-49.5 / 547 = 9.05%   ✓</div>
-    <p>The false positives come from a pool 199 times larger, so even a small false
-    positive rate swamps the true positives. That is the base-rate fallacy, and the body
-    count is the version worth remembering.</p>
-    <p><strong>5.</strong> Precision <em>is</em> $P(D|+)$ = <strong>9.05%</strong>. Meanwhile
-    "always predict healthy" achieves <strong>99.5% accuracy</strong> — better than any
-    number the real classifier will report — while being completely useless.</p>
-    <p><strong>6.</strong> Accuracy is meaningless on imbalanced problems: report precision
-    and recall (or a precision–recall curve), and pick the operating point deliberately.
-    In the loss, note that "always predict negative" genuinely <em>is</em> the maximum
-    likelihood answer — the objective is not malfunctioning, it is faithfully answering the
-    question you asked. Changing the answer means changing the question, via
-    <code>pos_weight</code> in <code>BCEWithLogitsLoss</code> or <code>weight=</code> in
-    <code>CrossEntropyLoss</code>, or by resampling. See
-    <a class="xref" href="#ch03">Chapter 03</a>.</p>
-  </details>
-</div>
-
-<h3>Probability and loss</h3>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.19 · binary cross-entropy on a batch</span>
-  <div class="given">example   true y    predicted ŷ
-   1         1         0.9
-   2         0         0.2
-   3         1         0.4
-
-ln 0.9 ≈ −0.105    ln 0.8 ≈ −0.223    ln 0.4 ≈ −0.916</div>
-  <ol>
-    <li>Write the per-example loss, simplifying away the term multiplied by zero.</li>
-    <li>Evaluate each and average.</li>
-    <li>Which example contributes most, and by how much?</li>
-    <li>Example 2 is 0.2 from perfect and example 3 is 0.6 — three times the error. Is the
-        loss three times larger? What does that say about how batches are dominated?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1 &amp; 2.</strong></p>
-    <div class="given">example 1:  y=1  →  −ln(0.9)      = 0.105
-example 2:  y=0  →  −ln(1 − 0.2) = 0.223
-example 3:  y=1  →  −ln(0.4)     = 0.916
-
-batch loss = 1.244 / 3 = 0.415</div>
-    <p><strong>3.</strong> Example 3, at 0.916, is <strong>74%</strong> of the total.</p>
-    <p><strong>4.</strong> No — it is <strong>4.1× larger</strong> for 3× the error. The
-    log makes the loss superlinear in the error, so a single badly-classified example
-    dominates the gradient. Usually that is what you want (hard examples deserve
-    attention) and occasionally a disaster (a mislabelled example dominates too). It is
-    the same mechanism that makes MSE fragile to outliers, seen from the classification
-    side.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.20 · softmax, cross-entropy, and the gradient<span class="tag tag-must">Must do</span></span>
-  <div class="given">z = [2.0, 1.0, 0.0]        true class c = 1 (the middle one)
-
-e⁰ = 1.000    e¹ = 2.718    e² = 7.389</div>
-  <ol>
-    <li>Apply the max-subtraction trick and confirm it cannot change the answer.</li>
-    <li>Compute $\operatorname{softmax}(z)$ to three decimals.</li>
-    <li>Compute the loss, and compare with a uniform guess.</li>
-    <li>Compute $\partial\mathcal{L}/\partial z_k$ for all three logits. Check they sum to
-        zero and explain why they must.</li>
-    <li>If you added 100 to every logit, what would change about the loss, the gradients,
-        and a naive implementation?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> Subtracting 2 gives $[0,-1,-2]$. Since
-    $e^{z_k-m}/\sum_j e^{z_j-m} = (e^{-m}e^{z_k})/(e^{-m}\sum_j e^{z_j})$, the $e^{-m}$
-    cancels.</p>
-    <p><strong>2.</strong> $\sum = 11.107$, so
-    $\hat{y} = [\mathbf{0.665}, \mathbf{0.245}, \mathbf{0.090}]$.</p>
-    <p><strong>3.</strong> $\mathcal{L} = -\ln(0.245) = \mathbf{1.406}$ nats. A uniform
-    guess over 3 classes costs $-\ln(1/3) = 1.099$, so this model is <em>worse than
-    guessing</em> on this example. That comparison is the cheapest sanity check available
-    on any classifier's loss.</p>
-    <p><strong>4.</strong></p>
-    <div class="given">∂L/∂z₀ = 0.665 − 0 = +0.665     push logit 0 DOWN
-∂L/∂z₁ = 0.245 − 1 = −0.755     push logit 1 UP
-∂L/∂z₂ = 0.090 − 0 = +0.090     push logit 2 down slightly
-                sum =  0.000</div>
-    <p>They must sum to zero because softmax outputs are constrained to sum to 1: shifting
-    every logit equally changes nothing, so the gradient can have no component in that
-    direction. Only <em>relative</em> logits are learnable.</p>
-    <p><strong>5.</strong> <strong>Nothing changes</strong> in the loss or the gradients —
-    that is the invariance from part 1, with part 4 as its fingerprint. What changes is the
-    naive implementation: $e^{102}$ is fine, but at $+800$ it overflows to <code>inf</code>
-    and the distribution becomes <code>nan</code>. The mathematics is invariant; the
-    floating-point arithmetic is not.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.21 · entropy, cross-entropy, and KL</span>
-  <p>
-  A weather model claims rain with probability $q = 0.25$ every day. It actually rains
-  half the time, $p = 0.5$. Work in bits, with $\log_2 3 \approx 1.585$.
-  </p>
-  <ol>
-    <li>Compute $H(p)$.</li>
-    <li>Compute $H(p,q)$.</li>
-    <li>Compute $D_{\mathrm{KL}}(p\|q)$ and say what it means physically.</li>
-    <li>Compute $D_{\mathrm{KL}}(q\|p)$. Why is it different?</li>
-    <li>Training minimises $H(p,q)$, not $D_{\mathrm{KL}}$. Why does that not matter?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> $H(p) = -(0.5\log_2 0.5 + 0.5\log_2 0.5) = \mathbf{1}$ bit — a
-    fair coin, maximal uncertainty for a binary event.</p>
-    <p><strong>2.</strong> $\log_2 0.25 = -2$ and $\log_2 0.75 = \log_2 3 - 2 = -0.415$:</p>
-    <div class="given">H(p,q) = −(0.5(−2) + 0.5(−0.415)) = 1 + 0.208 = 1.208 bits</div>
-    <p><strong>3.</strong> $1.208 - 1 = \mathbf{0.208}$ bits. Physically: encoding real
-    weather with this model's beliefs costs 0.21 extra bits per day — about 76 wasted bits
-    a year. That is the price of a wrong model, in the currency of message length.</p>
-    <p><strong>4.</strong>
-    $D_{\mathrm{KL}}(q\|p) = 0.25\log_2(0.5) + 0.75\log_2(1.5) = -0.25 + 0.439
-    = \mathbf{0.189}$ bits. Different because the two average the discrepancy under
-    different distributions — "how surprised will I be" depends on who is doing the
-    expecting. The asymmetry is a feature: forward and reverse KL produce famously
-    different behaviours (mass-covering versus mode-seeking) as objectives.</p>
-    <p><strong>5.</strong> Because $D_{\mathrm{KL}} = H(p,q) - H(p)$ and $H(p)$ depends
-    only on the data. Subtracting a constant shifts a function without moving its minimum,
-    so minimising cross-entropy <em>is</em> minimising divergence from the truth — you
-    simply cannot compute the constant, and do not need to.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.22 · choosing the loss</span>
-  <p>No arithmetic. For each, name the loss and justify it from the distribution.</p>
-  <ol>
-    <li>Predicting apartment rents, where 2% of the data is penthouses at 30× the median.</li>
-    <li>Tagging a photo with any of 20 labels; a photo can have several.</li>
-    <li>Predicting the next word from a 50,000-word vocabulary.</li>
-    <li>Detecting a disease present in 0.5% of patients.</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1. MAE or Huber.</strong> MSE is the Gaussian NLL and this data has heavy
-    tails, so the assumption is false. Under MSE the penthouses' squared errors dominate
-    the gradient and distort predictions for ordinary apartments. Huber is usually best:
-    quadratic near zero, linear in the tail.</p>
-    <p><strong>2. BCE per label</strong> over 20 logits, <em>not</em> cross-entropy.
-    Cross-entropy assumes the categorical distribution, in which exactly one class occurs
-    — its softmax forces the 20 outputs to compete for a fixed probability budget.
-    Multi-label means 20 independent Bernoulli events, each with its own sigmoid and its
-    own BCE term. This is a genuinely common mistake.</p>
-    <p><strong>3. Cross-entropy</strong> over 50,000 logits — categorical, since exactly
-    one word comes next. Report perplexity rather than raw loss; the uniform baseline is
-    $\ln(50000) = 10.8$ nats.</p>
-    <p><strong>4. BCE with <code>pos_weight</code></strong>, and report precision and
-    recall rather than accuracy. Exercise 00.18 is this question with numbers: the
-    unweighted maximum-likelihood answer is "always predict healthy", which scores 99.5%
-    accuracy and is useless.</p>
-  </details>
-</div>
-
-<p>
-The two exercises above stop at the diagnosis, which is deliberate — naming the category
-is the step people skip. But a diagnosis you cannot act on is not much use, so the last
-two carry a problem <em>all the way through</em>: identify, set up, compute, decide.
+Everything above drills one idea at a time. These last two do not: each hands you a
+situation of the kind that actually turns up, and asks you to work out which tools apply
+before using them. That recognition step is the skill this chapter exists to build, and
+it is the one that does not survive being told.
 </p>
 
 <div class="box byhand">
@@ -2274,6 +2392,14 @@ precision = 24 / (24 + 24) = 50%</div>
     move is to look for a larger effect rather than to chase a small one with more compute.</p>
   </details>
 </div>
+
+<p>
+The two exercises above stop at the diagnosis, which is deliberate — naming the category
+is the step people skip. But a diagnosis you cannot act on is not much use, so the last
+two carry a problem <em>all the way through</em>: identify, set up, compute, decide.
+</p>
+
+
 
 <div class="box feel">
   <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
