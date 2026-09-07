@@ -322,6 +322,62 @@ tok.encode("antidisestablishmentarianism").tokens
   </p>
 </div>
 
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">Convolutions are the first place in this book where you should be able to predict a parameter count exactly, before writing the layer. Do it every time — a count that surprises you is a shape bug you have not found yet.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td><code>Conv1d</code> params</td><td>—</td><td>$C_{\text{in}}C_{\text{out}}k + C_{\text{out}}$</td><td>—</td><td>independent of sequence length</td></tr>
+    <tr><td>Output length, no pad, stride 1</td><td>1</td><td>$L - k + 1$</td><td>$L$</td><td>shrinks by $k-1$ per layer</td></tr>
+    <tr><td>Receptive field, $n$ layers of width $k$</td><td>$k$</td><td>$n(k-1)+1$</td><td>—</td><td>grows linearly with depth, which is the limitation</td></tr>
+    <tr><td>Embedding params</td><td>—</td><td>$V \cdot d$</td><td>—</td><td>usually the largest tensor in a small text model</td></tr>
+    <tr><td>Kernel width for text</td><td>2</td><td>3–5</td><td>7</td><td>wider mostly buys parameters, not accuracy</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li><code>nn.Conv1d(100, 128, kernel_size=5)</code>. How many parameters?</li>
+    <li>Three stacked width-3 convolutions. How far apart can two tokens be and still influence the same output?</li>
+    <li>Vocabulary 20,000 and embedding dimension 100. Which is bigger, the embedding table or that conv layer, and by how much?</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> $100 \times 128 \times 5 + 128 = 64{,}128$.</p>
+    <p><strong>2.</strong> $3(3-1)+1 = 7$ tokens. Note that this grows <em>linearly</em>
+    in depth — to link words 50 apart you would need 25 layers. That is the whole
+    argument for the next two chapters.</p>
+    <p><strong>3.</strong> The embedding, at $20{,}000 \times 100 = 2{,}000{,}000$,
+    is 31 times the conv layer. In small text models nearly all the parameters sit in a
+    lookup table that does no computation at all — worth remembering before you go
+    looking for savings in the wrong place.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> Count the parameters of a layer before you build it, then check with <code>sum(p.numel() for p in layer.parameters())</code>. Two seconds, and it catches transposed dimensions immediately.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>why would anyone apply a convolution to text, given that a sentence is not an image?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>A kernel of width $k$ is a learned detector for $k$-gram patterns.</li>
+    <li>The same weights are applied at every position, so a pattern is recognised wherever it occurs — position invariance, learned once.</li>
+    <li>Pooling collapses a variable-length sequence to a fixed-size vector, which is what lets one classifier head handle any input length.</li>
+    <li>The kernel width is a hard bound on what a single layer can see, and depth grows that bound only linearly.</li>
+    <li>So it cannot represent a dependency between distant words, which is precisely the gap the recurrent and attention chapters exist to close.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Stopping at "it detects n-grams". The interesting half is the <em>limitation</em>: an explanation that does not end by saying what convolutions cannot do has not earned the next chapter.</p>
+  </details>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>03_cnn_sentiment/prompt.ipynb</code>. You will build the vocabulary, encode and

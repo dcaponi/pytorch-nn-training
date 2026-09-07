@@ -319,6 +319,69 @@ ep  tr    val    tr    val    tr    val    tr    val
   </details>
 </div>
 
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">This chapter's numbers are the ones you read off a training log at 2am. Most of them are diagnostic rather than tuned — you are not trying to hit a value, you are checking you are not in a regime that means something is broken.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td>Gradient norm, healthy</td><td>0.01</td><td>0.1–10</td><td>100</td><td>$10^{-8}$ means a severed path, not a small update</td></tr>
+    <tr><td>Warmup steps</td><td>100</td><td>1000–4000</td><td>10000</td><td>post-norm needs it; pre-norm largely does not</td></tr>
+    <tr><td>Steps to overfit 8 examples</td><td>10</td><td>50–200</td><td>—</td><td>if it cannot, it is a bug and no hyperparameter will help</td></tr>
+    <tr><td>Train/val gap</td><td>0</td><td>small and stable</td><td>growing</td><td>growing means memorising, flat-and-high means underfitting</td></tr>
+    <tr><td>Loss plateau</td><td>—</td><td>—</td><td>$\ln K$</td><td>a plateau exactly at $\ln K$ is a wiring bug, not a hard problem</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li>You overfit 8 examples as a smoke test and the loss stops dead at $\ln K$. What class of bug is that, and what is it not?</li>
+    <li>One parameter group reports a gradient norm of $10^{-8}$ while the rest are near 1. What are the two candidate explanations?</li>
+    <li>Your loss is flat from step 0 and the gradient norms are all exactly zero. Name the two things to check before anything else.</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> The model is not seeing the labels. A network with enough
+    capacity to memorise eight examples will always do so unless the label never reaches
+    the loss — shuffled targets, the wrong axis in a <code>reshape</code>, a mask that
+    covers everything. It is <em>never</em> a learning-rate problem, and the value being
+    exactly $\ln K$ is the tell: the model is outputting a uniform distribution because
+    that is the best it can do with no information.</p>
+    <p><strong>2.</strong> Either the path is nearly severed — a <code>detach()</code>,
+    a frozen module, a mask that zeroes it — or a saturated non-linearity upstream is
+    returning almost nothing. Check for <code>None</code> first: <code>None</code> means
+    disconnected, small means saturated. They look identical on a plot and need opposite
+    fixes.</p>
+    <p><strong>3.</strong> That the optimizer was given the model's parameters at all
+    (<code>optim.Adam(model.parameters())</code>, not a stale list), and that
+    <code>loss.backward()</code> is actually being called inside the loop rather than
+    outside it.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> Before tuning anything, overfit a handful of examples. It separates "my model is wrong" from "my training is wrong" in under a minute, and those two problems have no fixes in common.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>someone shows you a model that will not learn. What do you check, in what order, and why that order?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>First that the loss at step 0 is $\ln K$ — it separates initialisation and wiring bugs from optimisation problems, and costs nothing.</li>
+    <li>Then overfit a handful of examples, which separates "the model cannot represent this" from "the training loop is broken".</li>
+    <li>Then gradient norms per parameter group, distinguishing <code>None</code> (disconnected) from tiny (saturated).</li>
+    <li>Only then the learning rate and schedule, because tuning an optimiser that is stepping on wrong gradients is wasted effort.</li>
+    <li>The order is cheapest-and-most-decisive first: each step rules out a whole class of cause rather than adjusting a knob.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Producing a list of things to try instead of an ordering with a justification. The content of a debugging procedure is the order and the reason for it; a set of suggestions is what you already had before you read the chapter.</p>
+  </details>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>08_pytorch_in_practice/prompt.ipynb</code>. It is a reference notebook rather

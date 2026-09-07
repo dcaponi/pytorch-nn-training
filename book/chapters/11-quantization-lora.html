@@ -525,6 +525,73 @@ model.save_pretrained("adapter/")    # a few hundred KB, not a few GB</code></pr
   </p>
 </div>
 
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">This chapter is where arithmetic decides whether something runs at all. Every number here is one you should be able to produce at a whiteboard when someone asks whether a model will fit.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td>7B weights, fp32</td><td>—</td><td>26.1 GiB</td><td>—</td><td>weights alone, before anything else</td></tr>
+    <tr><td>7B weights, fp16/bf16</td><td>—</td><td>13.0 GiB</td><td>—</td><td>the usual serving default</td></tr>
+    <tr><td>7B weights, int8</td><td>—</td><td>6.5 GiB</td><td>—</td><td>comfortable on a 24 GB machine</td></tr>
+    <tr><td>7B weights, int4</td><td>—</td><td>3.3 GiB</td><td>—</td><td>QLoRA territory</td></tr>
+    <tr><td>int8 range</td><td>$-128$</td><td>—</td><td>127</td><td>symmetric quantization uses $-127..127$</td></tr>
+    <tr><td>LoRA $r=8$ on a $768^2$ matrix</td><td>—</td><td>2.08%</td><td>—</td><td>$2rd$ against $d^2$</td></tr>
+    <tr><td>Adam optimizer states</td><td>—</td><td>2× the trainable params</td><td>—</td><td>why freezing the base model saves more than it looks</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li>You have 24 GB. Which of those four precisions fit a 7B model's weights, and what have you forgotten to budget for?</li>
+    <li>LoRA at $r = 16$ on a $768 \times 768$ matrix. What fraction of the original is that, and what fraction of the <em>optimizer state</em>?</li>
+    <li>Why does LoRA's $B$ matrix start at zero while $A$ is random? What would happen if both were random?</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> fp32 does not fit; fp16 fits at 13.0 GiB but leaves only
+    11 GB; int8 and int4 are comfortable. Forgotten: activations, the KV cache (which
+    grows with context and batch), gradients and optimizer states if you are training, and
+    the fragmentation that makes the practical ceiling lower than the arithmetic one.
+    Chapter 11's measurement is that sequence length, not parameter count, is usually what
+    actually exhausts the budget.</p>
+    <p><strong>2.</strong> $2 \times 16 \times 768 = 24{,}576$ against $768^2 =
+    589{,}824$, so <strong>4.17%</strong>. But the optimizer-state saving is the larger
+    prize: Adam keeps two moments per <em>trainable</em> parameter, so freezing the base
+    model removes about 96% of that too. This is why LoRA reduces memory far more than the
+    parameter fraction suggests.</p>
+    <p><strong>3.</strong> So that $BA = 0$ at step 0 and the adapted model is exactly the
+    base model — training starts from the pretrained function rather than a randomly
+    perturbed one. If both were random the adapter would inject noise into every layer
+    before learning anything, which is precisely the damage fine-tuning is supposed to
+    avoid. Both zero would be worse still: the gradient to $A$ is proportional to $B$, so
+    nothing would ever move.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> Before asking whether a model is good enough, work out whether it fits. Bytes per parameter times parameter count is thirty seconds of arithmetic and rules out most proposals immediately.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>quantization and LoRA both make a model cheaper. What is each one actually trading away, and why do they compose?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>Quantization spends precision: it stores the same parameters in fewer bits and accepts the rounding error that follows.</li>
+    <li>LoRA spends expressiveness: it freezes the parameters and learns a low-rank correction, so only changes within that subspace are reachable.</li>
+    <li>So one reduces the cost of <em>having</em> the weights and the other the cost of <em>changing</em> them — different budgets, which is why they stack.</li>
+    <li>QLoRA keeps a quantized frozen base and trains full-precision adapters on top, so the rounding error is never accumulated into by the optimizer.</li>
+    <li>Both are bets that the thing being discarded — low-order bits, high-rank directions — carried little of what mattered, and both bets are empirical rather than guaranteed.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Describing both as "making the model smaller". They reduce different quantities and an explanation that does not distinguish storage from adaptation cannot explain why combining them helps.</p>
+  </details>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>11_quantization_and_lora/prompt.ipynb</code>. You will implement

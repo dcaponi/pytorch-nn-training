@@ -2275,6 +2275,65 @@ precision = 24 / (24 + 24) = 50%</div>
   </details>
 </div>
 
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">Every loss in this book is a log of a probability, which means every one of them has a floor you can compute and a chance-level value you can compare against. Learn these six and you can read a training log without running anything. All in nats ($\ln$), which is what PyTorch reports.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td>Cross-entropy, $K$ classes</td><td>0</td><td>$\ln K$ at chance</td><td>unbounded</td><td>compare to $\ln K$ <em>first</em>, always</td></tr>
+    <tr><td>Binary cross-entropy</td><td>0</td><td>0.693</td><td>unbounded</td><td>chance is $\ln 2$, not 0.5</td></tr>
+    <tr><td>Perplexity $e^{\mathcal{L}}$</td><td>1</td><td>$K$ at chance</td><td>$K$</td><td>the effective number of choices left</td></tr>
+    <tr><td>Entropy $H(p)$</td><td>0</td><td>—</td><td>$\ln K$</td><td>0 is certainty, $\ln K$ is total ignorance</td></tr>
+    <tr><td>$D_{\mathrm{KL}}(p\|q)$</td><td>0</td><td>—</td><td>unbounded</td><td>0 <em>only</em> when the distributions match</td></tr>
+    <tr><td>$-\ln q$ for one example</td><td>0</td><td>0.69 at $q=0.5$</td><td>unbounded</td><td>$q = 0.01$ costs 4.6; confident and wrong is expensive</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li>A 10-class classifier has trained for an hour and reports a loss of 2.30. Is it learning?</li>
+    <li>A character model over a 73-character vocabulary reports 1.51 nats. What is its perplexity, and what has it ruled out?</li>
+    <li>A binary classifier reports loss 0.69 and accuracy 50%. Two numbers — how many independent facts is that?</li>
+    <li>One example gets probability 0.05 on the correct class. What does it contribute to the loss, and how does that compare with the chance-level average for $K = 10$?</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> $\ln 10 = 2.303$. It is <em>exactly</em> at chance — an hour of
+    compute has bought nothing, and the loss number alone would not have told you that.</p>
+    <p><strong>2.</strong> $e^{1.51} = 4.53$. From 73 candidates down to about four and a
+    half. Note how much more legible that is than "1.51".</p>
+    <p><strong>3.</strong> <em>One.</em> $\ln 2 = 0.693$, so both numbers are saying the
+    same thing — chance. They are not corroborating evidence.</p>
+    <p><strong>4.</strong> $-\ln 0.05 = 3.00$, against a chance-level 2.30. That single
+    example is being predicted <em>worse than by guessing</em>. A model can sit at a
+    respectable average loss while doing this on a whole subpopulation.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> Before you read a loss curve, compute $\ln K$ and draw it on the axis. A loss you cannot place relative to chance is not yet information.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>why is minimising cross-entropy the same thing as maximising likelihood?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide. Do not use the words <em>cross-entropy</em>, <em>likelihood</em> or <em>loss</em> in your first two sentences. Forcing the paraphrase is the whole exercise; if you cannot start without them, you are reciting.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>A model outputs a distribution, not an answer — likelihood is the probability it assigned to the data that actually occurred.</li>
+    <li>Multiplying many probabilities underflows and differentiates badly; taking a log turns the product into a sum.</li>
+    <li>Maximising log-likelihood is the same as minimising its negative, which is the average of $-\log q$ at the true class.</li>
+    <li>That average <em>is</em> cross-entropy $H(p,q)$ when $p$ is the one-hot truth.</li>
+    <li>$H(p,q) = H(p) + D_{\mathrm{KL}}(p\|q)$, and $H(p)$ is fixed by the data — so minimising cross-entropy minimises divergence from the truth.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Most answers write the formula down and stop. The formula is the <em>consequence</em> of deciding that the model outputs beliefs; if your explanation would work equally well as a justification for MSE, it has not said anything yet.</p>
+  </details>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>00_math_foundations/prompt.ipynb</code>. You will verify the linear algebra

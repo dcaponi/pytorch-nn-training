@@ -1862,6 +1862,74 @@
     });
   };
 
+  REGISTRY['attention-gradient'] = function (el) {
+    // One row of one attention head. The query, the five keys and the gradient
+    // arriving from above are all held fixed; the only thing the reader changes is
+    // how far apart the scores are spread. Everything else follows from that.
+    var labels = ['k1', 'k2', 'k3', 'k4', 'k5'];
+    var base = [1.6, 0.9, 0.2, -0.5, -1.1];      // q . k_j at unit variance
+    var up = [0.8, -0.3, 0.5, -0.9, 0.2];        // dL/dp_j, arriving from above
+
+    function state(v) {
+      // Var(q.k) = d_k, so the raw scores spread as sqrt(d_k); dividing by
+      // sqrt(d_k) is exactly what puts them back where they started.
+      var spread = v.scale ? 1 : Math.sqrt(v.dk);
+      var s = base.map(function (b) { return b * spread; });
+      var p = softmax(s, 1);
+      var gbar = 0, i;
+      for (i = 0; i < p.length; i++) gbar += p[i] * up[i];
+      var dS = p.map(function (pj, j) { return pj * (up[j] - gbar); });
+      var norm = Math.sqrt(dS.reduce(function (a, x) { return a + x * x; }, 0));
+      return { s: s, p: p, dS: dS, norm: norm };
+    }
+
+    build(el, {
+      title: 'What the softmax row lets through on the way back',
+      height: 220,
+      controls: [
+        { name: 'dk', label: 'd_k', type: 'range', min: 4, max: 256, step: 4, value: 64,
+          fmt: function (x) { return String(x); } },
+        { name: 'scale', label: 'divide by √d_k', type: 'check', value: true }
+      ],
+      draw: function (g, v, canvas) {
+        var st = state(v);
+        var pal = palette();
+        var cols = st.dS.map(function (x) {
+          return Math.abs(x) < 1e-4 ? pal.faint : pal.byhand;
+        });
+        barChart(canvas, 220, labels, st.dS.map(Math.abs), cols,
+          { max: 0.25, vfmt: function (x) { return x < 1e-4 ? '~0' : x.toFixed(3); } });
+      },
+      readout: function (v) {
+        var st = state(v);
+        var f3 = function (a) {
+          return a.map(function (x) { return x.toFixed(3); }).join(', ');
+        };
+        var verdict;
+        var ref = 2.978e-1;      // the same row with the scaling applied
+        if (st.norm > 0.15) {
+          verdict = 'The row is soft, so every key still receives a usable gradient. ' +
+            'This is the regime the scaling exists to protect.';
+        } else if (st.norm > 1e-3) {
+          verdict = 'The row is sharpening and the gradient is draining away with it — ' +
+            'about <b>' + Math.round(ref / st.norm) + '×</b> smaller than the same row ' +
+            'with the scaling on. Nothing has broken; this head is simply learning that ' +
+            'much more slowly than it looks like it should.';
+        } else {
+          verdict = 'The row is one-hot in all but name and p ⊙ (g − p·g) has collapsed ' +
+            'term by term — around <b>' + Math.round(ref / st.norm) + '×</b> down on the ' +
+            'scaled row. In the limit the collapse is not approximate: a row that is ' +
+            'exactly one-hot returns exactly zero to every score in it, and so to ' +
+            'W<sup>Q</sup> and W<sup>K</sup>.';
+        }
+        return 'scores s = [' + f3(st.s) + ']\n' +
+          'weights p = [' + f3(st.p) + ']\n' +
+          '∂L/∂s = p ⊙ (g − p·g) = [' + f3(st.dS) + ']   ‖∂L/∂s‖ = <b>' +
+          st.norm.toExponential(2) + '</b>\n' + verdict;
+      }
+    });
+  };
+
   /* ----------------------------------------------------------------------
      mount everything
      ---------------------------------------------------------------------- */

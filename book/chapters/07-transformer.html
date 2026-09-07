@@ -40,6 +40,14 @@ PE_{(pos,\,2i+1)} = \cos\!\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)$$
 Even dimensions get sines, odd get cosines, and the wavelength grows geometrically with
 dimension index — from $2\pi$ at $i=0$ up to $10000 \cdot 2\pi$ at the top.
 </p>
+<figure class="figure plate">
+  <img src="images/alammar/transformer_positional_encoding_example.png" alt="Three tokens 'Je', 'suis', 'etudiant'. Each has a four-cell embedding vector with a four-cell positional encoding added to it; the first token's encoding is 0, 0, 1, 1." loading="lazy" decoding="async">
+  <figcaption><b>Position added to content, with real numbers in it.</b> The addition is the whole mechanism — no gate, no concatenation, no extra parameters.
+  <br><br>
+  Do not try to reproduce these four numbers from the formula above, though, because you cannot: they come from the Tensor2Tensor implementation, which lays out a block of sines followed by a block of cosines instead of interleaving them, and spaces its frequencies over $1 \ldots 10000$ rather than $1 \ldots 100$ at $d_{\text{model}}=4$. The formula above gives position 2 the interleaved vector $[0.841,\ 0.540,\ 0.010,\ 1.000]$; the figure shows $[0.841,\ 0.0001,\ 0.540,\ 1.000]$ — the same four kinds of number, permuted and re-spaced. Both are used in practice and neither is wrong. It is worth knowing that this family of small, undocumented differences exists before you spend an evening assuming your implementation is broken.</figcaption>
+  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+</figure>
+
 
 <div class="widget" data-widget="posenc"></div>
 
@@ -70,6 +78,12 @@ becomes learnable.
   attention layer — mostly outperform sinusoids, and RoPE is what current large language
   models use.
 </div>
+<figure class="figure plate">
+  <img src="images/transformer-explainer/embedding.png" alt="Four numbered columns: tokens 'Data', 'visualization', 'em', 'powers', 'users', 'to'; their token embeddings by vocabulary id; a positional encoding indexed by position 0 to 5; and the sum of the two." loading="lazy" decoding="async">
+  <figcaption><b>The learned-embedding alternative, in GPT-2.</b> Column 3 is not a sinusoid — GPT-2 stores a plain lookup table with one trainable vector per position and indexes it by $0 \ldots 5$, so those vectors are shaped by the same gradient as everything else in the model (<a class="xref" href="#ch09b">Chapter 09b</a>). It buys flexibility and gives up extrapolation: a sinusoid is defined at position 5000 whether or not training ever reached it, while a lookup table simply has no row there. Column 1 is also worth a look — <em>empowers</em> arrives as the two subword tokens <em>em</em> and <em>powers</em>, which is the tokenizer of <a class="xref" href="#ch10">Chapter 10</a> showing through.</figcaption>
+  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;licence. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
+</figure>
+
 
 <h2>Residual connections</h2>
 
@@ -205,6 +219,14 @@ associated with them.
         x = self.norm1(x + self.drop(attn_out))
         x = self.norm2(x + self.drop(self.ff(x)))
         return x</code></pre>
+<figure class="figure plate">
+  <img src="images/alammar/transformer_resideual_layer_norm_2.png" alt="One encoder block: two token vectors enter with positional encoding added, pass through self-attention, an Add and Normalize step, per-token feed-forward layers, and a second Add and Normalize step, with dashed skip arrows bypassing each sublayer." loading="lazy" decoding="async">
+  <figcaption><b>The same sixteen lines, drawn.</b> Map them onto each other directly: the dashed arrows are the <code>x +</code> in each assignment, the two green bars are <code>norm1</code> and <code>norm2</code>, and the fact that the two Feed Forward boxes are drawn separately — one per token, no arrow between them — is the point made in the section above, that the FFN sees each position alone.
+  <br><br>
+  This is <strong>post-norm</strong>: normalisation sits <em>on</em> the residual path, after the addition. To picture pre-norm, move each green bar down to just before its sublayer and let the dashed arrow run all the way to the top uninterrupted. That uninterrupted line is the entire argument for pre-norm.</figcaption>
+  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+</figure>
+
 
 <p>
 That is the entire architecture. Stack $N$ of these, add embeddings and positional encoding at
@@ -318,6 +340,64 @@ PE(2) = [sin 2,     cos 2,     sin 0.02,   cos 0.02 ] = [0.909, −0.416, 0.020,
     wavelength ($2\pi \times 10000 \approx 62{,}800$ at realistic sizes) exceeds your longest
     sequence. It is also a preview of why extending a trained model's context window is hard:
     the position codes beyond the training range are ones the model has never seen.</p>
+  </details>
+</div>
+
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">A transformer block's parameter count is one formula, and knowing it lets you size a model — or check someone else's claim about one — without opening a file. It is $12d^2$ per block, and the derivation is four numbers you already have.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td>Attention block</td><td>—</td><td>$4d^2$</td><td>—</td><td>four projections; independent of heads <em>and</em> length</td></tr>
+    <tr><td>Feed-forward, $d_{ff} = 4d$</td><td>—</td><td>$8d^2$</td><td>—</td><td>twice the attention block — the FFN is where the parameters are</td></tr>
+    <tr><td>One whole block</td><td>—</td><td>$12d^2$</td><td>—</td><td>3.15M at $d = 512$; 7.08M at $d = 768$</td></tr>
+    <tr><td>LayerNorm parameters</td><td>—</td><td>$2d$</td><td>—</td><td>negligible, and often forgotten in counts</td></tr>
+    <tr><td>LayerNorm output, per token</td><td>mean 0</td><td>—</td><td>var 1</td><td>by construction, before $\gamma$ and $\beta$</td></tr>
+    <tr><td>Embedding table</td><td>—</td><td>$V \cdot d$</td><td>—</td><td>compares against <em>all</em> the blocks together</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li>GPT-2 small: $d = 768$, 12 layers. How many parameters live in the transformer blocks?</li>
+    <li>Of a single block, what fraction is the feed-forward network?</li>
+    <li>GPT-2 small is quoted at 124M parameters. Add the token embedding ($V = 50{,}257$) and the learned position table (1024 slots). Does it reconcile?</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> $12 \times 768^2 = 7.08$M per block, times 12 layers =
+    <strong>84.9M</strong>.</p>
+    <p><strong>2.</strong> $8/12 = 67\%$. Two thirds of every transformer is the part
+    with no attention in it, which is worth remembering whenever someone describes these
+    models as "attention-based".</p>
+    <p><strong>3.</strong> Token embedding $50{,}257 \times 768 = 38.6$M; positions
+    $1024 \times 768 = 0.8$M. Total $84.9 + 38.6 + 0.8 = \mathbf{124.3}$M. It
+    reconciles — and the output head adds nothing because GPT-2 ties it to the input
+    embedding. If you can do this, you can sanity-check any model card you are handed.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> Reconstruct the published parameter count of a model you did not build. When it reconciles you have understood the architecture; when it does not, you have found the part you were wrong about.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>why can you not just stack attention layers — what do the residual connection and the normalisation each contribute?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>Attention alone is permutation-equivariant, so something must inject position before the first layer.</li>
+    <li>The residual connection makes the gradient path from the loss to any layer include an untouched identity term, so depth stops attenuating the signal.</li>
+    <li>Normalisation resets the activation scale that repeated additions would otherwise let drift.</li>
+    <li>LayerNorm is used rather than BatchNorm because it looks only at one token's own features — so batch size and sequence length are irrelevant and train and eval behave identically.</li>
+    <li>The feed-forward sublayer is where most of the parameters and most of the per-position computation live; attention moves information between positions, the FFN transforms it in place.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Saying residuals "help with vanishing gradients" without the mechanism. The point is specific and provable: differentiating $x + f(x)$ leaves a 1, so there is a path along which the gradient is multiplied by nothing at all.</p>
   </details>
 </div>
 

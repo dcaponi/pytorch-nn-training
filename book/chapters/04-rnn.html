@@ -263,6 +263,66 @@ e^0.5=1.649  e^{−0.5}=0.607  e^{−1}=0.368  e^{−2}=0.135</div>
   </details>
 </div>
 
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">A recurrent network's whole problem is one number raised to a power. Get fluent with that arithmetic and the vanishing gradient stops being a slogan and becomes something you can estimate in your head.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td>Per-step gradient factor $\lambda$</td><td>0</td><td>0.5–0.99</td><td>$>1$ explodes</td><td>the product over $T$ steps is what reaches the start</td></tr>
+    <tr><td>$\lambda = 0.9$, 50 steps</td><td>—</td><td>0.0052</td><td>—</td><td>half a percent survives</td></tr>
+    <tr><td>$\lambda = 0.5$, 20 steps</td><td>—</td><td>$9.5\times10^{-7}$</td><td>—</td><td>gone well inside one sentence</td></tr>
+    <tr><td>$\lambda = 1.1$, 50 steps</td><td>—</td><td>117</td><td>—</td><td>the other failure, and the reason for clipping</td></tr>
+    <tr><td>Gradient-clip norm</td><td>0.1</td><td>1.0</td><td>5</td><td>clips the explosion; does nothing for the vanishing</td></tr>
+    <tr><td>$\tanh'$</td><td>0</td><td>1 at $z=0$</td><td>1</td><td>the factor is $\lambda = \|W_{hh}\| \cdot \tanh'$</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li>At $\lambda = 0.9$, how many steps until only 1% of the gradient is left?</li>
+    <li>Same question at $\lambda = 0.99$. What does the comparison tell you about how sharp the cliff is?</li>
+    <li>Your gradient norm prints $10^{4}$. Is clipping the fix, a lower learning rate, or both — and which addresses the cause?</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> $\ln(0.01)/\ln(0.9) = 43.7$, so about 44 steps — roughly
+    one long sentence.</p>
+    <p><strong>2.</strong> $\ln(0.01)/\ln(0.99) = 458$ steps. A factor of 0.09 in
+    $\lambda$ buys ten times the reach. The dependence is exponential in $T$ but the
+    usable range of $\lambda$ is narrow, which is why this cannot be tuned away — you
+    would need $\lambda$ pinned near 1 for hundreds of steps, and nothing in a vanilla
+    RNN holds it there.</p>
+    <p><strong>3.</strong> Clipping stops the step from destroying the weights, so it
+    treats the symptom and treats it well. A lower learning rate makes every step smaller,
+    including the ones that were fine. Neither addresses the cause, which is architectural
+    and is what Chapter 05 changes.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> When something is repeated $T$ times, ask what one repetition multiplies by, then raise it to the $T$. Almost every stability question in this book answers to that move.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>why does a recurrent network forget, and why is it not something you can fix by tuning?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>The same weight matrix is applied at every timestep, so the backward pass multiplies by a similar Jacobian once per step.</li>
+    <li>A product of $T$ similar factors is exponential in $T$: it vanishes if the factor is below 1 and explodes if above.</li>
+    <li>There is no value of the learning rate that changes a factor of $\lambda^{T}$ — the learning rate scales the step, not the signal that reaches it.</li>
+    <li>Clipping fixes the exploding half only, because you can bound a gradient that is too large but cannot recover one that is already zero.</li>
+    <li>So the fix has to be architectural: a path from step to step that is added to rather than multiplied through.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Treating vanishing and exploding as one symptom. They have the same cause and completely different remedies, and an explanation that offers clipping as the answer to forgetting has missed the asymmetry.</p>
+  </details>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>04_rnn_pytorch/prompt.ipynb</code>. You will build character sequences with a

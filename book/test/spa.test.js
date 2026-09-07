@@ -179,6 +179,22 @@ setTimeout(() => {
               doc.querySelectorAll('.widget canvas').length >= 15,
               `${doc.querySelectorAll('.widget canvas').length} canvases`);
 
+        console.log('\n--- drills ---');
+        const chapters = [...doc.querySelectorAll('section.chapter')]
+          .map(s => s.id)
+          .filter(id => !['preface', 'appendix'].includes(id));
+        const noSay = chapters.filter(id => !doc.querySelector(`#${id} .box.sayback`));
+        const noFeel = chapters.filter(
+          id => id !== 'ch12' && !doc.querySelector(`#${id} .box.feel`));
+        check('every teaching chapter has a say-it-back drill', noSay.length === 0,
+              noSay.join(', '));
+        check('every teaching chapter has a feel-for-the-numbers drill', noFeel.length === 0,
+              noFeel.join(', '));
+
+        check('checkpoints stay folded until opened',
+              [...doc.querySelectorAll('.box.sayback details')].every(d => !d.open),
+              'a details element is open by default');
+
         console.log(`\n${pass} passed, ${fail} failed`);
         if (errors.length) {
           console.log('\nruntime errors captured:');

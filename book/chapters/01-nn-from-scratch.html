@@ -451,6 +451,64 @@ optimizer.step()                             # replaces the four updates</code><
   </p>
 </div>
 
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">The most valuable number in this chapter is the one you can predict before training starts. If the first loss your network prints is not the one below, stop — you have a bug, and every minute spent tuning the learning rate is wasted.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td>Loss at initialisation, $K$ classes</td><td>$\ln K$</td><td>$\ln K$</td><td>$\ln K$</td><td>not approximately — exactly, to two decimals</td></tr>
+    <tr><td>$\sigma'(z)$</td><td>0</td><td>0.25 at $z=0$</td><td>0.25</td><td>the ceiling is the problem, not the floor</td></tr>
+    <tr><td>$\tanh'(z)$</td><td>0</td><td>1 at $z=0$</td><td>1</td><td>four times sigmoid's, which is why it is preferred</td></tr>
+    <tr><td>Weight init std, fan-in $n$</td><td>—</td><td>$1/\sqrt{n}$</td><td>—</td><td>keeps activation variance near 1</td></tr>
+    <tr><td>Healthy activation std</td><td>0.3</td><td>≈1</td><td>3</td><td>drifting to 0 or exploding are both init bugs</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li>You write a 3-class network from scratch and the first loss printed is 1.099. Good or bad?</li>
+    <li>Ten sigmoid layers. What is the largest the product of their derivatives can possibly be, and what does that say about training the first layer?</li>
+    <li>The first loss on a 10-class problem is 6.9. What single thing is most likely wrong?</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> $\ln 3 = 1.0986$. Exactly right — the network is
+    correctly confused, which is what an untrained network should be.</p>
+    <p><strong>2.</strong> $0.25^{10} = 9.5\times10^{-7}$. And that is the
+    <em>best case</em>, at $z = 0$ for every unit. The first layer receives at most a
+    millionth of the signal the last one does. This is a bound, not a tendency, which
+    is why no learning rate rescues it.</p>
+    <p><strong>3.</strong> $\ln 10 = 2.30$, so 6.9 means the network starts
+    <em>confidently wrong</em> — it is putting most of its mass on incorrect classes.
+    Almost always the initial weights are too large. A network that begins at 6.9 has to
+    spend its early steps undoing its own initialisation.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> Predict the first loss before you run anything. It is the cheapest bug detector in this book and it costs one logarithm.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>how does the backward pass work, and why is computing it right-to-left the thing that makes it affordable?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide. Ban yourself from the word <em>backpropagation</em> entirely.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>The forward pass computes and <em>stores</em> intermediate values, because the backward pass needs them.</li>
+    <li>The loss is a single scalar, and every parameter has a partial derivative of that one number.</li>
+    <li>Applying the chain rule right-to-left lets shared sub-expressions be computed once instead of once per parameter — that reuse is the entire saving.</li>
+    <li>Each layer needs its own stored input to form its weight gradient, which is why memory scales with depth and batch size.</li>
+    <li>It is the chain rule plus a caching strategy. No new calculus is involved.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Explaining <em>what</em> it computes rather than <em>why the ordering matters</em>. If your explanation would be equally true of computing each partial derivative separately from scratch, you have described differentiation, not the backward pass.</p>
+  </details>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>01_nn_from_scratch/prompt.ipynb</code>. You will implement <code>sigmoid</code>

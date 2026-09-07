@@ -206,6 +206,20 @@ English→French on the NLTK comtrans corpus.
 - Teacher forcing, the shift, and the exposure bias it creates
 - Autoregressive decoding, greedy vs beam search, BLEU
 
+### 09b — Where Q, K and V Come From
+The backward pass, which most treatments of attention leave out entirely.
+
+- Why `W^Q`, `W^K` and `W^V` are ordinary parameters, and what "there is no attention
+  loss" actually means
+- The six equations of attention's backward pass, derived and then checked against
+  autograd to floating-point agreement
+- Why `V` learns easily and `Q`/`K` do not — the softmax Jacobian, stated exactly, and
+  the failure it causes under three different names
+- Measured: the collapse is *per-row*, and aggregate gradient norms hide it completely
+- How a decoder's loss reaches an encoder that has no objective of its own — the only
+  route is cross-attention's K and V, demonstrated by cutting the edge
+- Why teacher forcing means a transformer has no backpropagation through time
+
 ### 10 — GPT from Scratch
 A decoder-only transformer trained on the same corpus as lesson 04.
 
@@ -290,13 +304,15 @@ notebook.
 | 07 | `07_transformer_pytorch/prompt.ipynb` | The Transformer Encoder | 90 min |
 | 08 | `08_pytorch_in_practice/prompt.ipynb` | PyTorch in Practice | 45–60 min |
 | 09 | `09_seq2seq_translation/prompt.ipynb` | Encoder–Decoder Translation | 90 min |
+| 09b | `09b_attention_backprop/prompt.ipynb` | Where Q, K and V Come From | 60–90 min |
 | 10 | `10_gpt_from_scratch/prompt.ipynb` | GPT: A Decoder-Only Model | 90 min |
 | 11 | `11_quantization_and_lora/prompt.ipynb` | Quantization, LoRA, and Memory | 90 min |
 | 12 | `12_capstone_projects/prompt.ipynb` | Capstone Projects | open-ended |
 
 Chapters 00–07 are a single argument and should be read in order. From 08 onward they
 are more independent: 08 is practical craft you can read any time once you have
-trained something, and 11 stands alone if you already know what a transformer is.
+trained something, 09b answers the "but where do the weights come from?" question that
+06–09 deliberately defer, and 11 stands alone if you already know what a transformer is.
 
 ---
 

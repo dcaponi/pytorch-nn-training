@@ -50,6 +50,148 @@ $c_t$ passes through one elementwise multiplication and nothing else.
   network's control.
 </div>
 
+<figure class="figure">
+<svg viewBox="0 0 780 352" role="img" aria-labelledby="lstm-t lstm-d"
+     style="font-family:var(--sans)">
+  <title id="lstm-t">One LSTM cell, forward and backward</title>
+  <desc id="lstm-d">The cell state runs straight across the top of the diagram from c
+    at time t minus 1 to c at time t, passing through only an elementwise multiply by the
+    forget gate and an elementwise add of the new content. Below it, the concatenated
+    previous hidden state and current input feed four gate units: sigmoid forget, sigmoid
+    input, tanh candidate, and sigmoid output. A dashed arrow above the cell state runs
+    right to left, marking the backward path, whose derivative is the forget gate
+    alone.</desc>
+
+  <defs>
+    <marker id="lstm-arw" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/>
+    </marker>
+    <marker id="lstm-arw-belt" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/>
+    </marker>
+    <marker id="lstm-arw-grad" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--byhand)"/>
+    </marker>
+  </defs>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- the cell boundary -->
+    <rect x="120" y="52" width="550" height="222" rx="14"
+          fill="none" stroke="var(--rule-strong)" stroke-dasharray="5 5"/>
+
+    <!-- backward path along the cell state -->
+    <path d="M700,30 L128,30" stroke="var(--byhand)" stroke-width="1.6"
+          stroke-dasharray="6 4" marker-end="url(#lstm-arw-grad)"/>
+
+    <!-- the cell state: one multiply, one add, nothing else -->
+    <path d="M52,86 L742,86" stroke="var(--concept)" stroke-width="3.4"
+          marker-end="url(#lstm-arw-belt)"/>
+
+    <!-- gate outputs rising to the cell state -->
+    <path d="M200,158 L200,100" stroke="var(--ink-soft)" stroke-width="1.4"
+          marker-end="url(#lstm-arw)"/>
+    <path d="M330,158 L330,134 L386,134" stroke="var(--ink-soft)" stroke-width="1.4"
+          marker-end="url(#lstm-arw)"/>
+    <path d="M430,158 L430,134 L414,134" stroke="var(--ink-soft)" stroke-width="1.4"
+          marker-end="url(#lstm-arw)"/>
+    <path d="M400,120 L400,100" stroke="var(--ink-soft)" stroke-width="1.4"
+          marker-end="url(#lstm-arw)"/>
+
+    <!-- the read-out path: tanh the cell state, then gate it -->
+    <path d="M520,86 L520,120" stroke="var(--ink-soft)" stroke-width="1.4"
+          marker-end="url(#lstm-arw)"/>
+    <path d="M545,134 L589,134" stroke="var(--ink-soft)" stroke-width="1.4"
+          marker-end="url(#lstm-arw)"/>
+    <path d="M605,158 L605,148" stroke="var(--ink-soft)" stroke-width="1.4"
+          marker-end="url(#lstm-arw)"/>
+    <path d="M621,134 L742,134" stroke="var(--ink-soft)" stroke-width="1.6"
+          marker-end="url(#lstm-arw)"/>
+
+    <!-- the concatenated input bus, and its stubs -->
+    <path d="M52,246 L648,246" stroke="var(--ink-soft)" stroke-width="1.6"/>
+    <path d="M100,300 L100,246" stroke="var(--ink-soft)" stroke-width="1.6"/>
+    <path d="M200,246 L200,200" stroke="var(--ink-soft)" stroke-width="1.4"
+          marker-end="url(#lstm-arw)"/>
+    <path d="M330,246 L330,200" stroke="var(--ink-soft)" stroke-width="1.4"
+          marker-end="url(#lstm-arw)"/>
+    <path d="M430,246 L430,200" stroke="var(--ink-soft)" stroke-width="1.4"
+          marker-end="url(#lstm-arw)"/>
+    <path d="M605,246 L605,200" stroke="var(--ink-soft)" stroke-width="1.4"
+          marker-end="url(#lstm-arw)"/>
+  </g>
+
+  <!-- operators sitting on the cell state -->
+  <g stroke="var(--concept)" stroke-width="1.8" fill="var(--bg-raised)">
+    <circle cx="200" cy="86" r="13"/>
+    <circle cx="400" cy="86" r="13"/>
+  </g>
+  <g stroke="var(--ink-soft)" stroke-width="1.6" fill="var(--bg-raised)">
+    <circle cx="400" cy="134" r="13"/>
+    <circle cx="605" cy="134" r="13"/>
+  </g>
+  <g fill="var(--ink)" font-size="15" text-anchor="middle" font-weight="600">
+    <text x="200" y="92">&#215;</text>
+    <text x="400" y="92">+</text>
+    <text x="400" y="140">&#215;</text>
+    <text x="605" y="140">&#215;</text>
+  </g>
+
+  <!-- tanh of the cell state, on the read-out path only -->
+  <rect x="497" y="120" width="48" height="28" rx="6"
+        fill="var(--bg-raised)" stroke="var(--ink-soft)" stroke-width="1.4"/>
+  <text x="521" y="139" font-size="12.5" fill="var(--ink)" text-anchor="middle">tanh</text>
+
+  <!-- the four gate units -->
+  <g fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.4">
+    <rect x="159" y="158" width="82" height="42" rx="7"/>
+    <rect x="289" y="158" width="82" height="42" rx="7"/>
+    <rect x="389" y="158" width="82" height="42" rx="7"/>
+    <rect x="564" y="158" width="82" height="42" rx="7"/>
+  </g>
+  <g font-size="13.5" text-anchor="middle" fill="var(--ink)" font-weight="600">
+    <text x="200" y="177">&#963;</text>
+    <text x="330" y="177">&#963;</text>
+    <text x="430" y="177">tanh</text>
+    <text x="605" y="177">&#963;</text>
+  </g>
+  <g font-size="10.5" text-anchor="middle" fill="var(--ink-faint)">
+    <text x="200" y="192">forget f</text>
+    <text x="330" y="192">input i</text>
+    <text x="430" y="192">candidate c&#771;</text>
+    <text x="605" y="192">output o</text>
+  </g>
+
+  <!-- labels -->
+  <g font-size="13" fill="var(--ink)">
+    <text x="46" y="91" text-anchor="end" font-weight="600">c<tspan font-size="9.5" dy="3">t-1</tspan></text>
+    <text x="750" y="91" font-weight="600" fill="var(--concept)">c<tspan font-size="9.5" dy="3">t</tspan></text>
+    <text x="46" y="251" text-anchor="end">h<tspan font-size="9.5" dy="3">t-1</tspan></text>
+    <text x="100" y="316" text-anchor="middle">x<tspan font-size="9.5" dy="3">t</tspan></text>
+    <text x="750" y="139" font-weight="600">h<tspan font-size="9.5" dy="3">t</tspan></text>
+  </g>
+  <g font-size="10.5" fill="var(--ink-faint)">
+    <text x="134" y="68">one timestep</text>
+    <text x="648" y="264" text-anchor="end">concatenated input [h<tspan font-size="8" dy="2">t-1</tspan><tspan dy="-2">, x</tspan><tspan font-size="8" dy="2">t</tspan><tspan dy="-2">]</tspan></text>
+  </g>
+  <g font-size="10.5" fill="var(--byhand)">
+    <text x="414" y="22" text-anchor="middle">backward: &#8706;c<tspan font-size="8" dy="2">t</tspan><tspan dy="-2">/&#8706;c</tspan><tspan font-size="8" dy="2">t-1</tspan><tspan dy="-2"> = f</tspan><tspan font-size="8" dy="2">t</tspan><tspan dy="-2">, an elementwise product and no matrix at all</tspan></text>
+  </g>
+</svg>
+<figcaption><b>One LSTM cell, with the backward path drawn in.</b> Follow the thick line
+from $c_{t-1}$ to $c_t$: it meets exactly two operations, an elementwise multiply by
+$f_t$ and an elementwise add of $i_t \odot \tilde{c}_t$. Every weight matrix in the cell
+is <em>below</em> that line, feeding it, never on it. The dashed arrow along the top is
+the same route travelled backwards, and it is short for a reason worth stating plainly:
+addition passes gradient through unchanged, so the only thing the gradient is multiplied
+by on the way from $c_t$ to $c_{t-1}$ is $f_t$. That is the whole of the key concept
+above, in one picture — and it is why a chain of $T$ steps costs $\prod_t f_t$ rather
+than <a class="xref" href="#ch04">Chapter 04</a>'s product of Jacobians.</figcaption>
+</figure>
+
 <div class="widget" data-widget="vanishing"></div>
 
 <p>
@@ -256,6 +398,65 @@ tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
   </details>
 </div>
 
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">The LSTM replaces Chapter 04's fixed $\lambda$ with $f_t$, a number the network chooses per slot per step. Same exponential arithmetic — but now you can ask what value the gate would <em>need</em> to hold a memory for a given span, and check that it is reachable.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td>Gate output</td><td>0</td><td>0.5 at init</td><td>1</td><td>a soft switch, one value per memory slot</td></tr>
+    <tr><td>$\sigma(b_f = 1)$</td><td>—</td><td>0.731</td><td>—</td><td>the "remember by default" initialisation</td></tr>
+    <tr><td>$\prod f_t$, $f = 0.99$, 100 steps</td><td>—</td><td>0.366</td><td>—</td><td>a third survives — usable</td></tr>
+    <tr><td>$\prod f_t$, $f = 0.95$, 100 steps</td><td>—</td><td>0.0059</td><td>—</td><td>already most of the way gone</td></tr>
+    <tr><td>$\prod f_t$, $f = 1$</td><td>—</td><td>1</td><td>1</td><td>perfect retention — the regime the gate can select</td></tr>
+    <tr><td>Cell-state path</td><td>—</td><td>one multiply, one add</td><td>—</td><td>no weight matrix anywhere on it</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li>To keep half a memory over 200 steps, what does $f$ have to be?</li>
+    <li>At $f = 0.95$, what is the half-life of a memory in steps?</li>
+    <li>Compare 50 steps of retention with the forget bias at 0 ($f \approx 0.5$) against a bias of 1 ($f \approx 0.731$). Why does that one line of initialisation matter so much?</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> $f = 0.5^{1/200} = 0.99654$. Note how close to 1 it has to
+    be — and that a sigmoid reaches 0.9965 only at a pre-activation of about 5.7. Long
+    memory requires the gate to be driven hard, which is a real thing to learn, not a
+    default.</p>
+    <p><strong>2.</strong> $\ln(0.5)/\ln(0.95) = 13.5$ steps. A gate that looks nearly
+    open loses half its signal inside fourteen words.</p>
+    <p><strong>3.</strong> $0.5^{50} = 8.9\times10^{-16}$ against
+    $0.731^{50} = 1.6\times10^{-7}$ — nine orders of magnitude, from one added constant.
+    The network can learn its way out of either, but only one of them leaves a gradient
+    large enough to learn <em>with</em>.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> When an architecture gives the network control of a quantity, work out what value it would need for the behaviour you want, then ask whether that value is easy to reach. Often the answer explains an initialisation trick.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>what does the cell state do that a hidden state cannot, and why does that solve Chapter 04's problem?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>The cell state is updated by scaling and adding, never by multiplying with a weight matrix.</li>
+    <li>So the backward path along it multiplies by $f_t$ alone, not by a Jacobian per step.</li>
+    <li>$f_t$ is learned and per-slot, so the network can hold a value near 1 for the slots that matter and forget in the others simultaneously.</li>
+    <li>Vanishing therefore becomes optional and controllable rather than structural — the network can choose not to vanish.</li>
+    <li>The output gate is separate so the cell can retain something it is not currently exposing, which a single hidden state cannot do.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Listing the three gates and what each is called. The mechanism is the shape of the cell-state update, not the number of gates; if you can name all three but cannot say why addition matters more than gating, you have the vocabulary and not the idea.</p>
+  </details>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>05_lstm_pytorch/prompt.ipynb</code>. You will generate the sine data, build
@@ -263,6 +464,24 @@ tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
   ground truth. The final section compares directly against the RNN from
   <a class="xref" href="#ch04">Chapter 04</a> — keep exercise 05.2 in mind when you read that
   comparison.
+</div>
+
+<div class="box source">
+  <span class="box-label">Read this next, elsewhere</span>
+  <p style="margin-top:0">
+  Christopher Olah's <a href="https://colah.github.io/posts/2015-08-Understanding-LSTMs/"><i>Understanding
+  LSTMs</i></a> (2015) is the best-known walkthrough of this cell, and it earns the
+  reputation. It builds the equations one gate at a time, with a separate diagram for each,
+  and it is the origin of the <em>conveyor belt</em> reading of the cell state that this
+  chapter leans on throughout — the credit for that framing is his.
+  </p>
+  <p style="margin-bottom:0">
+  Read it as a complement rather than a repeat. It goes further than this chapter on the
+  variants — peepholes, coupled gates, the GRU derivation — and stops before the backward
+  pass, which is where <a class="xref" href="#ch09b">Chapter 09b</a> picks up.
+  <span class="lic">The post carries no licence statement, so its diagrams are not
+  reproduced here; the figure above was drawn for this book.</span>
+  </p>
 </div>
 
 <div class="box note">

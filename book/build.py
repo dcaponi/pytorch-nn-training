@@ -293,7 +293,7 @@ def build_search_index(chapters: list[Chapter]) -> str:
 # --------------------------------------------------------------------------
 
 
-NBREF_RE = re.compile(r"<code>(\d\d_[a-z0-9_]+)(?:/[a-z]+\.ipynb)?</code>")
+NBREF_RE = re.compile(r"<code>(\d\d[a-z]?_[a-z0-9_]+)(?:/[a-z]+\.ipynb)?</code>")
 
 
 def check_notebooks(chapters: list[Chapter]) -> list[str]:
@@ -330,6 +330,130 @@ def check_notebooks(chapters: list[Chapter]) -> list[str]:
                 rel = f"{folder}/{nb.name}"
                 if rel not in tracked:
                     problems.append(f"{chap}: {rel} exists but is NOT tracked by git")
+    return problems
+
+
+IMG_RE = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+FIGURE_RE = re.compile(r"<figure\b.*?</figure>", re.DOTALL | re.IGNORECASE)
+SRC_RE = re.compile(r"""\bsrc\s*=\s*["']([^"']+)["']""", re.IGNORECASE)
+ALT_RE = re.compile(r"""\balt\s*=\s*["']([^"']*)["']""", re.IGNORECASE)
+
+
+def check_figures(chapters: list[Chapter]) -> list[str]:
+    """Every <img> must resolve to a real file, describe itself, and — when the
+    file is one we did not draw — carry its provenance.
+
+    The book is deployed publicly, so a borrowed diagram without a visible credit
+    is a licensing problem rather than a style nit. Making it a build failure is
+    the only way it stays true: captions get edited, and nobody re-checks.
+    """
+    problems: list[str] = []
+    used: set[str] = set()
+
+    for ch in chapters:
+        credited: set[int] = set()
+        for fig in FIGURE_RE.finditer(ch.body):
+            if 'class="credit"' in fig.group(0):
+                credited.add(fig.start())
+
+        for m in IMG_RE.finditer(ch.body):
+            tag = m.group(0)
+            src_m = SRC_RE.search(tag)
+            if not src_m:
+                problems.append(f"{ch.path.name}: <img> with no src")
+                continue
+            src = src_m.group(1)
+            if src.startswith(("http://", "https://", "data:")):
+                problems.append(
+                    f"{ch.path.name}: <img src=\"{src[:50]}...\" is remote; the book "
+                    f"must render from file:// with no network"
+                )
+                continue
+
+            path = BOOK / src
+            if not path.is_file():
+                problems.append(f"{ch.path.name}: <img src=\"{src}\" does not exist")
+            else:
+                used.add(str(path.resolve()))
+
+            alt_m = ALT_RE.search(tag)
+            if not alt_m or not alt_m.group(1).strip():
+                problems.append(f"{ch.path.name}: <img src=\"{src}\" has no alt text")
+
+            if src.startswith("images/"):
+                enclosing = [
+                    f for f in FIGURE_RE.finditer(ch.body)
+                    if f.start() < m.start() < f.end()
+                ]
+                if not enclosing:
+                    problems.append(
+                        f"{ch.path.name}: {src} is not inside a <figure>, so it "
+                        f"cannot carry a credit"
+                    )
+                elif enclosing[0].start() not in credited:
+                    problems.append(
+                        f"{ch.path.name}: {src} is borrowed but its <figure> has no "
+                        f'<p class="credit"> naming the source and licence'
+                    )
+
+    img_dir = BOOK / "images"
+    if img_dir.is_dir():
+        for f in sorted(img_dir.rglob("*")):
+            if f.is_file() and f.suffix.lower() in {".png", ".gif", ".jpg", ".jpeg", ".svg", ".webp"}:
+                if str(f.resolve()) not in used:
+                    problems.append(
+                        f"images: {f.relative_to(BOOK)} is not used by any chapter "
+                        f"({f.stat().st_size / 1024:,.0f} KB of dead weight)"
+                    )
+    return problems
+
+
+# Chapters that teach a mechanism owe the reader both drills. The preface and the
+# appendix are navigation rather than instruction, and the capstones chapter has no
+# equations of its own to bound.
+NO_SAYBACK = {"preface", "appendix"}
+NO_FEEL = {"preface", "appendix", "ch12"}
+
+
+def check_drills(chapters: list[Chapter]) -> list[str]:
+    """Every teaching chapter needs a "say it back" and a "feel for the numbers" box.
+
+    These are easy to forget when adding a chapter and invisible when missing, which is
+    exactly the kind of omission a build check is for.
+    """
+    problems: list[str] = []
+    for ch in chapters:
+        if ch.chap_id not in NO_SAYBACK and 'class="box sayback"' not in ch.body:
+            problems.append(f'{ch.chap_id}: no <div class="box sayback"> drill')
+        if ch.chap_id not in NO_FEEL and 'class="box feel"' not in ch.body:
+            problems.append(f'{ch.chap_id}: no <div class="box feel"> drill')
+    return problems
+
+
+EXERCISE_BOX_RE = re.compile(
+    r'<div class="box (byhand|feel|sayback)">(.*?)\n</div>', re.DOTALL
+)
+LABEL_RE = re.compile(r'<span class="box-label">(.*?)</span>', re.DOTALL)
+
+
+def check_answers(chapters: list[Chapter]) -> list[str]:
+    """Every exercise box must fold its answer away behind a <details>.
+
+    A student has to be able to check their work without being shown the answer while
+    they are still working, so the fold is the whole contract. It is also the easiest
+    thing in the world to forget when adding one exercise in a hurry.
+    """
+    problems: list[str] = []
+    for ch in chapters:
+        for m in EXERCISE_BOX_RE.finditer(ch.body):
+            kind, body = m.group(1), m.group(2)
+            if "<details>" in body:
+                continue
+            label = LABEL_RE.search(body)
+            name = strip_markup(label.group(1)) if label else "(unlabelled)"
+            problems.append(
+                f"{ch.path.name}: {kind} box {name!r} has no <details> answer fold"
+            )
     return problems
 
 
@@ -438,7 +562,13 @@ def build(check_only: bool = False) -> int:
     ):
         page = page.replace(token, value)
 
-    problems = check_links(chapters, page) + check_notebooks(chapters)
+    problems = (
+        check_links(chapters, page)
+        + check_notebooks(chapters)
+        + check_figures(chapters)
+        + check_drills(chapters)
+        + check_answers(chapters)
+    )
     for p in problems:
         print(f"warning: {p}", file=sys.stderr)
 

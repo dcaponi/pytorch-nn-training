@@ -42,6 +42,12 @@ two ways, and both are essential:
   </tbody>
 </table>
 </div>
+<figure class="figure plate">
+  <img src="images/alammar/Transformer_decoder.png" alt="Side by side: an encoder block containing Self-Attention then Feed Forward, and a decoder block containing Self-Attention, Encoder-Decoder Attention, then Feed Forward, with an arrow from the encoder into the decoder's middle sublayer." loading="lazy" decoding="async">
+  <figcaption><b>The last row of that table, drawn.</b> The decoder's extra sublayer is wedged between the other two, and the arrow entering it from the left is the only route by which anything about the source sentence reaches the decoder at all. Cut that arrow and you have a language model that ignores its input — which, read the other way round, is exactly how <a class="xref" href="#ch10">Chapter 10</a>'s decoder-only GPT is built.</figcaption>
+  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+</figure>
+
 
 <h2>Causal masking</h2>
 
@@ -110,6 +116,12 @@ word?</em> — while keys and values come from the encoder's memory. The resulti
 matrix has shape <span class="shape">(B, heads, T_tgt, S_src)</span>: a soft alignment
 between target and source positions.
 </p>
+<figure class="figure plate">
+  <img src="images/alammar/The_transformer_encoder_decoder_stack.png" alt="Six stacked encoder blocks on the left and six stacked decoder blocks on the right. The topmost encoder's output fans out along six arrows, one into each decoder block." loading="lazy" decoding="async">
+  <figcaption><b>Which encoder output the decoder reads.</b> Only the <em>top</em> encoder's output becomes the memory, and every decoder layer receives that same tensor — the fan of six arrows, not a diagonal one-to-one wiring, which is the arrangement most people guess first. Two consequences worth carrying: at inference the encoder runs once for the whole sentence no matter how long the translation gets, and on the backward pass the gradients from all six decoder layers <em>sum</em> into that one tensor before any of them reach the encoder (<a class="xref" href="#ch09b-cross-attention">Chapter 09b</a>).</figcaption>
+  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+</figure>
+
 
 <p>
 No mask is applied here, and it would be wrong to apply one. The entire source sentence is
@@ -119,6 +131,12 @@ building explicit alignment models; cross-attention learns alignment as a side e
 learning to translate, and you can read it straight off the attention weights. The notebook
 plots exactly this.
 </p>
+<figure class="figure plate">
+  <img src="images/alammar/transformer_decoding_1.gif" alt="Animation: the words 'Je suis etudiant' are embedded, passed up through two encoder blocks, and the encoder output is turned into two stacks labelled K-encdec and V-encdec, which feed the decoder blocks; decoding time step 1 emits the first output token." loading="lazy" decoding="async">
+  <figcaption><b>The memory becoming $K$ and $V$.</b> Watch what the encoder's output is labelled the moment it crosses to the right-hand side: $K_{\text{encdec}}$ and $V_{\text{encdec}}$. That is the code above — <code>self.cross_attn(tgt, memory, memory)</code> — with the argument positions made visible. The source sentence never supplies a query, and the decoder never supplies a key. Remember that asymmetry; it decides how the training signal gets back to the encoder.</figcaption>
+  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+</figure>
+
 
 <h2>Teacher forcing</h2>
 
@@ -174,6 +192,14 @@ which the model must learn to emit — this is why <code>&lt;EOS&gt;</code> must
 training targets, and why a model that never learns it will run to <code>max_len</code> every
 time.
 </p>
+<figure class="figure plate">
+  <img src="images/alammar/transformer_decoding_2.gif" alt="Animation of decoding time steps 1 through 6. At each step the previously generated words 'I', 'am', 'a', 'student' are re-embedded and fed back into the decoder stack alongside the fixed encoder memory, until the end-of-sentence token is emitted." loading="lazy" decoding="async">
+  <figcaption><b>The loop above, running.</b> Three things to watch for, all of which the code makes true. The left half never changes after the first frame — that is <code>memory = model.encode(src)</code> hoisted out of the loop. The row labelled <em>previous outputs</em> grows by one token per step, and the <em>whole</em> row is re-embedded and re-run every time, which is the quadratic waste the KV cache removes. And the run ends because the model emits <code>&lt;end of sentence&gt;</code>, not because it hit a length limit.
+  <br><br>
+  This is inference. Training does not look like this at all: teacher forcing hands the decoder the entire correct row at once and scores all six positions in a single parallel pass. The gap between these two pictures is exposure bias, above.</figcaption>
+  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+</figure>
+
 
 <p>
 This loop is also quadratic in wasted work: at step $t$ it re-encodes the whole prefix
@@ -331,6 +357,65 @@ out = model(src_emb, tgt_emb,
   that never fires — lives in the half the library does not cover, which is exactly why
   building it once by hand is worth the afternoon.
   </p>
+</div>
+
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">Translation is the first task in this book whose metric is not a probability, so it is the first place you need a second set of reference points — and the first place a number can look excellent for a bad reason.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td>BLEU</td><td>0</td><td>20–30 usable</td><td>40+ near-human</td><td>below 10 is not a working system</td></tr>
+    <tr><td>Cross-entropy, $V = 10{,}000$</td><td>0</td><td>2–3 trained</td><td>9.21 at chance</td><td>$\ln 10{,}000 = 9.21$</td></tr>
+    <tr><td>Teacher-forced vs free-running loss</td><td>—</td><td>TF always lower</td><td>—</td><td>the gap <em>is</em> exposure bias</td></tr>
+    <tr><td>Sentence length, MT corpora</td><td>5</td><td>20–30</td><td>100</td><td>sets the padding waste and the memory</td></tr>
+    <tr><td>Cross-attention matrix</td><td>—</td><td>$T_{\text{tgt}} \times S_{\text{src}}$</td><td>—</td><td>not square — an alignment, not a self-attention</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li>Validation loss 2.0 over a 10,000-word vocabulary. Perplexity, and how does it compare with chance?</li>
+    <li>Teacher-forced loss is a healthy 1.8, but generated sentences loop — "de la session de la session…". What is that loss not measuring?</li>
+    <li>A colleague reports BLEU 65 on their dev set. Should you believe it?</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> $e^{2.0} = 7.4$ against a chance perplexity of 10,000. The
+    model has narrowed ten thousand options to seven — genuinely good, and far more
+    legible stated that way than "loss 2.0".</p>
+    <p><strong>2.</strong> Its own mistakes. Every number in that loss was computed with a
+    perfect prefix supplied by the data. The model has never been scored on a state it
+    produced itself, so nothing in training penalised entering a loop. A low
+    teacher-forced loss and broken generations are entirely consistent.</p>
+    <p><strong>3.</strong> No. BLEU 65 is above most human inter-annotator agreement.
+    The overwhelmingly likely explanations are test data leaking into training, or
+    evaluating on the training split. A number that is too good is evidence about your
+    pipeline, not your model.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> For every metric, learn three anchors: the chance value, the usable value, and the value that is too good to be true. The third one has saved more projects than the second.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>how does the source sentence actually get into the decoder, and why is teacher forcing both necessary and a problem?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>The encoder produces one vector per source token, collectively the memory, and only the top encoder layer's output is used.</li>
+    <li>Cross-attention takes its query from the decoder and its keys and values from that memory — the asymmetry is what makes it a translator rather than a language model.</li>
+    <li>Teacher forcing feeds the ground-truth prefix, so all target positions can be scored in one parallel pass instead of one at a time.</li>
+    <li>It is necessary because early in training the model's own output is noise, and learning to continue noise teaches nothing.</li>
+    <li>It is a problem because the model is then never scored on its own mistakes, so it has no way to learn to recover from one — exposure bias.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Describing teacher forcing as "just faster training". The speed is a consequence; the reason it exists is that the alternative has no useful signal early on, and the cost is a specific, named failure at generation time.</p>
+  </details>
 </div>
 
 <div class="box nbref">

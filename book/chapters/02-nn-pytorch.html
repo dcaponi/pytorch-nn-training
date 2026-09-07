@@ -618,6 +618,65 @@ path 2 (w → b → L):      1 × 18      = 18
   </details>
 </div>
 
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">The same numbers as the last chapter, now produced by a library that will not tell you when they are wrong. PyTorch raises no error for a loss that is silently the wrong shape, a learning rate two orders of magnitude off, or an accuracy that beats nothing.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td>First printed loss, $K$ classes</td><td>$\ln K$</td><td>$\ln K$</td><td>$\ln K$</td><td>the check from Chapter 01, now automatic</td></tr>
+    <tr><td>Learning rate, Adam</td><td>$10^{-5}$</td><td>$10^{-3}$</td><td>$10^{-2}$</td><td>$3\times10^{-4}$ is the default that usually works</td></tr>
+    <tr><td>Learning rate, SGD + momentum</td><td>$10^{-3}$</td><td>$10^{-2}$</td><td>1</td><td>an order of magnitude larger than Adam's</td></tr>
+    <tr><td>Accuracy floor</td><td>majority-class rate</td><td>—</td><td>100%</td><td>"95% accurate" is meaningless until you state this</td></tr>
+    <tr><td>Batch size</td><td>1</td><td>32–256</td><td>memory</td><td>affects gradient noise, not the objective</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li>Your binary task is 95% negatives and the model reports 95% accuracy. What has it learned?</li>
+    <li>You pass probabilities to <code>CrossEntropyLoss</code> instead of logits. What happens — an error, or something worse?</li>
+    <li>Adam at $\text{lr} = 0.1$. What symptom do you expect, and how do you tell it apart from a bad initialisation?</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> Possibly nothing at all. Predicting "negative" every time
+    scores 95%. Always quote accuracy against the majority-class rate, or use a metric
+    that cannot be gamed this way.</p>
+    <p><strong>2.</strong> Something worse: it runs. <code>CrossEntropyLoss</code>
+    applies its own softmax, so you get a softmax of a softmax — a flatter distribution,
+    a smaller gradient, and a model that trains slowly for no visible reason. No
+    exception, no warning. This is the most common silent bug in PyTorch.</p>
+    <p><strong>3.</strong> Loss goes to <code>nan</code>, or plateaus <em>above</em>
+    $\ln K$. To tell it from bad initialisation, look at step 0: a bad init is already
+    wrong on the first printed loss, while too high a learning rate starts at
+    $\ln K$ and then leaves.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> Read the first three logged losses, not the last three. Almost every failure in this chapter is visible in them.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>what does <code>loss.backward()</code> actually do, and why must you call <code>optimizer.zero_grad()</code>?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li><code>backward()</code> walks the graph recorded during the forward pass and writes into each parameter's <code>.grad</code>.</li>
+    <li>It <em>accumulates</em> — it adds to whatever is already there rather than replacing it.</li>
+    <li>That accumulation is deliberate: it is what makes gradient accumulation over micro-batches possible.</li>
+    <li>So without <code>zero_grad()</code> you step against the sum of every batch seen so far, which grows without bound.</li>
+    <li><code>step()</code> only reads <code>.grad</code> and updates the parameters — the optimizer never computes a derivative itself.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Saying it "clears the old gradients" without saying why they would otherwise still be there. The accumulation is a feature; if you cannot name the use case it serves, you have memorised a ritual.</p>
+  </details>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>02_nn_pytorch/prompt.ipynb</code>. You will build <code>XORNet</code>, run the

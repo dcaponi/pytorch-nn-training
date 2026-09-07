@@ -52,6 +52,11 @@ Each chapter of this book pairs with one lesson folder. The intended loop is:
       to be read linearly and takes twenty to forty minutes.</li>
   <li>Do the <em>By hand</em> exercises. Do not read a solution first. Getting one wrong and
       then seeing why is worth more than getting it right by reading.</li>
+  <li>Do the <em>Feel for the numbers</em> box, on paper. It is short, and it is the
+      difference between reading $\mathcal{L} = 2.30$ as a symbol and reading it as
+      <em>this model has learned nothing</em>.</li>
+  <li>Do the <em>Say it back</em> box before you look at anything. Explaining a mechanism
+      from memory finds the gaps that re-reading hides.</li>
   <li>Open <code>prompt.ipynb</code> in the matching folder and fill in the <code>TODO</code>s.
       You will recognise every formula, because you just computed one by hand.</li>
   <li>Compare against <code>solution.ipynb</code> — which has already been executed, so you can
@@ -89,10 +94,60 @@ its five projects.
 
 <div class="box byhand">
   <span class="box-label">By hand</span>
-  And these are the pencil-and-paper exercises. Each has a worked solution folded up
-  underneath it. The numbers are always chosen to be tractable — small integers, halves,
-  the occasional $e$ — so that arithmetic never obscures
-  the idea being drilled.
+  <p style="margin-top:0">
+  And these are the pencil-and-paper exercises. The numbers are always chosen to be
+  tractable — small integers, halves, the occasional $e$ — so that arithmetic never
+  obscures the idea being drilled. Every one of them has its worked answer folded up
+  underneath, like this:
+  </p>
+  <details>
+    <summary>Worked solution</summary>
+    <p style="margin-bottom:0">Answers always live behind a fold, in every exercise box in
+    this book, so that you can check your work the moment you have finished without ever
+    being shown it first. Nothing is gained by reading one early — the value of an exercise
+    is entirely in the attempt.</p>
+  </details>
+</div>
+
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  Every chapter has one. It gives the floor, the typical value and the ceiling for the
+  quantities that chapter introduces, then asks you to plug a few numbers in. The goal is
+  narrow and worth stating plainly: to get from <em>I can follow that equation</em> to
+  <em>I know roughly what it should return, and I would notice if it did not</em>. Almost
+  every bug in this book announces itself as a number of the wrong size.
+  <details>
+    <summary>Answers</summary>
+    <p style="margin-bottom:0">The plug-in questions are answered here, folded, with the
+    arithmetic shown — so a number you could not get to is never a dead end.</p>
+  </details>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  And every chapter has one of these. It names the chapter's central mechanism and asks you
+  to explain it, in your own words, to whichever language model you already talk to — then
+  to ask that model to correct you and push on anything you were vague about. Explaining
+  something from memory finds gaps that re-reading hides, and a model is a patient thing to
+  be wrong in front of.
+  </p>
+  <p>
+  Folded underneath is the list of points a good answer covers. Open it
+  <em>afterwards</em>: read it first and the exercise turns from a test into a reminder.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <p style="margin-bottom:0">The points, and the mistake most people make on this
+    particular question.</p>
+  </details>
+</div>
+
+<div class="box note">
+  <span class="box-label">On the tags</span>
+  <span class="tag tag-must">Must do</span> means the rest of the book leans on it.
+  <span class="tag tag-rec">Recommended</span> means it pays off somewhere specific later.
+  Anything untagged is reps, if you want them.
 </div>
 
 <h2>Interactive figures</h2>
@@ -187,6 +242,7 @@ build.
     <tr><td>07</td><td><a class="xref" href="#ch07">The transformer encoder</a></td><td><code>07_transformer_pytorch</code></td><td>90 min</td></tr>
     <tr><td>08</td><td><a class="xref" href="#ch08">PyTorch in practice</a></td><td><code>08_pytorch_in_practice</code></td><td>45–60 min</td></tr>
     <tr><td>09</td><td><a class="xref" href="#ch09">Encoder–decoder translation</a></td><td><code>09_seq2seq_translation</code></td><td>90 min</td></tr>
+    <tr><td>09b</td><td><a class="xref" href="#ch09b">Where Q, K and V come from</a></td><td><code>09b_attention_backprop</code></td><td>60–90 min</td></tr>
     <tr><td>10</td><td><a class="xref" href="#ch10">GPT: a decoder-only model</a></td><td><code>10_gpt_from_scratch</code></td><td>90 min</td></tr>
     <tr><td>11</td><td><a class="xref" href="#ch11">Quantization, LoRA, and fitting in memory</a></td><td><code>11_quantization_and_lora</code></td><td>90 min</td></tr>
     <tr><td>12</td><td><a class="xref" href="#ch12">Capstone projects</a></td><td><code>12_capstone_projects</code></td><td>open-ended</td></tr>

@@ -280,6 +280,26 @@ equipped for all of them.
       they describe.</li>
 </ul>
 
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-must">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>what does your capstone actually show, and where would a skeptical reader attack it first?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>What the model maps to what, in shapes — inputs, outputs, and what one training example actually is.</li>
+    <li>Why that loss for that output type, in one sentence, referring to the distribution it assumes.</li>
+    <li>What the baseline is and what it scores. Not "a simple model" — a number, tuned at least a little.</li>
+    <li>What result would have falsified your claim, stated before you look at whether it did.</li>
+    <li>What you <em>cannot</em> conclude from what you ran: the confound you did not control, the seed variance you did not measure, the split you reused.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Every version of this that skips the last point. A project that cannot name its own limitation is not being modest, it is being unfinished — and it is the first thing a skeptical reader will find.</p>
+  </details>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>12_capstone_projects/prompt.ipynb</code>. Unlike every other lesson there

@@ -27,6 +27,12 @@
   --library-soft:  #f0ebfa;
   --spec:          #0f7a6c;   /* prose problem statement -> code */
   --spec-soft:     #e2f5f1;
+  --source:        #2c6ba8;   /* pointer to an outside explainer */
+  --source-soft:   #e6eff8;
+  --sayback:       #a2417c;   /* explain it back in your own words */
+  --sayback-soft:  #fbeaf4;
+  --feel:          #82620f;   /* what range should this number be in */
+  --feel-soft:     #faf1da;
 
   --code-bg:       #f4f1ec;
   --t-k:           #9b2fae;   /* keyword */
@@ -70,6 +76,12 @@
     --library-soft:  #241d33;
     --spec:          #58cbb8;
     --spec-soft:     #0d2f2a;
+    --source:        #7fb4e6;
+    --source-soft:   #14202c;
+    --sayback:       #e79ac6;
+    --sayback-soft:  #2a1721;
+    --feel:          #dcb75c;
+    --feel-soft:     #26200f;
 
     --code-bg:       #121116;
     --t-k:           #d78ce6;
@@ -106,6 +118,12 @@
   --library-soft:  #241d33;
   --spec:          #58cbb8;
   --spec-soft:     #0d2f2a;
+  --source:        #7fb4e6;
+  --source-soft:   #14202c;
+  --sayback:       #e79ac6;
+  --sayback-soft:  #2a1721;
+  --feel:          #dcb75c;
+  --feel-soft:     #26200f;
 
   --code-bg:       #121116;
   --t-k:           #d78ce6;
@@ -501,6 +519,9 @@ pre code {
 
 /* the production-library equivalent of something just built by hand */
 .library { border-left: 3px solid var(--library); background: var(--library-soft); }
+.source { border-left: 3px solid var(--source); background: var(--source-soft); }
+.sayback { border-left: 3px solid var(--sayback); background: var(--sayback-soft); }
+.feel { border-left: 3px solid var(--feel); background: var(--feel-soft); }
 .library .box-label { color: var(--library); }
 .library pre { background: rgba(127,127,127,.10); border-color: var(--rule); margin: 0.7rem 0; }
 .library table { font-size: 0.76rem; }
@@ -596,6 +617,77 @@ figcaption, .figure .caption {
   text-align: left;
 }
 figcaption b, .caption b { color: var(--ink-soft); }
+
+/* Borrowed raster diagrams. The sources all draw dark ink on white, so they get a
+   permanent white plate rather than the themed --bg-raised: in dark mode a
+   transparent-background PNG would otherwise render as dark-on-dark and vanish. */
+.figure.plate {
+  background: #fff;
+  border-color: var(--rule-strong);
+}
+.figure img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border-radius: 4px;
+}
+.figure.plate figcaption { color: #6b6259; }
+.figure.plate figcaption b { color: #33302c; }
+
+/* Provenance for anything the book did not draw itself. Required by build.py on
+   every figure whose <img> lives under images/ -- see check_figures(). */
+.credit {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  line-height: 1.55;
+  color: var(--ink-faint);
+  text-align: left;
+  margin-top: 0.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--rule);
+}
+.figure.plate .credit { color: #8b8279; border-top-color: #e6e1d9; }
+.credit a { color: inherit; text-decoration: underline; text-decoration-color: var(--rule-strong); }
+.credit a:hover { color: var(--accent); }
+
+/* A pointer to an outside explainer, used where another author's treatment is
+   genuinely better than anything this book could fit in the space. */
+.source .box-label { color: var(--source); }
+.source ul { margin: 0.5rem 0 0; padding-left: 1.1rem; }
+.source li { margin-bottom: 0.5rem; font-size: 0.9rem; }
+.source li:last-child { margin-bottom: 0; }
+.sayback .box-label { color: var(--sayback); }
+.feel .box-label { color: var(--feel); }
+
+/* floor / typical / ceiling tables */
+.feel table { font-size: 0.75rem; }
+.feel table td:nth-child(2),
+.feel table td:nth-child(3),
+.feel table td:nth-child(4) {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.feel ol, .sayback ol { padding-left: 1.2rem; }
+.feel li, .sayback li { margin-bottom: 0.4rem; }
+.feel .given, .sayback .given {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  background: rgba(127,127,127,.1);
+  border-radius: 6px;
+  padding: 0.7rem 0.8rem;
+  margin: 0.7rem 0;
+  white-space: pre;
+  overflow-x: auto;
+}
+.source .lic {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  margin-top: 0.15rem;
+}
 
 .wide {
   max-width: calc(var(--measure) + 9rem) !important;

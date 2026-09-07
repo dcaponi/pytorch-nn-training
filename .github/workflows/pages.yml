@@ -48,7 +48,7 @@ jobs:
       - name: Prepare the artifact
         run: |
           mkdir -p _site
-          cp -R book/index.html book/vendor _site/
+          cp -R book/index.html book/vendor book/images _site/
           # GitHub Pages runs Jekyll by default, which would skip our _ prefixed
           # paths and rewrite things we do not want rewritten
           touch _site/.nojekyll

@@ -394,6 +394,68 @@ model.generate(ids, do_sample=True, temperature=0.8, top_p=0.9,
   </p>
 </div>
 
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">Language-model numbers span many orders of magnitude, which makes them easy to quote and hard to sanity-check. These are the anchors that let you tell a plausible claim from an impossible one.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td>Char-level perplexity, $V = 73$</td><td>1</td><td>4–6 trained</td><td>73 at chance</td><td>Chapter 10's model lands near 4.5</td></tr>
+    <tr><td>BPE perplexity, $V \approx 50{,}000$</td><td>1</td><td>20–40</td><td>50,257 at chance</td><td>$\ln 50257 = 10.82$ nats at chance</td></tr>
+    <tr><td>Training FLOPs</td><td>—</td><td>$6ND$</td><td>—</td><td>$N$ parameters, $D$ tokens; the 6 is fwd + bwd</td></tr>
+    <tr><td>Tokens per parameter</td><td>—</td><td>≈20</td><td>—</td><td>the Chinchilla ratio for compute-optimal training</td></tr>
+    <tr><td>KV cache per token</td><td>—</td><td>$2 \cdot n_{\text{layers}} \cdot d \cdot 2$ bytes</td><td>—</td><td>fp16; this is what limits context at serving time</td></tr>
+    <tr><td>Sampling temperature</td><td>0 = greedy</td><td>0.7–1.0</td><td>$>1.5$ incoherent</td><td>an inference knob; no gradient passes through it</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li>A BPE model reports a validation loss of 3.0. What is the perplexity, and what fraction of the chance-level perplexity is that?</li>
+    <li>GPT-2 small (124M) trained on 300B tokens. Roughly how many FLOPs, and is that a number one person can afford?</li>
+    <li>Your character model reports a validation perplexity of 1.02. Are you delighted?</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> $e^{3.0} = 20.1$, against a chance perplexity of 50,257 —
+    about 0.04% of it. The model has gone from fifty thousand plausible next tokens to
+    twenty.</p>
+    <p><strong>2.</strong> $6 \times 1.24\times10^{8} \times 3\times10^{11} =
+    2.2\times10^{20}$ FLOPs. At a realistic 50 TFLOP/s sustained on one good GPU that is
+    about 50 GPU-days — expensive but not institutional. The same formula on a 70B model
+    and 15T tokens gives $6\times10^{24}$, which is four orders of magnitude more and
+    firmly out of reach. That single formula is how you tell those two situations apart
+    without asking anyone.</p>
+    <p><strong>3.</strong> No — be alarmed. Perplexity 1.02 means the model is almost
+    perfectly certain of every next character, which no language model should be. Your
+    validation set is almost certainly leaking into training, or you are evaluating on the
+    training split.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> Convert every loss to perplexity before quoting it, and always say what the chance value is alongside. A loss without its baseline is not a result.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>what actually changes between the translator of Chapter 09 and a decoder-only GPT, and why does the supervision become free?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>The encoder and the cross-attention sublayer are deleted; what remains is causally-masked self-attention and a feed-forward network.</li>
+    <li>The target is the input shifted by one, so every position is simultaneously an input and a label.</li>
+    <li>That means no labelled pairs are needed — any text at all is training data, which is where the scale comes from.</li>
+    <li>The causal mask is what makes it legitimate to score every position in one parallel pass without a position seeing its own answer.</li>
+    <li>Generation is unchanged in kind from Chapter 09 — still one token at a time, still $O(L^2)$ wasted work without a cache.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Framing it as an architectural simplification only. The interesting consequence is economic: removing the encoder is what turns "we need aligned sentence pairs" into "we need text", and that is the reason these models got large.</p>
+  </details>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>10_gpt_from_scratch/prompt.ipynb</code>. You will implement causal

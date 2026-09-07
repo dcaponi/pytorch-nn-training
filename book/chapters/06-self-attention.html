@@ -12,7 +12,7 @@ parallel operation. The mechanism is four lines of algebra, and this chapter der
 <h2>The problem with summarising</h2>
 
 <p>
-Consider <em>"The animal didn't cross the road because it was too tired."</em> Resolving
+Consider <em>"The animal didn't cross the street because it was too tired."</em> Resolving
 <em>it</em> requires linking back six words. An LSTM must have encoded "animal" into its cell
 state and preserved it across six updates, competing with everything else that needed
 remembering. It might work. It is certainly indirect.
@@ -24,6 +24,12 @@ relevance score against every other position and builds a representation weighte
 scores. The path from <em>it</em> to <em>animal</em> is one step long, regardless of the six
 words between them — or six hundred.
 </p>
+<figure class="figure plate">
+  <img src="images/alammar/transformer_self-attention_visualization.png" alt="Attention weights from layer 5 of a trained transformer: the token 'it_' draws thick lines back to 'The_' and 'animal_', and faint ones to every other token." loading="lazy" decoding="async">
+  <figcaption><b>The same sentence, in a model that has already been trained.</b> Layer 5 of a trained encoder, visualised with Tensor2Tensor. The query at <em>it</em> puts most of its weight on <em>The</em> and <em>animal</em> — exactly the link an LSTM has to carry through six state updates. Nothing in the architecture asked for this; it is a consequence of the training objective, and <a class="xref" href="#ch09b">Chapter 09b</a> traces the gradient that produced it.</figcaption>
+  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+</figure>
+
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
@@ -35,7 +41,7 @@ words between them — or six hundred.
 
 <div class="box example">
   <span class="box-label">Example — the same dependency, two architectures</span>
-  <div class="given">"The animal didn't cross the road because it was too tired."
+  <div class="given">"The animal didn't cross the street because it was too tired."
     ^^^^^^                                  ^^
     position 1                              position 7
 
@@ -74,6 +80,12 @@ embedding, by three learned linear projections:
   </tbody>
 </table>
 </div>
+<figure class="figure plate">
+  <img src="images/alammar/transformer_self_attention_vectors.png" alt="Two token embeddings x1 and x2, each multiplied by weight matrices W^Q, W^K and W^V to produce query, key and value vectors q, k and v." loading="lazy" decoding="async">
+  <figcaption><b>The same table, drawn.</b> Each token's embedding is multiplied by three separate matrices. The <em>matrices</em> are shared across every position — <em>Thinking</em> and <em>Machines</em> use the same $W^Q$ — so the projections belong to the model and the resulting vectors belong to the token. Note the widths: the embeddings are 4-wide and the weight matrices are $4 \times 3$, so $q$, $k$ and $v$ come out 3-wide. That narrowing is $d_k &lt; d_{\text{model}}$, which is what makes multi-head attention affordable later in this chapter.</figcaption>
+  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+</figure>
+
 
 <p>
 A hard dictionary matches one key exactly and returns its value. Attention compares the query
@@ -122,6 +134,12 @@ sum to 1; columns do not, and need not.
 row is the weighted average of all value vectors, weighted by that position's attention.
 </p>
 
+
+<figure class="figure plate">
+  <img src="images/alammar/self-attention-matrix-calculation-2.png" alt="The equation softmax(Q times K-transpose divided by the square root of d_k) times V, drawn with coloured matrix blocks, equalling an output matrix Z." loading="lazy" decoding="async">
+  <figcaption><b>All four steps at once.</b> Worth holding next to the formula while you read the breakdown above: $Q$ and $K^\top$ meet in the numerator, the scaling and the softmax act on the resulting square matrix, and $V$ is only touched at the very end. That ordering is not cosmetic — it is why $V$ has a short, linear path back to the loss and $Q$ and $K$ do not (<a class="xref" href="#ch09b">Chapter 09b</a>).</figcaption>
+  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+</figure>
 <div class="widget" data-widget="attention"></div>
 
 <h3>Why the square-root scaling</h3>
@@ -142,6 +160,12 @@ softmax Jacobian involves $\hat{y}(1-\hat{y})$, which dies at both ends), so the
 weights stop learning. Dividing by $\sqrt{d_k}$ restores unit variance and keeps the
 distribution soft.
 </p>
+<figure class="figure plate">
+  <img src="images/transformer-explainer/attention.png" alt="Three grids of attention scores for a six-token prompt: raw dot products ranging -25.3 to 7.4, then scaled and masked to -3.0 to 3.0, then softmaxed to 0 to 1, with the upper triangle greyed out by the causal mask." loading="lazy" decoding="async">
+  <figcaption><b>The argument above, measured on a real model.</b> GPT-2's raw dot products for this six-token prompt span $-25.3$ to $7.4$ — softmax of numbers that spread out is one-hot in all but name. Dividing by $\sqrt{d_k}$ brings them to $\pm 3.0$, back inside the range where the softmax Jacobian is not yet zero. The middle panel also shows the causal mask of the <em>Masking</em> section below: the greyed entries are the ones set to $-\infty$ before the softmax, never after.</figcaption>
+  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;licence. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
+</figure>
+
 
 <p>
 In the widget above, untick <em>√dₖ scaling</em> and drag $d_k$ up to 128. The heatmap
@@ -164,6 +188,12 @@ projections, then concatenates:
 
 $$\operatorname{head}_i = \operatorname{Attention}(XW_i^Q, XW_i^K, XW_i^V)$$
 $$\operatorname{MultiHead}(X) = \big[\operatorname{head}_1; \dots; \operatorname{head}_h\big]W^O$$
+<figure class="figure plate">
+  <img src="images/alammar/transformer_attention_heads_qkv.png" alt="Two attention heads, each with its own W^Q, W^K and W^V matrices applied to the same input matrix X, producing separate Q, K and V per head." loading="lazy" decoding="async">
+  <figcaption><b>Each head gets its own three matrices.</b> Same input $X$, different projections, so head 0 and head 1 can score the same pair of tokens completely differently. Nothing couples them until the concatenation.</figcaption>
+  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+</figure>
+
 
 <p>
 With $d_k = d_{\text{model}}/h$, the total compute is essentially unchanged — you are
@@ -187,6 +217,12 @@ feature axis into <span class="shape">(n_heads, d_k)</span>; the <code>transpose
 heads next to the batch dimension so that the subsequent matrix multiplications treat
 <span class="shape">(B, n_heads)</span> as batch and operate independently per head.
 </p>
+<figure class="figure plate">
+  <img src="images/transformer-explainer/QKV.png" alt="A 6-by-768 embedding matrix multiplied by a 768-by-2304 weight matrix, plus a 2304-long bias, giving a 6-by-2304 matrix whose three coloured thirds are Q, K and V." loading="lazy" decoding="async">
+  <figcaption><b>What that paragraph looks like in a shipped model.</b> GPT-2 goes one step further than the code above and fuses all three projections into a single $768 \times 2304$ matrix — $2304 = 3 \times 768$ — so one matrix multiply produces $Q$, $K$ and $V$ for all twelve heads together, and the same <code>view</code>-and-<code>transpose</code> pair carves them apart. Two honest differences from this chapter's version: the fused layout, and the bias term, which the original paper omits and GPT-2 keeps.</figcaption>
+  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;licence. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
+</figure>
+
 
 <p>
 Coming back, you must reverse both, and the <code>.contiguous()</code> is not optional:
@@ -202,6 +238,12 @@ raises an error — which is the good outcome. The bad outcome is using
 wrong.
 </p>
 
+
+<figure class="figure plate">
+  <img src="images/alammar/transformer_multi-headed_self-attention-recap.png" alt="A five-step summary: input sentence, embed each word, split into 8 heads by multiplying with per-head weight matrices, compute attention per head to get Z0 through Z7, then concatenate and multiply by W^O to get Z." loading="lazy" decoding="async">
+  <figcaption><b>Multi-head attention end to end.</b> Every symbol in this figure has appeared somewhere in this chapter; it is worth checking that you can name all of them before moving on. Two details repay attention. Step 3's footnote — only the first block embeds, the rest receive the block below's output — is the reason a stack works at all. And $W^O$ at step 5 is not decoration: without it the concatenated heads would never mix, and each output dimension would be the private property of one head.</figcaption>
+  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+</figure>
 <h2>Masking</h2>
 
 <p>
@@ -350,6 +392,66 @@ after W^O          (32, 128, 256)</div>
   </p>
 </div>
 
+<div class="box feel">
+  <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
+  <p style="margin-top:0">Attention has one quantity worth developing an instinct for — the spread of the raw scores — and one that will decide whether your model fits in memory. Both are arithmetic you can do at the whiteboard while someone is proposing an architecture.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
+    <tbody>
+    <tr><td>std of $q \cdot k$, unit-variance inputs</td><td>—</td><td>$\sqrt{d_k}$</td><td>—</td><td>8 at $d_k = 64$; this is the whole scaling argument</td></tr>
+    <tr><td>Score range after $\div\sqrt{d_k}$</td><td>$-3$</td><td>$\pm 2$</td><td>3</td><td>the range where softmax still has a gradient</td></tr>
+    <tr><td>One attention weight</td><td>0</td><td>$1/L$ if uniform</td><td>1</td><td>1 means the row has collapsed</td></tr>
+    <tr><td>Row entropy</td><td>0</td><td>near $\ln L$ early</td><td>$\ln L$</td><td>0 is one-hot; $\ln L$ is attending to everything</td></tr>
+    <tr><td>Score matrix, fp32</td><td>—</td><td>16.8 MB at $B{=}32,H{=}8,L{=}128$</td><td>1.07 GB at $L{=}1024$</td><td>per layer, per forward pass, and it is kept for the backward</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
+  the point is knowing <em>which</em> number to reach for.</p>
+  <ol>
+    <li>$d_k = 64$ and you forget the scaling. Roughly what range do the raw scores cover, and what does softmax do with numbers that size?</li>
+    <li>$L = 128$ with perfectly uniform attention. What is each weight, and what is the row entropy?</li>
+    <li>You double the sequence length. What happens to the score-matrix memory, and what happens to the parameter count?</li>
+  </ol>
+  <details>
+    <summary>Answers</summary>
+    <p><strong>1.</strong> Standard deviation 8, so $\pm 3\sigma$ is a span of about
+    $\pm 24$. The gap between the top score and the next is then routinely several units,
+    and $e^{\text{several}}$ makes the softmax one-hot in all but name. Chapter 09b shows
+    what that does to the gradient.</p>
+    <p><strong>2.</strong> $1/128 = 0.0078$ each, and entropy $\ln 128 = 4.85$ nats — the
+    maximum available. An untrained head sits near here; watching this number fall is
+    watching the head decide what it is for.</p>
+    <p><strong>3.</strong> Memory goes up <strong>four times</strong>, because the matrix
+    is $L \times L$. The parameter count does not change at all — the projections are
+    $d_{\text{model}} \times d_{\text{model}}$ and know nothing about length. Almost
+    everyone's first guess is that a longer context needs a bigger model. It needs a bigger
+    <em>activation budget</em>.</p>
+  </details>
+  <p style="margin-bottom:0"><b>The habit.</b> Separate "how many parameters" from "how much memory while running". In attention they scale with completely different things, and confusing them is how people end up surprised by an out-of-memory error on a small model.</p>
+</div>
+
+<div class="box sayback">
+  <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
+  <p style="margin-top:0">
+  Try explaining to your favourite LLM, in your own words: <strong>why are there three projections rather than one, and what would break if keys and values were the same vector?</strong>
+  Then ask it to correct you, and to push back wherever you were vague rather than
+  outright wrong — that is where the gaps hide. Do not use the words <em>query</em>, <em>key</em> or <em>value</em> more than once each. Say what the vectors <em>do</em>.
+  </p>
+  <details>
+    <summary>What a good answer covers — open this afterwards, not before</summary>
+    <ol>
+    <li>The query says what a position is looking for; the key says what a position offers as a label; the value says what it actually contributes.</li>
+    <li>Queries and keys are only ever compared — they produce a score, and never appear in the output directly.</li>
+    <li>Values are only ever averaged — they never influence <em>who</em> attends to whom.</li>
+    <li>So the features that make a position findable need not be the features worth retrieving, and tying keys to values would force them to be the same.</li>
+    <li>The projections are shared across positions, so they are properties of the model while the resulting vectors are properties of the token.</li>
+    </ol>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Explaining the dictionary analogy without saying what the separation buys. If your answer would still make sense with $K = V$, it has not identified the reason there are three matrices instead of two.</p>
+  </details>
+</div>
+
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>06_self_attention/prompt.ipynb</code>. You will implement
@@ -358,6 +460,33 @@ after W^O          (32, 128, 256)</div>
   <a class="xref" href="#ch03">Chapter 03</a> — so you get a direct accuracy comparison
   against the CNN on identical data. The final section visualises the learned attention
   weights, which is worth studying: several heads will have found something interpretable.
+</div>
+
+<div class="box source">
+  <span class="box-label">Read this next, elsewhere</span>
+  <ul>
+    <li>
+      Jay Alammar, <a href="https://jalammar.github.io/illustrated-transformer/"><i>The
+      Illustrated Transformer</i></a> (2018) — the source of the borrowed diagrams above.
+      Read it start to finish once; it covers the same ground as Chapters 06, 07 and 09 in a
+      single sitting, and seeing the whole shape before the details is worth an hour.
+      <span class="lic">CC BY-NC-SA 4.0.</span>
+    </li>
+    <li>
+      <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a>
+      (Cho et&nbsp;al., CHI&nbsp;2026) — a live GPT-2 running in the browser, wired to a
+      diagram you can open up. Type your own sentence and watch the score matrix change. Two
+      things to try once you have finished this chapter: set the temperature to 0 and to 2 and
+      watch the final softmax, and click into a single head to see the values this chapter
+      calls $q_i \cdot k_j$ with real numbers attached.
+      <span class="lic">MIT licence.</span>
+    </li>
+    <li>
+      Vaswani et&nbsp;al., <a href="https://arxiv.org/abs/1706.03762"><i>Attention Is All You
+      Need</i></a> (2017) — the paper. You now have everything you need to read section 3
+      without help, which is a reasonable way to test whether this chapter worked.
+    </li>
+  </ul>
 </div>
 
 <div class="box note">
