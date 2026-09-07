@@ -34,7 +34,7 @@ you compute, and traversed backwards when you ask for gradients.
   discarded after every backward pass. This is why <code>if</code> statements, loops of
   data-dependent length, and ordinary Python control flow all work inside a
   <code>forward()</code> method — there is no static graph to compile against. The
-  <a class="xref" href="#ch04">RNN in Chapter 04</a> exploits this directly, building a graph
+  <a class="xref" href="#ch05">RNN in Chapter 05</a> exploits this directly, building a graph
   whose depth equals the sequence length.
 </div>
 
@@ -65,7 +65,7 @@ and your update uses the sum of every gradient computed since the beginning of t
 the model will appear to train, badly, in a way that is genuinely hard to diagnose. The
 default seems perverse until you need it: it is exactly what lets you accumulate gradients
 over several small batches to simulate a large one, which is
-<a class="xref" href="#ch11">how you train on limited memory</a>.
+<a class="xref" href="#ch12">how you train on limited memory</a>.
 </p>
 
 <h2>The five-step loop</h2>
@@ -123,7 +123,7 @@ and assign to <code>self</code> is <em>not</em> registered, will not move to the
 model, and will not be passed to the optimizer. If you need a raw tensor as a parameter, wrap
 it: <code>nn.Parameter(torch.randn(...))</code>. If you need a tensor that should move with
 the model but <em>not</em> be trained — a positional encoding table, say, as in
-<a class="xref" href="#ch07">Chapter 07</a> — use <code>self.register_buffer(...)</code>.
+<a class="xref" href="#ch09">Chapter 09</a> — use <code>self.register_buffer(...)</code>.
 </p>
 
 <p>
@@ -168,14 +168,14 @@ averages starting at zero.
 The practical upshot: Adam converges far faster on the XOR problem (hundreds of epochs
 rather than ten thousand) and is much less sensitive to the learning rate. It costs two
 extra tensors per parameter in memory, which is a detail here and a
-<a class="xref" href="#ch11">hard constraint</a> when models get large.
+<a class="xref" href="#ch12">hard constraint</a> when models get large.
 </p>
 
 <div class="box note">
   <span class="box-label">Defaults worth memorising</span>
   Adam at <code>lr=1e-3</code> is a sound starting point for small models; transformers
   usually want <code>1e-4</code> to <code>3e-4</code> with warmup
-  (<a class="xref" href="#ch08">Chapter 08</a>). If training diverges, halve the learning
+  (<a class="xref" href="#ch03">Chapter 03</a>). If training diverges, halve the learning
   rate before changing anything else. If it plateaus immediately, you have probably
   forgotten <code>zero_grad()</code>.
 </div>
@@ -510,7 +510,7 @@ nothing, you must reassign.
   case setting <code>PYTORCH_ENABLE_MPS_FALLBACK=1</code> routes just that operation to the
   CPU. For the tiny models in this chapter, MPS is often <em>slower</em> than CPU: kernel
   launch overhead dominates when there are only four examples. The benefit shows up from
-  <a class="xref" href="#ch03">Chapter 03</a> onward.
+  <a class="xref" href="#ch04">Chapter 04</a> onward.
 </div>
 
 <h2><code>train()</code>, <code>eval()</code>, and <code>no_grad()</code></h2>
@@ -524,7 +524,7 @@ Three separate switches that beginners routinely conflate.
 behaviour of exactly two kinds of layer: dropout (active in train, identity in eval) and
 batch norm (batch statistics in train, running averages in eval). This network contains
 neither, so the calls do nothing here — but forget <code>model.eval()</code> in
-<a class="xref" href="#ch03">Chapter 03</a> and your reported accuracy will be wrong,
+<a class="xref" href="#ch04">Chapter 04</a> and your reported accuracy will be wrong,
 because dropout will be randomly deleting activations at test time.
 </p>
 
@@ -615,7 +615,7 @@ path 2 (w → b → L):      1 × 18      = 18
     $m$ and $v$ (8.4 MB each), giving <strong>~33.6 MB</strong>, or 16 bytes per parameter.
     That 16× multiplier is the number that decides what you can train on whatever machine
     you have,
-    and <a class="xref" href="#ch11">Chapter 11</a> is largely about attacking it.</p>
+    and <a class="xref" href="#ch12">Chapter 12</a> is largely about attacking it.</p>
   </details>
 </div>
 
@@ -688,10 +688,11 @@ path 2 (w → b → L):      1 × 18      = 18
 
 <div class="box note">
   <span class="box-label">Where this goes next</span>
-  From here on, the framework is assumed. <a class="xref" href="#ch03">Chapter 03</a> leaves
-  toy data behind for 2,000 real film reviews, which brings the two things every real
-  problem brings: data that must be batched, and a test set that tells you whether you
-  learned anything or just memorised.
+  From here on, the framework is assumed. Before adding any more architecture,
+  <a class="xref" href="#ch03">Chapter 03</a> covers the craft of actually training these
+  things — the loop, schedules, checkpoints, and the failure modes you will hit within an
+  hour of leaving toy data behind. Every chapter after it uses that machinery rather than
+  re-explaining it.
 </div>
 
 </section>

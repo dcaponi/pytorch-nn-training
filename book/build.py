@@ -412,7 +412,7 @@ def check_figures(chapters: list[Chapter]) -> list[str]:
 # appendix are navigation rather than instruction, and the capstones chapter has no
 # equations of its own to bound.
 NO_SAYBACK = {"preface", "appendix"}
-NO_FEEL = {"preface", "appendix", "ch12"}
+NO_FEEL = {"preface", "appendix", "ch13"}
 
 
 def check_drills(chapters: list[Chapter]) -> list[str]:
@@ -482,6 +482,29 @@ def check_exercise_refs(chapters: list[Chapter]) -> list[str]:
             if m.group(1) not in defined:
                 problems.append(
                     f"{ch.path.name}: cites exercise {m.group(1)}, which does not exist"
+                )
+    return problems
+
+
+XREF_LABEL_RE = re.compile(
+    r'<a class="xref" href="#(ch\d\d)[^"]*">\s*Chapter\s+(\d\d[b]?)\s*</a>', re.DOTALL
+)
+
+
+def check_xref_labels(chapters: list[Chapter]) -> list[str]:
+    """A link saying "Chapter 07" must actually point at chapter 07.
+
+    Reordering the book rewrote every href, but four labels were split across a line
+    break — "Chapter\n07" — and silently kept their old number, so the text and the
+    destination disagreed. Nothing else would ever have caught that.
+    """
+    problems: list[str] = []
+    for ch in chapters:
+        for m in XREF_LABEL_RE.finditer(ch.body):
+            if m.group(1)[2:] != m.group(2):
+                problems.append(
+                    f"{ch.path.name}: link to #{m.group(1)} is labelled "
+                    f"'Chapter {m.group(2)}'"
                 )
     return problems
 
@@ -598,6 +621,7 @@ def build(check_only: bool = False) -> int:
         + check_drills(chapters)
         + check_answers(chapters)
         + check_exercise_refs(chapters)
+        + check_xref_labels(chapters)
     )
     for p in problems:
         print(f"warning: {p}", file=sys.stderr)

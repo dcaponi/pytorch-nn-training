@@ -26,7 +26,7 @@ training run in the book peaks at about 860 MB and finishes in minutes.
 open book/index.html          # macOS — works straight off the filesystem
 ```
 
-A single-page app: chapters are client-side routes (`#/ch06`, or `#/ch00/ch00-cross-entropy`
+A single-page app: chapters are client-side routes (`#/ch07`, or `#/ch00/ch00-cross-entropy`
 to land on a heading), with prev/next navigation, full-text search across every chapter,
 dark mode, and a *back to where you were* button for following cross-references without
 losing your place. A **continuous mode** toggle shows the whole book as one scroll, which
@@ -66,7 +66,7 @@ you use the library well, and debug it when it misbehaves.
 The appendix goes past the end of the curriculum: a map from every hand-rolled
 component to its production API, a guide to reading papers (with the papers behind each
 chapter), and **the modern stack** — the roughly eight substitutions separating
-Chapter 07's transformer from a current frontier model. RMSNorm, SwiGLU, RoPE,
+Chapter 09's transformer from a current frontier model. RMSNorm, SwiGLU, RoPE,
 GQA, latent attention, mixture-of-experts, FlashAttention, speculative decoding, and
 preference optimisation, each with the one-line idea and which resource it buys back.
 None of them needs mathematics beyond Chapter 00.
@@ -151,48 +151,7 @@ later lesson.
   logits, softmax, loss and every gradient from its printed weights. A checker names the
   *first* step that diverged, since "your number is wrong" is not useful feedback
 
-### 03 — CNN for Sentiment Analysis
-Train a convolutional network on the NLTK movie_reviews corpus (2,000 real reviews).
-
-- `nn.Embedding` and why one-hot vectors are a bad encoding
-- `nn.Conv1d` with multiple kernel widths, and the transpose everyone gets wrong
-- Global max pooling, dropout, and the train/test split
-- ~80% test accuracy, and where the architecture's ceiling comes from
-
-### 04 — RNN for Character-Level Text Generation
-Train a recurrent network on *Alice's Adventures in Wonderland*.
-
-- Hidden state, weight sharing, backpropagation through time
-- The vanishing gradient, derived and then measured
-- Gradient clipping, and why it fixes explosion but not vanishing
-- Temperature sampling
-
-### 05 — LSTM for Time-Series Prediction
-Predict a sine wave from sliding windows, then compare against the RNN.
-
-- Cell state vs hidden state, and the additive gradient path
-- Forget, input, and output gates read as behaviour
-- `nn.LSTM` API details: `batch_first`, `out` vs `h_n`, inter-layer dropout
-- Comparing architectures fairly at matched parameter counts
-
-### 06 — Self-Attention from Scratch
-Implement scaled dot-product and multi-head attention, applied to the movie reviews
-from lesson 03 for a direct comparison.
-
-- Queries, keys, and values as a soft dictionary lookup
-- Why the `√d_k` scaling exists, shown by removing it
-- Multi-head reshaping, and why `.contiguous()` is not optional
-- Masking before the softmax, and the all-masked row that produces `nan`
-
-### 07 — Transformers with PyTorch
-Assemble a full encoder: positional encoding, residuals, layer norm, feed-forward.
-
-- Attention is permutation-equivariant — the gap positional encoding fills
-- Sinusoidal encodings, and why `PE(pos+k)` is linear in `PE(pos)`
-- Residual connections as the same idea as the LSTM cell state
-- Layer norm vs batch norm; post-norm vs pre-norm
-
-### 08 — PyTorch in Practice
+### 03 — PyTorch in Practice
 The craft that separates code that trains from code that trains reliably.
 
 - Reusable `train_one_epoch` / `evaluate`, and the `.item()` memory leak
@@ -201,15 +160,40 @@ The craft that separates code that trains from code that trains reliably.
 - Length bucketing, reproducibility, and a symptom-to-cause debugging table
 - Overfit eight examples first — the single best debugging move
 
-### 09 — Encoder–Decoder Transformer for Translation
-English→French on the NLTK comtrans corpus.
+### 04 — CNN for Sentiment Analysis
+Train a convolutional network on the NLTK movie_reviews corpus (2,000 real reviews).
 
-- Causal masking, and how it makes parallel training of a sequential model possible
-- Cross-attention as learned alignment, visualised
-- Teacher forcing, the shift, and the exposure bias it creates
-- Autoregressive decoding, greedy vs beam search, BLEU
+- `nn.Embedding` and why one-hot vectors are a bad encoding
+- `nn.Conv1d` with multiple kernel widths, and the transpose everyone gets wrong
+- Global max pooling, dropout, and the train/test split
+- ~80% test accuracy, and where the architecture's ceiling comes from
 
-### 09b — Where Q, K and V Come From
+### 05 — RNN for Character-Level Text Generation
+Train a recurrent network on *Alice's Adventures in Wonderland*.
+
+- Hidden state, weight sharing, backpropagation through time
+- The vanishing gradient, derived and then measured
+- Gradient clipping, and why it fixes explosion but not vanishing
+- Temperature sampling
+
+### 06 — LSTM for Time-Series Prediction
+Predict a sine wave from sliding windows, then compare against the RNN.
+
+- Cell state vs hidden state, and the additive gradient path
+- Forget, input, and output gates read as behaviour
+- `nn.LSTM` API details: `batch_first`, `out` vs `h_n`, inter-layer dropout
+- Comparing architectures fairly at matched parameter counts
+
+### 07 — Self-Attention from Scratch
+Implement scaled dot-product and multi-head attention, applied to the movie reviews
+from lesson 04 for a direct comparison.
+
+- Queries, keys, and values as a soft dictionary lookup
+- Why the `√d_k` scaling exists, shown by removing it
+- Multi-head reshaping, and why `.contiguous()` is not optional
+- Masking before the softmax, and the all-masked row that produces `nan`
+
+### 08 — Where Q, K and V Come From
 The backward pass, which most treatments of attention leave out entirely.
 
 - Why `W^Q`, `W^K` and `W^V` are ordinary parameters, and what "there is no attention
@@ -223,8 +207,24 @@ The backward pass, which most treatments of attention leave out entirely.
   route is cross-attention's K and V, demonstrated by cutting the edge
 - Why teacher forcing means a transformer has no backpropagation through time
 
-### 10 — GPT from Scratch
-A decoder-only transformer trained on the same corpus as lesson 04.
+### 09 — Transformers with PyTorch
+Assemble a full encoder: positional encoding, residuals, layer norm, feed-forward.
+
+- Attention is permutation-equivariant — the gap positional encoding fills
+- Sinusoidal encodings, and why `PE(pos+k)` is linear in `PE(pos)`
+- Residual connections as the same idea as the LSTM cell state
+- Layer norm vs batch norm; post-norm vs pre-norm
+
+### 10 — Encoder–Decoder Transformer for Translation
+English→French on the NLTK comtrans corpus.
+
+- Causal masking, and how it makes parallel training of a sequential model possible
+- Cross-attention as learned alignment, visualised
+- Teacher forcing, the shift, and the exposure bias it creates
+- Autoregressive decoding, greedy vs beam search, BLEU
+
+### 11 — GPT from Scratch
+A decoder-only transformer trained on the same corpus as lesson 05.
 
 - Why deleting the encoder is all it takes, and why supervision becomes free
 - Pre-norm blocks, learned positions, weight tying, depth-scaled init
@@ -232,7 +232,7 @@ A decoder-only transformer trained on the same corpus as lesson 04.
 - A KV cache with a wall-clock measurement *and* an operation count — including why
   the two disagree at this scale
 
-### 11 — Quantization, LoRA, and Fitting in Memory
+### 12 — Quantization, LoRA, and Fitting in Memory
 Both techniques implemented from scratch — no `bitsandbytes`, no `peft`.
 
 - Symmetric and per-channel quantization, and the outlier problem measured
@@ -245,7 +245,7 @@ Both techniques implemented from scratch — no `bitsandbytes`, no `peft`.
   bytes, and the `peft` merge operation verified numerically (including the scaling bug
   it catches)
 
-### 12 — Capstone Projects
+### 13 — Capstone Projects
 Five open-ended projects with specifications and no solutions: a translator, a text
 generator, a multi-adapter assistant, a rigorous architecture comparison, and a paper
 reproduction. Ships real scaffolding — vocabulary, training harness, BLEU, parameter
@@ -333,22 +333,25 @@ notebook.
 | 00 | `00_math_foundations/prompt.ipynb` | Mathematical Foundations | 45–60 min |
 | 01 | `01_nn_from_scratch/prompt.ipynb` | A Neural Network from Scratch | 45–60 min |
 | 02 | `02_nn_pytorch/prompt.ipynb` | The Same Network in PyTorch | 30–45 min |
-| 03 | `03_cnn_sentiment/prompt.ipynb` | Convolutions over Text | 45–60 min |
-| 04 | `04_rnn_pytorch/prompt.ipynb` | Recurrence and Its Limits | 60–90 min |
-| 05 | `05_lstm_pytorch/prompt.ipynb` | LSTMs: Gated Memory | 60–90 min |
-| 06 | `06_self_attention/prompt.ipynb` | Self-Attention from Scratch | 60–90 min |
-| 07 | `07_transformer_pytorch/prompt.ipynb` | The Transformer Encoder | 90 min |
-| 08 | `08_pytorch_in_practice/prompt.ipynb` | PyTorch in Practice | 45–60 min |
-| 09 | `09_seq2seq_translation/prompt.ipynb` | Encoder–Decoder Translation | 90 min |
-| 09b | `09b_attention_backprop/prompt.ipynb` | Where Q, K and V Come From | 60–90 min |
-| 10 | `10_gpt_from_scratch/prompt.ipynb` | GPT: A Decoder-Only Model | 90 min |
-| 11 | `11_quantization_and_lora/prompt.ipynb` | Quantization, LoRA, and Memory | 90 min |
-| 12 | `12_capstone_projects/prompt.ipynb` | Capstone Projects | open-ended |
+| 03 | `03_pytorch_in_practice/prompt.ipynb` | PyTorch in Practice | 45–60 min |
+| 04 | `04_cnn_sentiment/prompt.ipynb` | Convolutions over Text | 45–60 min |
+| 05 | `05_rnn_pytorch/prompt.ipynb` | Recurrence and Its Limits | 60–90 min |
+| 06 | `06_lstm_pytorch/prompt.ipynb` | LSTMs: Gated Memory | 60–90 min |
+| 07 | `07_self_attention/prompt.ipynb` | Self-Attention from Scratch | 60–90 min |
+| 08 | `08_attention_backprop/prompt.ipynb` | Where Q, K and V Come From | 60–90 min |
+| 09 | `09_transformer_pytorch/prompt.ipynb` | The Transformer Encoder | 90 min |
+| 10 | `10_seq2seq_translation/prompt.ipynb` | Encoder–Decoder Translation | 90 min |
+| 11 | `11_gpt_from_scratch/prompt.ipynb` | GPT: A Decoder-Only Model | 90 min |
+| 12 | `12_quantization_and_lora/prompt.ipynb` | Quantization, LoRA, and Memory | 90 min |
+| 13 | `13_capstone_projects/prompt.ipynb` | Capstone Projects | open-ended |
 
-Chapters 00–07 are a single argument and should be read in order. From 08 onward they
-are more independent: 08 is practical craft you can read any time once you have
-trained something, 09b answers the "but where do the weights come from?" question that
-06–09 deliberately defer, and 11 stands alone if you already know what a transformer is.
+Chapters 00–10 are a single argument and should be read in order. Chapter 03 sits where
+it does on purpose: every chapter after it trains something, and it is the one that
+explains how, so reading it late means re-learning the training loop five times. Chapter
+08 answers the "but where do the weights come from?" question that 07 deliberately
+defers, which is why it interrupts the architecture sequence rather than waiting until
+the end. From 11 onward the chapters are more independent — 12 stands alone if you
+already know what a transformer is, and 13 is open-ended project work.
 
 ---
 
@@ -358,7 +361,7 @@ trained something, 09b answers the "but where do the weights come from?" questio
   CUDA, then CPU — so the code is identical on any of them. For the smallest models the
   CPU is actually *faster* than a GPU, because the transfer costs more than the
   arithmetic saves; the benefit starts around the convolution lesson.
-- Solution notebooks have already been executed. Lesson 12 has no solution notebook,
+- Solution notebooks have already been executed. Lesson 13 has no solution notebook,
   because its projects have no single right answer.
 - The book vendors KaTeX (`book/vendor/`, ~600 KB, woff2 only) so mathematics renders
   with no network connection.
