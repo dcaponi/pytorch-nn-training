@@ -50,7 +50,7 @@ $c_t$ passes through one elementwise multiplication and nothing else.
   network's control.
 </div>
 
-<figure class="figure">
+<figure class="figure wide">
 <svg viewBox="0 0 780 352" role="img" aria-labelledby="lstm-t lstm-d"
      style="font-family:var(--sans)">
   <title id="lstm-t">One LSTM cell, forward and backward</title>
@@ -133,7 +133,7 @@ $c_t$ passes through one elementwise multiplication and nothing else.
     <circle cx="400" cy="134" r="13"/>
     <circle cx="605" cy="134" r="13"/>
   </g>
-  <g fill="var(--ink)" font-size="15" text-anchor="middle" font-weight="600">
+  <g fill="var(--ink)" font-size="16" text-anchor="middle" font-weight="600">
     <text x="200" y="92">&#215;</text>
     <text x="400" y="92">+</text>
     <text x="400" y="140">&#215;</text>
@@ -143,7 +143,7 @@ $c_t$ passes through one elementwise multiplication and nothing else.
   <!-- tanh of the cell state, on the read-out path only -->
   <rect x="497" y="120" width="48" height="28" rx="6"
         fill="var(--bg-raised)" stroke="var(--ink-soft)" stroke-width="1.4"/>
-  <text x="521" y="139" font-size="12.5" fill="var(--ink)" text-anchor="middle">tanh</text>
+  <text x="521" y="139" font-size="13.5" fill="var(--ink)" text-anchor="middle">tanh</text>
 
   <!-- the four gate units -->
   <g fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.4">
@@ -158,7 +158,7 @@ $c_t$ passes through one elementwise multiplication and nothing else.
     <text x="430" y="177">tanh</text>
     <text x="605" y="177">&#963;</text>
   </g>
-  <g font-size="10.5" text-anchor="middle" fill="var(--ink-faint)">
+  <g font-size="12.5" text-anchor="middle" fill="var(--ink-faint)">
     <text x="200" y="192">forget f</text>
     <text x="330" y="192">input i</text>
     <text x="430" y="192">candidate c&#771;</text>
@@ -166,19 +166,19 @@ $c_t$ passes through one elementwise multiplication and nothing else.
   </g>
 
   <!-- labels -->
-  <g font-size="13" fill="var(--ink)">
-    <text x="46" y="91" text-anchor="end" font-weight="600">c<tspan font-size="9.5" dy="3">t-1</tspan></text>
-    <text x="750" y="91" font-weight="600" fill="var(--concept)">c<tspan font-size="9.5" dy="3">t</tspan></text>
-    <text x="46" y="251" text-anchor="end">h<tspan font-size="9.5" dy="3">t-1</tspan></text>
-    <text x="100" y="316" text-anchor="middle">x<tspan font-size="9.5" dy="3">t</tspan></text>
-    <text x="750" y="139" font-weight="600">h<tspan font-size="9.5" dy="3">t</tspan></text>
+  <g font-size="14" fill="var(--ink)">
+    <text x="46" y="91" text-anchor="end" font-weight="600">c<tspan font-size="12" dy="3">t-1</tspan></text>
+    <text x="750" y="91" font-weight="600" fill="var(--concept)">c<tspan font-size="12" dy="3">t</tspan></text>
+    <text x="46" y="251" text-anchor="end">h<tspan font-size="12" dy="3">t-1</tspan></text>
+    <text x="100" y="316" text-anchor="middle">x<tspan font-size="12" dy="3">t</tspan></text>
+    <text x="750" y="139" font-weight="600">h<tspan font-size="12" dy="3">t</tspan></text>
   </g>
-  <g font-size="10.5" fill="var(--ink-faint)">
+  <g font-size="12.5" fill="var(--ink-faint)">
     <text x="134" y="68">one timestep</text>
-    <text x="648" y="264" text-anchor="end">concatenated input [h<tspan font-size="8" dy="2">t-1</tspan><tspan dy="-2">, x</tspan><tspan font-size="8" dy="2">t</tspan><tspan dy="-2">]</tspan></text>
+    <text x="648" y="264" text-anchor="end">concatenated input [h<tspan font-size="10.5" dy="2">t-1</tspan><tspan dy="-2">, x</tspan><tspan font-size="10.5" dy="2">t</tspan><tspan dy="-2">]</tspan></text>
   </g>
-  <g font-size="10.5" fill="var(--byhand)">
-    <text x="414" y="22" text-anchor="middle">backward: &#8706;c<tspan font-size="8" dy="2">t</tspan><tspan dy="-2">/&#8706;c</tspan><tspan font-size="8" dy="2">t-1</tspan><tspan dy="-2"> = f</tspan><tspan font-size="8" dy="2">t</tspan><tspan dy="-2">, an elementwise product and no matrix at all</tspan></text>
+  <g font-size="12.5" fill="var(--byhand)">
+    <text x="414" y="22" text-anchor="middle">backward: &#8706;c<tspan font-size="10.5" dy="2">t</tspan><tspan dy="-2">/&#8706;c</tspan><tspan font-size="10.5" dy="2">t-1</tspan><tspan dy="-2"> = f</tspan><tspan font-size="10.5" dy="2">t</tspan><tspan dy="-2">, an elementwise product and no matrix at all</tspan></text>
   </g>
 </svg>
 <figcaption><b>One LSTM cell, with the backward path drawn in.</b> Follow the thick line

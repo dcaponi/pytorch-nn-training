@@ -40,12 +40,78 @@ PE_{(pos,\,2i+1)} = \cos\!\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)$$
 Even dimensions get sines, odd get cosines, and the wavelength grows geometrically with
 dimension index — from $2\pi$ at $i=0$ up to $10000 \cdot 2\pi$ at the top.
 </p>
-<figure class="figure plate">
-  <img src="images/alammar/transformer_positional_encoding_example.png" alt="Three tokens 'Je', 'suis', 'etudiant'. Each has a four-cell embedding vector with a four-cell positional encoding added to it; the first token's encoding is 0, 0, 1, 1." loading="lazy" decoding="async">
-  <figcaption><b>Position added to content, with real numbers in it.</b> The addition is the whole mechanism — no gate, no concatenation, no extra parameters.
-  <br><br>
-  Do not try to reproduce these four numbers from the formula above, though, because you cannot: they come from the Tensor2Tensor implementation, which lays out a block of sines followed by a block of cosines instead of interleaving them, and spaces its frequencies over $1 \ldots 10000$ rather than $1 \ldots 100$ at $d_{\text{model}}=4$. The formula above gives position 2 the interleaved vector $[0.841,\ 0.540,\ 0.010,\ 1.000]$; the figure shows $[0.841,\ 0.0001,\ 0.540,\ 1.000]$ — the same four kinds of number, permuted and re-spaced. Both are used in practice and neither is wrong. It is worth knowing that this family of small, undocumented differences exists before you spend an evening assuming your implementation is broken.</figcaption>
-  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+<figure class="figure wide">
+<svg viewBox="0 0 760 228" role="img" aria-labelledby="f-pe-t f-pe-d" style="font-family:var(--sans)">
+  <title id="f-pe-t">Positional encoding added to token embeddings</title>
+  <desc id="f-pe-d">Three tokens: Je, suis, etudiant. Above each, a four-cell positional encoding with its values; below, a four-cell embedding; below that, their sum. Position 0's encoding is 0, 1, 0, 1.</desc>
+  <defs>
+    <marker id="pe-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
+  </defs>
+  <text x="34" y="76" font-size="12.5" text-anchor="start" fill="var(--ink-faint)">position</text>
+  <text x="34" y="136" font-size="12.5" text-anchor="start" fill="var(--ink-faint)">embedding</text>
+  <text x="34" y="204" font-size="12.5" text-anchor="start" fill="var(--ink-faint)">sum</text>
+  <text x="212" y="34" font-size="13.5" text-anchor="middle" fill="var(--notebook)" font-weight="600">Je</text>
+  <text x="212" y="48" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">pos 0</text>
+  <rect x="136" y="58" width="38" height="26" fill="var(--concept)" fill-opacity="0.28" stroke="var(--concept)" stroke-width="1"/>
+  <text x="155.0" y="74.8" font-size="12.0" text-anchor="middle" fill="var(--ink)">0</text>
+  <rect x="174" y="58" width="38" height="26" fill="var(--concept)" fill-opacity="0.28" stroke="var(--concept)" stroke-width="1"/>
+  <text x="193.0" y="74.8" font-size="12.0" text-anchor="middle" fill="var(--ink)">1</text>
+  <rect x="212" y="58" width="38" height="26" fill="var(--concept)" fill-opacity="0.28" stroke="var(--concept)" stroke-width="1"/>
+  <text x="231.0" y="74.8" font-size="12.0" text-anchor="middle" fill="var(--ink)">0</text>
+  <rect x="250" y="58" width="38" height="26" fill="var(--concept)" fill-opacity="0.28" stroke="var(--concept)" stroke-width="1"/>
+  <text x="269.0" y="74.8" font-size="12.0" text-anchor="middle" fill="var(--ink)">1</text>
+  <text x="212" y="106" font-size="15.0" text-anchor="middle" fill="var(--ink-faint)">+</text>
+  <rect x="136" y="118" width="38" height="26" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="174" y="118" width="38" height="26" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="212" y="118" width="38" height="26" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="250" y="118" width="38" height="26" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <text x="212" y="174" font-size="15.0" text-anchor="middle" fill="var(--ink-faint)">=</text>
+  <rect x="136" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
+  <rect x="174" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
+  <rect x="212" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
+  <rect x="250" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
+  <text x="424" y="34" font-size="13.5" text-anchor="middle" fill="var(--notebook)" font-weight="600">suis</text>
+  <text x="424" y="48" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">pos 1</text>
+  <rect x="348" y="58" width="38" height="26" fill="var(--concept)" fill-opacity="0.28" stroke="var(--concept)" stroke-width="1"/>
+  <text x="367.0" y="74.8" font-size="12.0" text-anchor="middle" fill="var(--ink)">0.84</text>
+  <rect x="386" y="58" width="38" height="26" fill="var(--concept)" fill-opacity="0.28" stroke="var(--concept)" stroke-width="1"/>
+  <text x="405.0" y="74.8" font-size="12.0" text-anchor="middle" fill="var(--ink)">0.54</text>
+  <rect x="424" y="58" width="38" height="26" fill="var(--concept)" fill-opacity="0.28" stroke="var(--concept)" stroke-width="1"/>
+  <text x="443.0" y="74.8" font-size="12.0" text-anchor="middle" fill="var(--ink)">0.01</text>
+  <rect x="462" y="58" width="38" height="26" fill="var(--concept)" fill-opacity="0.28" stroke="var(--concept)" stroke-width="1"/>
+  <text x="481.0" y="74.8" font-size="12.0" text-anchor="middle" fill="var(--ink)">1</text>
+  <text x="424" y="106" font-size="15.0" text-anchor="middle" fill="var(--ink-faint)">+</text>
+  <rect x="348" y="118" width="38" height="26" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="386" y="118" width="38" height="26" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="424" y="118" width="38" height="26" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="462" y="118" width="38" height="26" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <text x="424" y="174" font-size="15.0" text-anchor="middle" fill="var(--ink-faint)">=</text>
+  <rect x="348" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
+  <rect x="386" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
+  <rect x="424" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
+  <rect x="462" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
+  <text x="636" y="34" font-size="13.5" text-anchor="middle" fill="var(--notebook)" font-weight="600">étudiant</text>
+  <text x="636" y="48" font-size="12.0" text-anchor="middle" fill="var(--ink-faint)">pos 2</text>
+  <rect x="560" y="58" width="38" height="26" fill="var(--concept)" fill-opacity="0.28" stroke="var(--concept)" stroke-width="1"/>
+  <text x="579.0" y="74.8" font-size="12.0" text-anchor="middle" fill="var(--ink)">0.91</text>
+  <rect x="598" y="58" width="38" height="26" fill="var(--concept)" fill-opacity="0.28" stroke="var(--concept)" stroke-width="1"/>
+  <text x="617.0" y="74.8" font-size="12.0" text-anchor="middle" fill="var(--ink)">-0.42</text>
+  <rect x="636" y="58" width="38" height="26" fill="var(--concept)" fill-opacity="0.28" stroke="var(--concept)" stroke-width="1"/>
+  <text x="655.0" y="74.8" font-size="12.0" text-anchor="middle" fill="var(--ink)">0.02</text>
+  <rect x="674" y="58" width="38" height="26" fill="var(--concept)" fill-opacity="0.28" stroke="var(--concept)" stroke-width="1"/>
+  <text x="693.0" y="74.8" font-size="12.0" text-anchor="middle" fill="var(--ink)">1</text>
+  <text x="636" y="106" font-size="15.0" text-anchor="middle" fill="var(--ink-faint)">+</text>
+  <rect x="560" y="118" width="38" height="26" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="598" y="118" width="38" height="26" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="636" y="118" width="38" height="26" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="674" y="118" width="38" height="26" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <text x="636" y="174" font-size="15.0" text-anchor="middle" fill="var(--ink-faint)">=</text>
+  <rect x="560" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
+  <rect x="598" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
+  <rect x="636" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
+  <rect x="674" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
+</svg>
+<figcaption><b>Position added to content, with real numbers in it.</b> The addition is the whole mechanism — no gate, no concatenation, no extra parameters. These values come straight from the formula above rather than from any particular implementation, so you can check them: at position 0 every sine is $\sin 0 = 0$ and every cosine is $\cos 0 = 1$, giving $[0, 1, 0, 1]$. Watch the fourth column across the three tokens. It barely moves, because its wavelength is a hundred times the first column's — that is the multi-resolution code the widget above draws in full.</figcaption>
 </figure>
 
 
@@ -219,12 +285,60 @@ associated with them.
         x = self.norm1(x + self.drop(attn_out))
         x = self.norm2(x + self.drop(self.ff(x)))
         return x</code></pre>
-<figure class="figure plate">
-  <img src="images/alammar/transformer_resideual_layer_norm_2.png" alt="One encoder block: two token vectors enter with positional encoding added, pass through self-attention, an Add and Normalize step, per-token feed-forward layers, and a second Add and Normalize step, with dashed skip arrows bypassing each sublayer." loading="lazy" decoding="async">
-  <figcaption><b>The same sixteen lines, drawn.</b> Map them onto each other directly: the dashed arrows are the <code>x +</code> in each assignment, the two green bars are <code>norm1</code> and <code>norm2</code>, and the fact that the two Feed Forward boxes are drawn separately — one per token, no arrow between them — is the point made in the section above, that the FFN sees each position alone.
-  <br><br>
-  This is <strong>post-norm</strong>: normalisation sits <em>on</em> the residual path, after the addition. To picture pre-norm, move each green bar down to just before its sublayer and let the dashed arrow run all the way to the top uninterrupted. That uninterrupted line is the entire argument for pre-norm.</figcaption>
-  <p class="credit">Diagram by <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar, <i>The Illustrated Transformer</i></a> (2018), reproduced unmodified under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.</p>
+<figure class="figure wide">
+<svg viewBox="0 0 760 340" role="img" aria-labelledby="f-enc-t f-enc-d" style="font-family:var(--sans)">
+  <title id="f-enc-t">One transformer encoder block</title>
+  <desc id="f-enc-d">Two token vectors enter at the bottom, pass through a self-attention sublayer that spans both, an add-and-normalise step, separate per-token feed-forward layers, and a second add-and-normalise. Dashed lines bypass each sublayer, carrying the input straight to the addition.</desc>
+  <defs>
+    <marker id="enc-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
+    <marker id="enc-res" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--sayback)"/></marker>
+  </defs>
+  <text x="266" y="320" font-size="12.0" text-anchor="middle" fill="var(--notebook)" font-weight="600">Thinking</text>
+  <rect x="236" y="282" width="15" height="15" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="251" y="282" width="15" height="15" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="266" y="282" width="15" height="15" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="281" y="282" width="15" height="15" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <text x="224" y="294" font-size="12.0" text-anchor="end" fill="var(--notebook)">x<tspan font-size="10" dy="3">1</tspan></text>
+  <path d="M266,278 L266,254" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
+  <text x="506" y="320" font-size="12.0" text-anchor="middle" fill="var(--notebook)" font-weight="600">Machines</text>
+  <rect x="476" y="282" width="15" height="15" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="491" y="282" width="15" height="15" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="506" y="282" width="15" height="15" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <rect x="521" y="282" width="15" height="15" fill="var(--notebook)" fill-opacity="0.28" stroke="var(--notebook)" stroke-width="1"/>
+  <text x="464" y="294" font-size="12.0" text-anchor="end" fill="var(--notebook)">x<tspan font-size="10" dy="3">2</tspan></text>
+  <path d="M506,278 L506,254" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
+  <rect x="180" y="214" width="400" height="34" rx="7" fill="var(--bg-raised)" stroke="var(--concept)" stroke-width="1.3"/>
+  <text x="380.0" y="234.83333333333334" font-size="12.0" text-anchor="middle" fill="var(--ink)">self-attention</text>
+  <text x="596" y="234" font-size="12.0" text-anchor="start" fill="var(--ink-faint)">positions mix here,</text>
+  <text x="596" y="246" font-size="12.0" text-anchor="start" fill="var(--ink-faint)">and only here</text>
+  <path d="M266,214 L266,190" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
+  <path d="M506,214 L506,190" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
+  <rect x="180" y="156" width="400" height="32" rx="7" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
+  <text x="380.0" y="175.66666666666666" font-size="12.0" text-anchor="middle" fill="var(--ink)">add &amp; normalise</text>
+  <path d="M266,156 L266,130" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
+  <path d="M506,156 L506,130" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
+  <rect x="212" y="96" width="108" height="32" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.3"/>
+  <text x="266.0" y="115.5" font-size="12.0" text-anchor="middle" fill="var(--ink)">feed-forward</text>
+  <path d="M266,96 L266,74" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
+  <rect x="452" y="96" width="108" height="32" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.3"/>
+  <text x="506.0" y="115.5" font-size="12.0" text-anchor="middle" fill="var(--ink)">feed-forward</text>
+  <path d="M506,96 L506,74" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
+  <text x="596" y="110" font-size="12.0" text-anchor="start" fill="var(--ink-faint)">one per position,</text>
+  <text x="596" y="122" font-size="12.0" text-anchor="start" fill="var(--ink-faint)">never mixing</text>
+  <rect x="180" y="40" width="400" height="32" rx="7" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
+  <text x="380.0" y="59.666666666666664" font-size="12.0" text-anchor="middle" fill="var(--ink)">add &amp; normalise</text>
+  <path d="M266,40 L266,18" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
+  <path d="M506,40 L506,18" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
+  <path d="M266,266 L330,266 L330,192" fill="none" stroke="var(--sayback)" stroke-width="1.3" stroke-dasharray="5 4" stroke-linejoin="round" marker-end="url(#enc-res)"/>
+  <path d="M266,142 L330,142 L330,76" fill="none" stroke="var(--sayback)" stroke-width="1.3" stroke-dasharray="5 4" stroke-linejoin="round" marker-end="url(#enc-res)"/>
+  <path d="M506,266 L570,266 L570,192" fill="none" stroke="var(--sayback)" stroke-width="1.3" stroke-dasharray="5 4" stroke-linejoin="round" marker-end="url(#enc-res)"/>
+  <path d="M506,142 L570,142 L570,76" fill="none" stroke="var(--sayback)" stroke-width="1.3" stroke-dasharray="5 4" stroke-linejoin="round" marker-end="url(#enc-res)"/>
+  <text x="34" y="60" font-size="12.0" text-anchor="start" fill="var(--sayback)">each dashed line is the</text>
+  <text x="34" y="72" font-size="12.0" text-anchor="start" fill="var(--sayback)">&#8220;x +&#8221; in the code —</text>
+  <text x="34" y="84" font-size="12.0" text-anchor="start" fill="var(--sayback)">an untouched path from</text>
+  <text x="34" y="96" font-size="12.0" text-anchor="start" fill="var(--sayback)">input to output</text>
+</svg>
+<figcaption><b>The same sixteen lines, drawn.</b> Map them onto each other directly: the dashed lines are the <code>x +</code> in each assignment, the two wide bars are <code>norm1</code> and <code>norm2</code>, and the fact that the two feed-forward boxes are drawn separately — one per token, no arrow between them — is the point made in the section above, that the FFN sees each position alone. <br><br> This is <strong>post-norm</strong>: normalisation sits <em>on</em> the residual path, after the addition. To picture pre-norm, move each wide bar down to just before its sublayer and let the dashed line run all the way to the top uninterrupted. That uninterrupted line is the entire argument for pre-norm.</figcaption>
 </figure>
 
 

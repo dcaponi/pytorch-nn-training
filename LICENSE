@@ -28,47 +28,13 @@ The MIT grant above covers the original work in this repository: the notebooks,
 the build tooling, the stylesheet and scripts, the book's prose, and the figures
 drawn for it.
 
-It does not cover the files listed below, which are redistributed here under
-their own terms. Those terms travel with the files and are not altered by the
-licence above. `book/images/CREDITS.md` is the long-form record, including
-retrieval dates and the reasoning behind each inclusion.
+Two sets of files are redistributed here under their own terms, and those terms
+travel with the files rather than being altered by the licence above. Both are
+MIT, so there is no restriction on this repository that the licence above does
+not already state. `book/images/CREDITS.md` is the long-form record.
 
 --------------------------------------------------------------------------------
-1. book/images/alammar/    — NOT MIT. Non-commercial only.
---------------------------------------------------------------------------------
-
-Fourteen diagrams by Jay Alammar, from "The Illustrated Transformer":
-
-    https://jalammar.github.io/illustrated-transformer/
-
-Licensed by their author under Creative Commons Attribution-NonCommercial-
-ShareAlike 4.0 International:
-
-    http://creativecommons.org/licenses/by-nc-sa/4.0/
-
-Cited as the author asks: Alammar, J (2018). The Illustrated Transformer
-[Blog post]. Retrieved from https://jalammar.github.io/illustrated-transformer/
-
-Three consequences, stated plainly because the MIT header above is easy to
-read as covering everything:
-
-  * These files may not be used commercially. That restriction binds anyone
-    who redistributes this repository, and it binds this repository's own
-    publication. If the book ever acquires a commercial dimension —
-    sponsorship, a paid tier, a course sold on the back of it — these
-    fourteen files must be removed first.
-
-  * They are reproduced unmodified, and must stay that way. Under CC 4.0
-    section 2(a), including unmodified material in a larger collection does
-    not create Adapted Material, which is what keeps the ShareAlike term from
-    reaching the rest of this repository. Cropping, recolouring, relabelling
-    or redrawing any of them changes that answer.
-
-  * Attribution appears on each figure in the rendered book, and the build
-    refuses to publish a figure that has lost its credit line.
-
---------------------------------------------------------------------------------
-2. book/images/transformer-explainer/    — MIT
+1. book/images/transformer-explainer/    — MIT
 --------------------------------------------------------------------------------
 
 Five figures from Transformer Explainer by the Polo Club of Data Science at
@@ -89,7 +55,7 @@ with Interactive Visual Explanation and Experimentation." CHI 2026.
 arXiv:2408.04619.
 
 --------------------------------------------------------------------------------
-3. book/vendor/katex/    — MIT
+2. book/vendor/katex/    — MIT
 --------------------------------------------------------------------------------
 
 KaTeX, which renders the book's mathematics offline so the page needs no
@@ -105,13 +71,21 @@ The full notice is kept at book/vendor/katex/LICENSE.
 Linked, not included
 --------------------------------------------------------------------------------
 
-Christopher Olah's "Understanding LSTMs" carries no licence statement — none on
-the post, none on his About page, and no LICENSE file in his site's repository —
-so none of its diagrams are reproduced here and none should be added without
-written permission. Chapter 05 links to the post, credits the "conveyor belt"
-reading of the cell state to him, and uses a diagram drawn for this book.
+Every diagram in the book is drawn for it, in `book/chapters/*.html` as inline
+SVG. Two widely-read explanations shaped how those diagrams are laid out and are
+credited in the text where their framing is used:
 
+    Christopher Olah, "Understanding LSTMs"
     https://colah.github.io/posts/2015-08-Understanding-LSTMs/
+    The "conveyor belt" reading of the cell state is his, credited in chapter 05.
+
+    Jay Alammar, "The Illustrated Transformer"
+    https://jalammar.github.io/illustrated-transformer/
+    Linked from chapter 06 as further reading.
+
+Neither carries a licence that would permit reproducing its figures here — Olah's
+states none at all — so none of their images are in this repository, and none
+should be added without written permission from the author.
 
 The NLTK corpora the notebooks use (movie_reviews, gutenberg, comtrans, punkt)
 are downloaded at runtime to ~/nltk_data/ and are not redistributed here. Each

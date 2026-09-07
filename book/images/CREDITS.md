@@ -1,55 +1,15 @@
 # Image provenance
 
-Every file in this directory that the book did not draw itself is listed here, with
-its source, licence, and the date it was retrieved. `book/build.py` refuses to build
-if a chapter shows an image from `images/` without a visible `<p class="credit">`
-naming the source in the rendered page, so this file is the long-form record and the
-credit lines in the chapters are the short-form one.
+Almost every figure in this book is drawn for it, as inline SVG inside
+`book/chapters/*.html` — so it themes with the page, scales without blurring, costs a
+couple of kilobytes, and carries no licence question. The handful of files in this
+directory are the exceptions, and this is their record.
 
-Retrieved 2026-09-06.
+`book/build.py` refuses to build if a chapter shows an image from `images/` without a
+visible `<p class="credit">` naming its source in the rendered page, so the credit
+lines in the chapters and this file cannot drift apart silently.
 
----
-
-## `alammar/` — Jay Alammar, *The Illustrated Transformer*
-
-- **Source:** <https://jalammar.github.io/illustrated-transformer/>
-- **Licence:** [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/),
-  stated in the page footer.
-- **Attribution, as the author requests it:** Alammar, J (2018). The Illustrated
-  Transformer [Blog post]. Retrieved from
-  <https://jalammar.github.io/illustrated-transformer/>
-
-### Why this is allowed here
-
-The three licence terms, against this book:
-
-- **BY** — satisfied by the credit line on each figure and by this file.
-- **NC** — this book is free, ad-free, and published from a public repository with no
-  commercial component. *If that ever changes, these files must come out.*
-- **SA** — the figures are reproduced **unmodified**. Under CC 4.0 §2(a) merely
-  including unmodified material in a larger collection does not produce Adapted
-  Material, so ShareAlike does not reach the rest of the book. Cropping, recolouring,
-  relabelling, or redrawing any of these would change that answer — don't, without
-  reading the licence again first.
-
-### Files
-
-| File | Used in |
-| --- | --- |
-| `transformer_self_attention_vectors.png` | ch06 — where q, k, v come from |
-| `self-attention-matrix-calculation.png` | ch06 — X · W^Q in matrix form |
-| `self-attention-matrix-calculation-2.png` | ch06 — the whole formula as one picture |
-| `transformer_attention_heads_qkv.png` | ch06 — per-head projection matrices |
-| `transformer_multi-headed_self-attention-recap.png` | ch06 — multi-head, end to end |
-| `transformer_self-attention_visualization.png` | ch06 — "it" attending to "the animal" |
-| `transformer_resideual_layer_norm_2.png` | ch07 — residual + LayerNorm placement |
-| `transformer_positional_encoding_example.png` | ch07 — positional encodings added to embeddings |
-| `The_transformer_encoder_decoder_stack.png` | ch09 — the six-and-six stack |
-| `Transformer_decoder.png` | ch09 — the decoder's three sublayers |
-| `transformer_decoding_1.gif` | ch09 — encoder output becomes cross-attention K and V |
-| `transformer_decoding_2.gif` | ch09 — autoregressive decoding, step by step |
-| `transformer_logits_output_and_label.png` | ch09b — where the gradient is born |
-| `output_target_probability_distributions.png` | ch09b — target distributions per position |
+Last reviewed 2026-09-07.
 
 ---
 
@@ -64,34 +24,66 @@ The three licence terms, against this book:
 - **Copyright:** (c) 2022 Polo Club of Data Science.
 - **Paper:** Cho, A., Kim, G. C., Karpekov, A., Helbling, A., Wang, Z. J., Lee, S.,
   Hoover, B., and Chau, D. H. *Transformer Explainer: Learning LLM Transformers with
-  Interactive Visual Explanation and Experimentation.* CHI 2026.
-  arXiv:2408.04619.
+  Interactive Visual Explanation and Experimentation.* CHI 2026. arXiv:2408.04619.
 
-### Files
+These five are kept rather than redrawn for one reason: they show **real activations
+from a real GPT-2**, which a drawing cannot honestly claim to do. Where a figure is
+making a point about what actually happens inside a trained model — the raw score
+range, the fused QKV projection, the learned position table — a schematic would be
+weaker evidence, not just a different style.
 
 | File | Used in |
 | --- | --- |
 | `QKV.png` | ch06 — the fused QKV projection inside real GPT-2 |
-| `attention.png` | ch06 — attention weights on a live model |
-| `softmax.png` | ch09b — the softmax whose Jacobian we differentiate |
-| `embedding.png` | ch07 — token + positional embedding in a real model |
-| `mlp.png` | ch09b — the feed-forward head the gradient passes through |
+| `attention.png` | ch06 — measured score ranges, before and after the scaling |
+| `embedding.png` | ch07 — learned position embeddings in a real model |
+| `softmax.png` | ch09b — the output softmax at inference, temperature and top-k |
+| `mlp.png` | ch09b — the residual stream drawn to scale |
 
 ---
 
-## Christopher Olah, *Understanding LSTMs* — linked, not reproduced
+## Drawn for this book
 
-- **Source:** <https://colah.github.io/posts/2015-08-Understanding-LSTMs/>
-- **Licence:** none stated. There is no licence statement on the post, none on
-  <https://colah.github.io/about.html>, and no `LICENSE` file in
-  <https://github.com/colah/colah.github.io>. Absent a grant, the default is all
-  rights reserved.
+Everything else. The diagrams live as inline SVG in the chapter files and are generated
+from a small shared vocabulary — see the colour roles below, which are kept consistent
+across every figure so a reader learns them once:
 
-**So none of that post's diagrams are in this repository, and none should be added**
-without written permission from the author. Chapter 05 instead links to the post and
-uses a diagram drawn for this book, in this book's own visual language. The
-"conveyor belt" reading of the cell state is Olah's framing and is credited to him in
-the text.
+| Role | Colour token |
+| --- | --- |
+| X, embeddings | `--notebook` (green) |
+| Q, queries | `--accent` (purple) |
+| K, keys | `--byhand` (orange) |
+| V, values | `--source` (blue) |
+| outputs | `--sayback` (pink) |
+| scores, weights | `--concept` (teal) |
 
-If permission is ever obtained, record it here with the date and the wording of the
-grant before adding any file.
+Two accessibility rules apply to all of them, and are worth keeping if you add more:
+
+- **No text below 12 units.** Figures are drawn on a 760-unit canvas and render into a
+  column narrower than that, so a nominal size is not what the reader sees. The
+  `.figure.wide` class widens the column to about 0.96 scale, which puts the smallest
+  label at roughly 11.5 rendered pixels — matching the book's own `figcaption`.
+- **Every figure carries a `<title>` and a `<desc>`**, so it is not silent to a screen
+  reader. The `desc` describes what the picture shows, not what it means; the meaning
+  belongs in the caption, which is already readable.
+
+---
+
+## Linked, not reproduced
+
+Two well-known explanations shaped how these diagrams are laid out, and are credited in
+the text wherever their framing is used. Neither grants a licence that would allow
+reproducing its figures here — Olah's states none at all, and absent a grant the default
+is all rights reserved — so no image from either is in this repository, and none should
+be added without written permission from the author.
+
+- Christopher Olah, [*Understanding LSTMs*](https://colah.github.io/posts/2015-08-Understanding-LSTMs/).
+  The "conveyor belt" reading of the cell state is his, and chapter 05 says so.
+- Jay Alammar, [*The Illustrated Transformer*](https://jalammar.github.io/illustrated-transformer/).
+  Linked from chapter 06 as further reading.
+
+An earlier version of this book did reproduce fourteen of Alammar's diagrams under
+CC BY-NC-SA 4.0. That was permitted, but the non-commercial term bound the whole
+project in a way that would have had to be remembered for as long as the book existed.
+They were replaced with drawings made for the book — which also removed 9.6 MB of
+animated GIFs and made every figure theme-aware.

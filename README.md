@@ -373,19 +373,22 @@ trained something, 09b answers the "but where do the weights come from?" questio
 MIT, for everything written for this repository — the notebooks, the tooling, the book's
 prose and the figures drawn for it. See [`LICENSE`](LICENSE).
 
-Three sets of files are redistributed under their own terms, and the MIT grant does not
-reach them:
+Every diagram in the book is drawn for it, as inline SVG. Two sets of files are
+redistributed under their own terms, both MIT, so nothing here restricts reuse beyond
+what the MIT licence above already says:
 
 | Files | Source | Licence |
 |---|---|---|
-| `book/images/alammar/` | [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/), Jay Alammar (2018) | [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/) — **non-commercial** |
 | `book/images/transformer-explainer/` | [Transformer Explainer](https://poloclub.github.io/transformer-explainer/), Polo Club of Data Science | MIT |
 | `book/vendor/katex/` | [KaTeX](https://katex.org), Khan Academy | MIT |
 
-The non-commercial term on the first row binds this repository and anyone who
-redistributes it. `book/images/CREDITS.md` records the provenance of every borrowed
-file, and `book/build.py` refuses to publish a figure whose credit line has gone missing.
+Those five figures are kept rather than redrawn because they show real activations from
+a real GPT-2, which a drawing cannot honestly claim to do. `book/images/CREDITS.md`
+records their provenance, and `book/build.py` refuses to publish a figure whose credit
+line has gone missing.
 
+Two well-known explanations shaped how the book's own diagrams are laid out and are
+credited in the text where their framing is used —
 Christopher Olah's [Understanding LSTMs](https://colah.github.io/posts/2015-08-Understanding-LSTMs/)
-states no licence, so it is linked and credited rather than reproduced; the LSTM cell
-diagram in chapter 05 was drawn for this book.
+and Jay Alammar's [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/).
+Neither licenses its figures for reuse, so neither is reproduced here.

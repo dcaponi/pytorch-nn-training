@@ -660,6 +660,14 @@ figcaption b, .caption b { color: var(--ink-soft); }
 .sayback .box-label { color: var(--sayback); }
 .feel .box-label { color: var(--feel); }
 
+/* Diagrams are drawn on a 760-unit canvas. Rendered into the 39rem text column they
+   scale to 0.75, which drags a 12px label down to 9px — so figures take the wider
+   measure and centre on the column rather than overhanging it. Below the sidebar
+   breakpoint they fall back to full width, where max-width:100% already holds. */
+@media (min-width: 68rem) {
+  .figure.wide { margin-left: -4.5rem; }
+}
+
 /* the one link in the book that people need to be able to find at a glance */
 .repo-link {
   display: inline-block;
