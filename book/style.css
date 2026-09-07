@@ -660,6 +660,21 @@ figcaption b, .caption b { color: var(--ink-soft); }
 .sayback .box-label { color: var(--sayback); }
 .feel .box-label { color: var(--feel); }
 
+/* the one link in the book that people need to be able to find at a glance */
+.repo-link {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.88rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  text-decoration: none;
+  word-break: break-all;
+}
+.repo-link:hover { background: var(--accent); color: var(--bg-raised); }
+
 /* floor / typical / ceiling tables */
 .feel table { font-size: 0.75rem; }
 .feel table td:nth-child(2),

@@ -255,18 +255,48 @@ inside the noise — and leaves the architecture to you.
 
 ## Getting Started
 
-**Requirements:** Python 3.13+, [uv](https://docs.astral.sh/uv/)
+The only prerequisite is **[uv](https://docs.astral.sh/uv/)**. It manages the virtual
+environment, the dependencies *and* the Python version, so you do not need to install or
+upgrade Python yourself even though this project needs 3.13 or newer — if uv cannot find
+a suitable interpreter it downloads one into its own directory and leaves your system
+Python alone. There is no Docker image and no `requirements.txt`.
 
-### 1. Install dependencies
+### 1. Install uv
+
+macOS or Linux:
 
 ```bash
-cd pytorch_nn_training
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Windows, in PowerShell:
+
+```powershell
+irm https://astral.sh/uv/install.ps1 | iex
+```
+
+If your execution policy blocks that, run
+`powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+from a normal prompt instead.
+
+Or with a package manager: `brew install uv`, `winget install astral-sh.uv`, or
+`pipx install uv`. Reopen your terminal afterwards so `uv` is on your `PATH`.
+
+### 2. Clone it and build the environment
+
+The same three lines on every platform:
+
+```bash
+git clone https://github.com/dcaponi/pytorch-nn-training.git
+cd pytorch-nn-training
 uv sync
 ```
 
-This creates a `.venv` with PyTorch, NumPy, Matplotlib, NLTK, and Jupyter.
+This creates `.venv/` with PyTorch, NumPy, Matplotlib, NLTK and Jupyter — a few hundred
+megabytes and a minute or two, mostly PyTorch. You never need to `activate` it; `uv run`
+handles that per command.
 
-### 2. Download NLTK data
+### 3. Download NLTK data
 
 ```bash
 uv run python -c "
@@ -281,14 +311,17 @@ nltk.download('punkt')
 Corpora cache in `~/nltk_data/` and are downloaded automatically on first use, so
 this step is optional — it just front-loads the wait.
 
-### 3. Open the book and a notebook, side by side
+### 4. Open the book and a notebook, side by side
+
+The book is published at **<https://dcaponi.github.io/pytorch-nn-training/>** and needs
+no setup at all. To read your local copy instead — `open book/index.html` on macOS,
+`start book\index.html` on Windows, `xdg-open book/index.html` on Linux. Then:
 
 ```bash
-open book/index.html
 uv run jupyter notebook
 ```
 
-### 4. Recommended order
+### 5. Recommended order
 
 Work through the lessons in numbered order — each builds on the previous one's
 vocabulary. Read the book chapter first, do its by-hand exercise, then open the
@@ -332,3 +365,27 @@ trained something, 09b answers the "but where do the weights come from?" questio
 - Apple-silicon gotchas — including MPS silently returning zeros for out-of-range
   embedding indices where CPU raises `IndexError` — are collected in the book's
   Appendix.
+
+---
+
+## Licence
+
+MIT, for everything written for this repository — the notebooks, the tooling, the book's
+prose and the figures drawn for it. See [`LICENSE`](LICENSE).
+
+Three sets of files are redistributed under their own terms, and the MIT grant does not
+reach them:
+
+| Files | Source | Licence |
+|---|---|---|
+| `book/images/alammar/` | [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/), Jay Alammar (2018) | [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/) — **non-commercial** |
+| `book/images/transformer-explainer/` | [Transformer Explainer](https://poloclub.github.io/transformer-explainer/), Polo Club of Data Science | MIT |
+| `book/vendor/katex/` | [KaTeX](https://katex.org), Khan Academy | MIT |
+
+The non-commercial term on the first row binds this repository and anyone who
+redistributes it. `book/images/CREDITS.md` records the provenance of every borrowed
+file, and `book/build.py` refuses to publish a figure whose credit line has gone missing.
+
+Christopher Olah's [Understanding LSTMs](https://colah.github.io/posts/2015-08-Understanding-LSTMs/)
+states no licence, so it is linked and credited rather than reproduced; the LSTM cell
+diagram in chapter 05 was drawn for this book.

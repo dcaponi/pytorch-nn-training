@@ -183,16 +183,72 @@ acceleration on that machine. Every notebook selects it automatically and falls 
 when it is unavailable, so the code runs unchanged on other hardware — just slower.
 </p>
 
+<p>
+The notebooks, and this book's source, live in one repository:
+</p>
+
+<p style="text-align:center;margin:1.4rem 0">
+  <a class="repo-link" href="https://github.com/dcaponi/pytorch-nn-training">github.com/dcaponi/pytorch-nn-training</a>
+</p>
+
 <div class="box note">
-  <span class="box-label">Setup</span>
-  <p style="margin-bottom:.5rem">From the repository root:</p>
-<pre><code class="language-python">uv sync                     # creates .venv with torch, numpy, matplotlib, nltk, jupyter
-uv run jupyter notebook     # then open a lesson folder</code></pre>
+  <span class="box-label">Setup — macOS, Windows and Linux</span>
+  <p style="margin-top:0">
+  There is no Docker image and no <code>requirements.txt</code> to fight with. One tool,
+  <a href="https://docs.astral.sh/uv/">uv</a>, handles the virtual environment, the
+  dependencies <em>and</em> the Python version — so you do not need to install or upgrade
+  Python first, even though this project needs 3.13 or newer. If uv cannot find a suitable
+  interpreter it downloads one, into its own directory, without touching your system
+  Python.
+  </p>
+
+  <p style="margin-bottom:.4rem"><strong>1. Install uv.</strong> macOS or Linux:</p>
+<pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
+  <p style="margin-bottom:.4rem">Windows, in PowerShell:</p>
+<pre><code>irm https://astral.sh/uv/install.ps1 | iex</code></pre>
+  <p style="margin-bottom:.4rem">
+  If your execution policy blocks that, run it from a normal prompt as
+  <code>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code>
+  instead.
+  </p>
+  <p style="margin-bottom:.4rem">
+  Either platform, if you would rather use a package manager:
+  <code>brew install uv</code>, <code>winget install astral-sh.uv</code>, or
+  <code>pipx install uv</code>. Then close and reopen your terminal so the new
+  <code>uv</code> is on your path.
+  </p>
+
+  <p style="margin-bottom:.4rem"><strong>2. Get the notebooks and build the environment.</strong>
+  The same three lines everywhere:</p>
+<pre><code>git clone https://github.com/dcaponi/pytorch-nn-training.git
+cd pytorch-nn-training
+uv sync</code></pre>
+  <p style="margin-bottom:.4rem">
+  <code>uv sync</code> creates <code>.venv/</code> with PyTorch, NumPy, Matplotlib, NLTK
+  and Jupyter, fetching a Python 3.13 for you if you have none. Expect a few hundred
+  megabytes and a minute or two, mostly PyTorch. You never need to
+  <code>activate</code> anything — <code>uv run</code> does it per command.
+  </p>
+
+  <p style="margin-bottom:.4rem"><strong>3. Open a notebook.</strong></p>
+<pre><code>uv run jupyter notebook     # then open a lesson folder</code></pre>
   <p style="margin-bottom:0">
   Corpora download on first use and cache in <code>~/nltk_data/</code>. Chapter&nbsp;11 needs
   no extra dependencies: quantization and LoRA are both implemented from scratch, because
   implementing them from scratch is the point.
   </p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">If you are not on a Mac</span>
+  Everything runs, and the code is unchanged — only the device selection differs. Each
+  notebook picks <code>mps</code>, then <code>cuda</code>, then <code>cpu</code>,
+  whichever it finds first. On Windows the wheel <code>uv</code> installs from PyPI is
+  CPU-only; that is genuinely fine here, because every model in this curriculum is small
+  enough to train on a CPU in minutes rather than hours. If you have an NVIDIA card and
+  want CUDA, install <code>torch</code> from PyTorch's own index instead, following the
+  selector at <a href="https://pytorch.org/get-started/locally/">pytorch.org</a> — nothing
+  else in the project changes.
 </div>
 
 <h2>Notation</h2>
