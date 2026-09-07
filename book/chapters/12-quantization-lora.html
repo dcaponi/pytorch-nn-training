@@ -358,7 +358,7 @@ understanding; shipping it by hand is leaving performance on the table.
 </p>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 11.1 · quantize a vector</span>
+  <span class="box-label">By hand — exercise 12.1 · quantize a vector</span>
   <div class="given">w = [0.10, −0.30, 0.80, −0.05, 0.45]
 
 Quantize symmetrically to 4 bits, so qmax = 2³ − 1 = 7.</div>
@@ -400,7 +400,7 @@ weights are now identically zero.</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 11.2 · LoRA budgets</span>
+  <span class="box-label">By hand — exercise 12.2 · LoRA budgets</span>
   <p>A transformer with 12 layers, $d_{\text{model}} = 768$. You adapt the four
   attention projections ($W^Q, W^K, W^V, W^O$) in every layer.</p>
   <ol>
@@ -439,7 +439,7 @@ LoRA : 0.59M × 12 bytes =   7 MB        48x less</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 11.3 · will it fit?</span>
+  <span class="box-label">By hand — exercise 12.3 · will it fit?</span>
   <p>No calculator needed beyond multiplication. You have 17 GB of usable memory.</p>
   <ol>
     <li>Can you full fine-tune a 1.5B-parameter model with Adam in fp32?</li>

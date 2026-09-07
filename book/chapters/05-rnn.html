@@ -4,10 +4,11 @@
 <h1>Recurrence and Its Limits</h1>
 
 <p class="lede">
-A convolution looks at a fixed window. A recurrent network looks at everything it has seen
-so far, by carrying a running summary from one token to the next. That is a strictly more
-powerful idea, and it fails for a reason worth understanding in detail — because the fix
-for it shapes everything that follows.
+Averaging a review throws its order away entirely. A recurrent network keeps it, by
+reading one token at a time and carrying a running summary forward. That is a strictly more
+powerful idea than the baseline of <a class="xref" href="#ch04">Chapter 04</a>, and it fails
+for a reason worth understanding in detail — because the fix for it shapes everything that
+follows.
 </p>
 
 <h2>The recurrence</h2>
@@ -20,10 +21,10 @@ $h_t$ that is meant to summarise everything up to position $t$:
 $$h_t = \tanh\big(W_{xh}x_t + W_{hh}h_{t-1} + b_h\big) \qquad\qquad y_t = W_{hy}h_t + b_y$$
 
 <p>
-The essential feature is that $W_{xh}$, $W_{hh}$, and $W_{hy}$ do not depend on $t$. The same
-weights are applied at every step, exactly as a convolution applies the same kernel at every
-position. This is what makes the model handle sequences of any length: there is no
-per-position parameter to run out of.
+The essential feature is that $W_{xh}$, $W_{hh}$, and $W_{hy}$ do not depend on $t$. One
+set of matrices is reused at every step, which is what lets the model handle sequences of
+any length — there is no per-position parameter to run out of, and a sequence twice as long
+costs twice the compute rather than twice the weights.
 </p>
 
 <div class="box concept">
@@ -182,7 +183,7 @@ the tail rather than reweighting it.
 </p>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 04.1</span>
+  <span class="box-label">By hand — exercise 05.1</span>
   <p>
   Unroll a tiny RNN for three steps. Everything is one-dimensional, so all the matrices are
   scalars.
@@ -229,7 +230,7 @@ z₃ = 1.0(−1.0) + 0.5(0.364) = −0.818  →  h₃ = −0.674</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 04.2</span>
+  <span class="box-label">By hand — exercise 05.2</span>
   <p>Temperature, computed rather than dragged.</p>
   <div class="given">logits over 4 characters:   z = [2.0, 1.0, 0.0, −1.0]
 

@@ -590,7 +590,7 @@ decoder of <a class="xref" href="#ch10">Chapter 10</a> and the whole of
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 06.1</span>
+  <span class="box-label">By hand — exercise 07.1</span>
   <p>
   A complete attention computation over three tokens with $d_k = 2$. The numbers are chosen
   so the exponentials are friendly.
@@ -641,7 +641,7 @@ q₃=[1,1]     1         1         2</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 06.2</span>
+  <span class="box-label">By hand — exercise 07.2</span>
   <p>Shapes and cost. No arithmetic beyond multiplication.</p>
   <div class="given">B = 32    L = 128    d_model = 256    n_heads = 8</div>
   <ol>
@@ -771,7 +771,8 @@ after W^O          (32, 128, 256)</div>
   <code>scaled_dot_product_attention</code>, then <code>MultiHeadAttention</code>, then a
   classifier that applies them to the movie reviews from
   <a class="xref" href="#ch04">Chapter 04</a> — so you get a direct accuracy comparison
-  against the CNN on identical data. The final section visualises the learned attention
+  against the bag-of-embeddings baseline on identical data — which isolates exactly what
+  attention buys, since the only thing that changed is how the token vectors are combined. The final section visualises the learned attention
   weights, which is worth studying: several heads will have found something interpretable.
 </div>
 

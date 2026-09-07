@@ -208,9 +208,9 @@ what the notebook has you do.
 </p>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 09b.1</span>
+  <span class="box-label">By hand — exercise 08.1</span>
   <p>
-  Continue exercise 06.1. Same three tokens, same $d_k = 2$, same matrices:
+  Continue exercise 07.1. Same three tokens, same $d_k = 2$, same matrices:
   </p>
   <div class="given">Q = K = V = [[1, 0],
              [0, 1],
@@ -506,7 +506,7 @@ shows up first as a property of the backward pass.
 </p>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 09b.2</span>
+  <span class="box-label">By hand — exercise 08.2</span>
   <p>
   No arithmetic. A translation model has a 6-layer encoder and a 6-layer decoder. You compute
   the loss on a single target position — the third word of one sentence — and call
@@ -574,7 +574,7 @@ for name, p in model.named_parameters():
   differences in double precision and is the right way to trust your own
   <code>Function</code>. Two things it hides worth knowing about: autograd stores the
   <span class="shape">(B, H, L, L)</span> attention matrix for the backward pass, which is
-  the memory cost of <a class="xref" href="#ch07">Chapter 07</a>'s exercise 06.2, and
+  the memory cost of <a class="xref" href="#ch07">Chapter 07</a>'s exercise 07.2, and
   FlashAttention avoids storing it by <em>recomputing</em> $P$ during the backward pass from
   $Q$ and $K$ — trading arithmetic for memory, and computing the same six equations either
   way.

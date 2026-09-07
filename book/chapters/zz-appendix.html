@@ -96,39 +96,39 @@ padding.
   <tbody>
     <tr><td><strong>Autograd</strong></td><td>PyTorch's automatic differentiation. Records operations into a graph during the forward pass, traverses it in reverse on <code>backward()</code>. <a class="xref" href="#ch02">Ch. 02</a></td></tr>
     <tr><td><strong>Backpropagation</strong></td><td>The chain rule applied layer by layer, caching intermediate results. Not a separate algorithm from the chain rule. <a class="xref" href="#ch01">Ch. 01</a></td></tr>
-    <tr><td><strong>BLEU</strong></td><td>$n$-gram overlap metric for translation, with a brevity penalty. Blunt but comparable. <a class="xref" href="#ch10">Ch. 09</a></td></tr>
+    <tr><td><strong>BLEU</strong></td><td>$n$-gram overlap metric for translation, with a brevity penalty. Blunt but comparable. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
     <tr><td><strong>Broadcasting</strong></td><td>Automatic stretching of size-1 dimensions to match. Convenient; a rich source of silent bugs. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
-    <tr><td><strong>Causal mask</strong></td><td>Upper-triangular $-\infty$ added before the softmax so position $t$ cannot see the future. <a class="xref" href="#ch10">Ch. 09</a></td></tr>
-    <tr><td><strong>Cross-attention</strong></td><td>Q from the decoder, K and V from encoder memory. The bridge in a seq2seq model. <a class="xref" href="#ch10">Ch. 09</a></td></tr>
+    <tr><td><strong>Causal mask</strong></td><td>Upper-triangular $-\infty$ added before the softmax so position $t$ cannot see the future. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
+    <tr><td><strong>Cross-attention</strong></td><td>Q from the decoder, K and V from encoder memory. The bridge in a seq2seq model. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
     <tr><td><strong>Cross-entropy</strong></td><td>$-\sum p\log q$; the negative log-likelihood of a categorical model. <a class="xref" href="#ch00-cross-entropy">Ch. 00</a></td></tr>
-    <tr><td><strong>Dropout</strong></td><td>Randomly zero activations during training, scaling survivors. Off at eval. <a class="xref" href="#ch04">Ch. 03</a></td></tr>
-    <tr><td><strong>Embedding</strong></td><td>Learned dense vector per token; a lookup table equivalent to a linear layer on a one-hot. <a class="xref" href="#ch04">Ch. 03</a></td></tr>
-    <tr><td><strong>Exposure bias</strong></td><td>A model trained on perfect prefixes has never seen its own mistakes and cannot recover from them. <a class="xref" href="#ch10">Ch. 09</a></td></tr>
-    <tr><td><strong>Gradient clipping</strong></td><td>Rescale the gradient vector if its norm exceeds a threshold. Fixes explosion, not vanishing. <a class="xref" href="#ch05">Ch. 04</a></td></tr>
-    <tr><td><strong>KV cache</strong></td><td>Stored keys and values so each generation step processes one token instead of $t$. <a class="xref" href="#ch11-kv-cache">Ch. 10</a></td></tr>
-    <tr><td><strong>Layer norm</strong></td><td>Normalise across features within one token. Batch-size independent, unlike batch norm. <a class="xref" href="#ch09">Ch. 07</a></td></tr>
+    <tr><td><strong>Dropout</strong></td><td>Randomly zero activations during training, scaling survivors. Off at eval. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
+    <tr><td><strong>Embedding</strong></td><td>Learned dense vector per token; a lookup table equivalent to a linear layer on a one-hot. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
+    <tr><td><strong>Exposure bias</strong></td><td>A model trained on perfect prefixes has never seen its own mistakes and cannot recover from them. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
+    <tr><td><strong>Gradient clipping</strong></td><td>Rescale the gradient vector if its norm exceeds a threshold. Fixes explosion, not vanishing. <a class="xref" href="#ch05">Ch. 05</a></td></tr>
+    <tr><td><strong>KV cache</strong></td><td>Stored keys and values so each generation step processes one token instead of $t$. <a class="xref" href="#ch11-kv-cache">Ch. 11</a></td></tr>
+    <tr><td><strong>Layer norm</strong></td><td>Normalise across features within one token. Batch-size independent, unlike batch norm. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
     <tr><td><strong>Logit</strong></td><td>A raw unbounded score before softmax or sigmoid. Pass these to the loss, not probabilities. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
-    <tr><td><strong>LoRA</strong></td><td>Freeze $W$, train a low-rank $BA$ alongside it. $B$ starts at zero. <a class="xref" href="#ch12">Ch. 11</a></td></tr>
-    <tr><td><strong>Nucleus (top-p)</strong></td><td>Sample from the smallest set of tokens whose cumulative probability exceeds $p$. <a class="xref" href="#ch11">Ch. 10</a></td></tr>
+    <tr><td><strong>LoRA</strong></td><td>Freeze $W$, train a low-rank $BA$ alongside it. $B$ starts at zero. <a class="xref" href="#ch12">Ch. 12</a></td></tr>
+    <tr><td><strong>Nucleus (top-p)</strong></td><td>Sample from the smallest set of tokens whose cumulative probability exceeds $p$. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
     <tr><td><strong>Perplexity</strong></td><td>$e^{\mathcal{L}}$: the effective number of choices the model is deciding between. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
-    <tr><td><strong>Positional encoding</strong></td><td>Position information added to embeddings, because attention is order-blind. <a class="xref" href="#ch09">Ch. 07</a></td></tr>
-    <tr><td><strong>Pre-norm / post-norm</strong></td><td>Whether LayerNorm sits inside or outside the residual path. Pre-norm trains deeper, more stably. <a class="xref" href="#ch11">Ch. 10</a></td></tr>
-    <tr><td><strong>Quantization</strong></td><td>Representing weights on a coarse integer grid. Error is bounded by half the step size. <a class="xref" href="#ch12">Ch. 11</a></td></tr>
-    <tr><td><strong>Residual connection</strong></td><td>$x + F(x)$. Gives gradients an unobstructed additive path to every layer. <a class="xref" href="#ch09">Ch. 07</a></td></tr>
+    <tr><td><strong>Positional encoding</strong></td><td>Position information added to embeddings, because attention is order-blind. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
+    <tr><td><strong>Pre-norm / post-norm</strong></td><td>Whether LayerNorm sits inside or outside the residual path. Pre-norm trains deeper, more stably. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
+    <tr><td><strong>Quantization</strong></td><td>Representing weights on a coarse integer grid. Error is bounded by half the step size. <a class="xref" href="#ch12">Ch. 12</a></td></tr>
+    <tr><td><strong>Residual connection</strong></td><td>$x + F(x)$. Gives gradients an unobstructed additive path to every layer. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
     <tr><td><strong>FlashAttention</strong></td><td>Tiled attention with an online softmax; the $L\times L$ matrix is never materialised, so memory is linear in $L$. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>GQA / MQA</strong></td><td>Heads share key/value projections, in groups or entirely. Shrinks the KV cache, which is what limits concurrent users. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>GRPO</strong></td><td>Group Relative Policy Optimization: preference optimisation without a value network, normalising advantages within a sampled group. Used for reasoning training. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>MLA</strong></td><td>Multi-head latent attention: cache a low-rank latent instead of full K and V. Chapter 12's factorisation, applied to the cache. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>MoE</strong></td><td>Mixture of experts: many feed-forward blocks, a router picking top-$k$ per token. Total parameters grow; active parameters do not. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>RMSNorm</strong></td><td>LayerNorm without the mean subtraction or shift — scale only. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
-    <tr><td><strong>RoPE</strong></td><td>Rotary position embedding: rotate $q$ and $k$ by an angle proportional to position, making the dot product depend on relative offset. <a class="xref" href="#ch09">Ch. 07</a></td></tr>
+    <tr><td><strong>RoPE</strong></td><td>Rotary position embedding: rotate $q$ and $k$ by an angle proportional to position, making the dot product depend on relative offset. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
     <tr><td><strong>Speculative decoding</strong></td><td>A small draft model proposes tokens; the large model verifies them in one parallel pass. Same output distribution, faster. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>SwiGLU</strong></td><td>A gated feed-forward block — the LSTM gating idea applied to the MLP. Better per parameter. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>Softmax</strong></td><td>Logits to a distribution. Invariant to adding a constant — which is why you subtract the max. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
-    <tr><td><strong>Teacher forcing</strong></td><td>Feed the ground-truth prefix during training rather than the model's own output. <a class="xref" href="#ch10">Ch. 09</a></td></tr>
-    <tr><td><strong>Temperature</strong></td><td>Divide logits before softmax: below 1 sharpens, above 1 flattens. Never changes the ranking. <a class="xref" href="#ch05">Ch. 04</a></td></tr>
-    <tr><td><strong>Vanishing gradient</strong></td><td>A product of many sub-1 factors decaying geometrically with depth or time. <a class="xref" href="#ch05">Ch. 04</a></td></tr>
-    <tr><td><strong>Weight tying</strong></td><td>Sharing the embedding matrix with the output head. Saves parameters, usually improves quality. <a class="xref" href="#ch11">Ch. 10</a></td></tr>
+    <tr><td><strong>Teacher forcing</strong></td><td>Feed the ground-truth prefix during training rather than the model's own output. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
+    <tr><td><strong>Temperature</strong></td><td>Divide logits before softmax: below 1 sharpens, above 1 flattens. Never changes the ranking. <a class="xref" href="#ch05">Ch. 05</a></td></tr>
+    <tr><td><strong>Vanishing gradient</strong></td><td>A product of many sub-1 factors decaying geometrically with depth or time. <a class="xref" href="#ch05">Ch. 05</a></td></tr>
+    <tr><td><strong>Weight tying</strong></td><td>Sharing the embedding matrix with the output head. Saves parameters, usually improves quality. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
   </tbody>
 </table>
 </div>

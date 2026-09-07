@@ -136,7 +136,8 @@ the clearest justification for keeping adapters separate rather than merging the
 <p><em>Builds on <a class="xref" href="#ch04">03</a>–<a class="xref" href="#ch09">07</a>.</em></p>
 
 <p>
-Compare CNN, LSTM, and transformer on one task under conditions fair enough that the
+Compare the bag-of-embeddings baseline, an LSTM, and a transformer on one task under
+conditions fair enough that the
 result means something. This project is not technically the hardest; it is the most
 demanding about rigour, and that is the point.
 </p>
@@ -160,9 +161,10 @@ and the notebook provides a binary-search helper for exactly this. And
 The most instructive extension is the <strong>learning-curve study</strong>: retrain
 each architecture at 10%, 25%, 50%, and 100% of the training data. The ranking will
 probably change with dataset size, and understanding <em>why</em> — the transformer
-has the weakest inductive bias and therefore needs the most data, while the CNN's
-translation invariance is a strong prior that pays off when data is scarce — ties
-together <a class="xref" href="#ch04">Chapter 04</a> and
+has the weakest inductive bias and therefore needs the most data, while the baseline's
+refusal to model order at all is a very strong prior that stops hurting only once there is
+enough data to learn order from — ties together <a class="xref" href="#ch04">Chapter 04</a>
+and
 <a class="xref" href="#ch09">Chapter 09</a> better than either chapter does alone.
 </p>
 
@@ -187,9 +189,9 @@ candidates, roughly in order of effort:
 <table>
   <thead><tr><th>Paper</th><th>Claim to reproduce</th><th>Why it is tractable here</th></tr></thead>
   <tbody>
-    <tr><td>Kim (2014), CNN for sentences</td><td>the multi-width CNN beats a bag-of-words baseline</td><td>you already built it in <a class="xref" href="#ch04">Ch. 03</a></td></tr>
+    <tr><td>Iyyer et al. (2015), deep unordered composition</td><td>averaged embeddings plus depth rival far more complex models on sentiment</td><td><a class="xref" href="#ch04">Ch. 04</a> is the shallow version of exactly this</td></tr>
     <tr><td>Holtzman et al. (2019), nucleus sampling</td><td>top-p beats beam search on repetition metrics</td><td>your Ch. 10 model plus <code>distinct_n</code></td></tr>
-    <tr><td>LoRA (2021), §4.1</td><td>low rank suffices; rank beyond a point adds little</td><td>the rank sweep in <a class="xref" href="#ch12">Ch. 11</a>, extended</td></tr>
+    <tr><td>LoRA (2021), §4.1</td><td>low rank suffices; rank beyond a point adds little</td><td>the rank sweep in <a class="xref" href="#ch12">Ch. 12</a>, extended</td></tr>
     <tr><td>Xiong et al. (2020), pre-norm</td><td>post-norm needs warmup; pre-norm does not</td><td>one flag in your Ch. 07/10 block, two training runs</td></tr>
     <tr><td>Press &amp; Wolf (2017), weight tying</td><td>tying improves perplexity, not just size</td><td>one line in your Ch. 10 GPT</td></tr>
   </tbody>

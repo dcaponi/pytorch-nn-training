@@ -160,13 +160,18 @@ The craft that separates code that trains from code that trains reliably.
 - Length bucketing, reproducibility, and a symptom-to-cause debugging table
 - Overfit eight examples first — the single best debugging move
 
-### 04 — CNN for Sentiment Analysis
-Train a convolutional network on the NLTK movie_reviews corpus (2,000 real reviews).
+### 04 — Text, Embeddings, and a Baseline
+The first real data: the NLTK movie_reviews corpus, 2,000 actual film reviews.
 
+- Tokenising, building a vocabulary, and the leakage that inflates your accuracy if you
+  build it from the wrong split
 - `nn.Embedding` and why one-hot vectors are a bad encoding
-- `nn.Conv1d` with multiple kernel widths, and the transpose everyone gets wrong
-- Global max pooling, dropout, and the train/test split
-- ~80% test accuracy, and where the architecture's ceiling comes from
+- A bag-of-embeddings classifier — a masked mean and a linear layer, and nothing else —
+  reaching ~80% test accuracy
+- Why the mask matters, dropout, and the train/test split
+- **The ceiling, measured**: averaging is commutative, so word order is not merely hard
+  for this model but unrepresentable. Every later architecture is measured against this
+  number.
 
 ### 05 — RNN for Character-Level Text Generation
 Train a recurrent network on *Alice's Adventures in Wonderland*.
@@ -334,7 +339,7 @@ notebook.
 | 01 | `01_nn_from_scratch/prompt.ipynb` | A Neural Network from Scratch | 45–60 min |
 | 02 | `02_nn_pytorch/prompt.ipynb` | The Same Network in PyTorch | 30–45 min |
 | 03 | `03_pytorch_in_practice/prompt.ipynb` | PyTorch in Practice | 45–60 min |
-| 04 | `04_cnn_sentiment/prompt.ipynb` | Convolutions over Text | 45–60 min |
+| 04 | `04_text_baseline/prompt.ipynb` | Text, Embeddings, and a Baseline | 45–60 min |
 | 05 | `05_rnn_pytorch/prompt.ipynb` | Recurrence and Its Limits | 60–90 min |
 | 06 | `06_lstm_pytorch/prompt.ipynb` | LSTMs: Gated Memory | 60–90 min |
 | 07 | `07_self_attention/prompt.ipynb` | Self-Attention from Scratch | 60–90 min |

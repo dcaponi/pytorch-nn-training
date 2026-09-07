@@ -487,7 +487,8 @@ def check_exercise_refs(chapters: list[Chapter]) -> list[str]:
 
 
 XREF_LABEL_RE = re.compile(
-    r'<a class="xref" href="#(ch\d\d)[^"]*">\s*Chapter\s+(\d\d[b]?)\s*</a>', re.DOTALL
+    r'<a class="xref" href="#(ch\d\d)[^"]*">\s*Ch(?:apter|\.)\s*(\d\d[b]?)\s*</a>',
+    re.DOTALL,
 )
 
 

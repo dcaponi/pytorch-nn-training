@@ -436,7 +436,7 @@ rather than forcing an average.
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 07.1</span>
+  <span class="box-label">By hand — exercise 09.1</span>
   <p>Layer normalisation on one token with four features.</p>
   <div class="given">x = [2.0, 4.0, 4.0, 6.0]        γ = [1, 1, 1, 1]   β = [0, 0, 0, 0]   ε ≈ 0</div>
   <ol>
@@ -478,7 +478,7 @@ rather than forcing an average.
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 07.2</span>
+  <span class="box-label">By hand — exercise 09.2</span>
   <p>Positional encoding, computed directly.</p>
   <div class="given">d_model = 4, so dimension pairs are i = 0 (dims 0,1) and i = 1 (dims 2,3)
 
@@ -580,7 +580,8 @@ PE(2) = [sin 2,     cos 2,     sin 0.02,   cos 0.02 ] = [0.909, −0.416, 0.020,
   <span class="box-label">Notebook</span>
   Open <code>09_transformer_pytorch/prompt.ipynb</code>. You will implement positional
   encoding, assemble the encoder layer, stack it into a sentiment classifier, and compare
-  against both the CNN (<a class="xref" href="#ch04">Chapter 04</a>) and plain self-attention
+  against both the baseline of <a class="xref" href="#ch04">Chapter 04</a> and plain
+  self-attention
   (<a class="xref" href="#ch07">Chapter 07</a>) on the same reviews. With 2,000 training
   examples do not expect the transformer to dominate — it is the most data-hungry of the
   three, and seeing that empirically is more valuable than seeing it win.

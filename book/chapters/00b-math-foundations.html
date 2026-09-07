@@ -894,8 +894,8 @@ path 2 (w → b → L):          1 × 18 = 18
                        total ∂L/∂w = 54</div>
   <p style="margin-bottom:0">
   The same summation is what makes weight sharing work in
-  <a class="xref" href="#ch04">convolutions</a> and
-  <a class="xref" href="#ch05">recurrent networks</a> — and why <code>zero_grad()</code>
+  <a class="xref" href="#ch05">recurrent networks</a>, where one matrix is reused at every
+  timestep — and why <code>zero_grad()</code>
   is mandatory, since autograd cannot tell where one backward pass ends and the next
   begins.
   </p>

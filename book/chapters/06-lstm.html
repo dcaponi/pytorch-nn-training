@@ -312,7 +312,7 @@ That is the same exposure-bias problem that
 </p>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 05.1</span>
+  <span class="box-label">By hand — exercise 06.1</span>
   <p>
   One step of an LSTM cell, one-dimensional so every gate is a single number.
   </p>
@@ -331,7 +331,7 @@ tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
     <li>Compute $c_1$, and say how much of it came from memory versus from new input.</li>
     <li>Compute $h_1$.</li>
     <li>Compute $\partial c_1 / \partial c_0$. Compare with the plain-RNN factor of about
-        0.25–0.5 from <a class="xref" href="#ch05">exercise 04.1</a>.</li>
+        0.25–0.5 from <a class="xref" href="#ch05">exercise 05.1</a>.</li>
     <li>Suppose this same $f$ held for 20 steps. What fraction of $c_0$ survives? What if the
         network had instead learned $f = 0.99$?</li>
   </ol>
@@ -353,7 +353,7 @@ tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
     $c_0$, treating the gates as fixed:</p>
     <div class="given">∂c₁/∂c₀ = f₁ = 0.881</div>
     <p>No weight matrix, no $\tanh'$ — just the forget gate. Against the RNN's 0.273 from
-    exercise 04.1, this is <strong>3.2× more gradient preserved per step</strong>, and unlike
+    exercise 05.1, this is <strong>3.2× more gradient preserved per step</strong>, and unlike
     the RNN's factor it is something the network can adjust.</p>
     <p><strong>5.</strong> Over 20 steps at $f = 0.881$: $0.881^{20} = 0.081$, so about 8%
     survives — decay, but gentle enough to learn through. At $f = 0.99$:
@@ -364,7 +364,7 @@ tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 05.2</span>
+  <span class="box-label">By hand — exercise 06.2</span>
   <p>Parameter counting, and one consequence.</p>
   <ol>
     <li>An LSTM cell computes four pre-activations, each from the concatenation
@@ -462,7 +462,7 @@ tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
   Open <code>06_lstm_pytorch/prompt.ipynb</code>. You will generate the sine data, build
   sliding-window sequences, define the LSTM regressor, train it, and plot predictions against
   ground truth. The final section compares directly against the RNN from
-  <a class="xref" href="#ch05">Chapter 05</a> — keep exercise 05.2 in mind when you read that
+  <a class="xref" href="#ch05">Chapter 05</a> — keep exercise 06.2 in mind when you read that
   comparison.
 </div>
 
