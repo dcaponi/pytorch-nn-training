@@ -1003,6 +1003,128 @@ dL/db1  = column sums of G1    (h,)</div>
   </p>
 </div>
 
+<h4>Where each of those four gradients comes from</h4>
+
+<p>
+Asserting six lines is not the same as deriving them, so here is each parameter in turn.
+The recipe never changes: find where the parameter appears in the composed expression,
+list what stands between it and the loss, and multiply by each of those in turn.
+</p>
+
+<p>
+<strong>1. $\partial\mathcal{L}/\partial W_2$.</strong> $W_2$ appears once, in
+$Z_2 = A_1W_2 + b_2$. Between it and the loss stand the softmax and the cross-entropy —
+two operations, exactly as the nesting predicted. Those two collapse into a single
+subtraction:
+</p>
+
+<div class="given">L  <-  CE  <-  softmax  <-  Z2  <-  W2
+
+  step 1   both of the outer two at once:
+           G2 = dL/dZ2 = (P - Y) / N               (N,K)
+
+  step 2   Z2 = A1 W2 + b2, and W2 is the RIGHT factor of that product,
+           so by the rule above you multiply by the left one, transposed:
+           dL/dW2 = A1^T G2                        (h,N)(N,K) -> (h,K)</div>
+
+<p>
+The shape is $W_2$'s shape, which is the check. Note that the batch axis $N$ is what gets
+summed over by the matrix product — every example contributes to every weight, and the
+product adds those contributions up for you.
+</p>
+
+<p>
+<strong>2. $\partial\mathcal{L}/\partial b_2$.</strong> Same line, same two operations
+above it, but $b_2$ enters by addition rather than multiplication. Differentiating a sum
+with respect to one of its terms gives 1, so nothing scales the incoming gradient at
+all — the only question is how many places $b_2$ went:
+</p>
+
+<div class="given">Z2[n,k] = sum_j A1[n,j] W2[j,k]  +  b2[k]
+                                    ^^^^^
+                                    the same b2[k] was added to all N rows
+
+  dZ2[n,k] / db2[k] = 1     for every n
+
+  so every row's gradient lands on the same entry, and they add:
+  dL/db2[k] = sum over n of G2[n,k]              (K,)
+
+  in code:    db2 = G2.sum(axis=0)</div>
+
+<p>
+That sum is not a convention — it is
+<a class="xref" href="#ch00-partial-derivatives-gradients-and-paths">summing over
+paths</a> from earlier in this part. Broadcasting $b_2$ across the batch created $N$
+separate routes from $b_2$ to the loss, and the total derivative is the sum over all of
+them. Any parameter that gets broadcast is summed over the axis it was broadcast along;
+that single sentence covers every bias in this book.
+</p>
+
+<p>
+<strong>3. $\partial\mathcal{L}/\partial W_1$.</strong> Now the longer one, and it is
+longer only because $W_1$ is deeper. Four things stand between it and the loss:
+</p>
+
+<div class="given">L  <-  CE  <-  softmax  <-  Z2  <-  A1  <-  Z1  <-  W1
+
+  step 1   as before:
+           G2 = (P - Y) / N                        (N,K)
+
+  step 2   Z2 = A1 W2 + b2, and now we want the LEFT factor, A1,
+           so multiply by the right one transposed:
+           dL/dA1 = G2 W2^T                        (N,K)(K,h) -> (N,h)
+
+  step 3   A1 = f(Z1) is elementwise, so its derivative is elementwise too
+           — no matrix product, just a mask:
+           G1 = dL/dZ1 = (G2 W2^T) * f'(Z1)        (N,h)
+
+  step 4   Z1 = X W1 + b1, W1 is again the RIGHT factor:
+           dL/dW1 = X^T G1                         (d,N)(N,h) -> (d,h)</div>
+
+<p>
+Compare step 4 with step 2 of the first derivation. They are the same sentence — <em>what
+came in, transposed, times what wants to change</em> — with $X$ in place of $A_1$ and
+$G_1$ in place of $G_2$. The only work unique to $W_1$ was steps 2 and 3, which produced
+$G_1$. That is what "two wrappers deeper" buys you: two extra steps, both of them
+mechanical.
+</p>
+
+<p>
+<strong>4. $\partial\mathcal{L}/\partial b_1$.</strong> Identical in form to $b_2$, one
+layer down. $b_1$ was broadcast across the batch, so sum the incoming gradient over the
+batch axis:
+</p>
+
+<div class="given">dL/db1[j] = sum over n of G1[n,j]              (h,)
+
+  in code:    db1 = G1.sum(axis=0)</div>
+
+<div class="box note">
+  <span class="box-label">All four, together</span>
+  <div class="given">dL/dW2 = A1^T G2                (h,K)     G2 = (P - Y) / N
+dL/db2 = G2.sum(axis=0)         (K,)
+
+dL/dW1 = X^T  G1                (d,h)     G1 = (G2 W2^T) * f'(Z1)
+dL/db1 = G1.sum(axis=0)         (h,)</div>
+  <p style="margin-bottom:0">
+  Two weight gradients, each <em>input-transposed times error</em>. Two bias gradients,
+  each <em>error summed over the batch</em>. Everything else in the backward pass exists
+  only to produce $G_2$ and $G_1$.
+  </p>
+</div>
+
+<div class="box concept">
+  <span class="box-label">Seeing it with numbers in it</span>
+  Every expression above is a matrix, and each one has the same shape as the parameter it
+  belongs to — so $\partial\mathcal{L}/\partial W_1$ is a $d \times h$ grid whose entry
+  $(i,j)$ is the ordinary partial derivative of the loss with respect to the single number
+  $W_1[i,j]$. <a class="xref" href="#ch01">Chapter 01</a> takes a real network — two
+  inputs, four hidden, one output — and writes those grids out entry by entry, computes
+  each one first as an explicit triple loop and then as the matrix product above, and
+  checks that the two agree. If the formulas here still read as assertions, that is the
+  section that makes them concrete.
+</div>
+
 <div class="box concept">
   <span class="box-label">Key concept</span>
   <p>
