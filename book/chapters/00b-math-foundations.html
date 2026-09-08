@@ -964,6 +964,23 @@ L  = mean over the batch of  -log P[i, correct class]</div>
 </div>
 
 <p>
+Those five lines are a convenience for computing, not five separate functions. Substituted
+into one another they are a single expression, and it is worth writing it out once —
+because <em>this</em>, and not the five lines, is what you are about to differentiate:
+</p>
+
+$$\mathcal{L}(W_1, b_1, W_2, b_2) \;=\; \text{CE}\Big(\;
+\operatorname{softmax}\big(\, f(XW_1 + b_1)\,W_2 + b_2 \,\big) \;,\; Y \Big)$$
+
+<p>
+Four parameters, each appearing exactly once, each buried under a different number of
+operations. $W_2$ sits inside two of them and $W_1$ inside four, which is the entire
+reason the two gradients below have different lengths.
+<a class="xref" href="#ch01">Chapter 01</a> draws this nesting and then computes every
+entry of one of these gradients by hand, as an explicit matrix of partial derivatives.
+</p>
+
+<p>
 Now differentiate. Write $G_2 = \partial\mathcal{L}/\partial Z_2$ and
 $G_1 = \partial\mathcal{L}/\partial Z_1$ — the gradient of the loss with respect to each
 layer's pre-activation. The whole backward pass is these six lines:

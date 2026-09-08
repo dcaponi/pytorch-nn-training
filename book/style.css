@@ -671,7 +671,7 @@ figcaption b, .caption b { color: var(--ink-soft); }
      cannot wrap without destroying the alignment they exist for, so the choice is
      between scrolling them and giving them room; room is better. :has() is the whole
      trick, and where it is unsupported the block simply scrolls as before. */
-  .box:has(.given), .box:has(table) {
+  .box:has(.given), .box:has(table), .chapter > .given, .chapter > .table-wrap {
     width: min(calc(var(--measure) + 14rem), calc(100vw - 27rem));
     max-width: min(calc(var(--measure) + 14rem), calc(100vw - 27rem)) !important;
   }

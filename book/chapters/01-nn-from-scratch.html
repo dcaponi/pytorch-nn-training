@@ -181,6 +181,76 @@ $$\mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N}\Big[y_i \log a_{2,i} + (1-y_i)\log(1 
   02</a>, by never materialising the probability at all.
 </div>
 
+<h2>All of it, as one expression</h2>
+
+<p>
+Before differentiating anything, it is worth seeing the whole thing written out once. The
+four forward equations are a convenience for computing; they are not four separate
+functions. Substituting each into the next gives a single expression, and that expression
+is what the loss actually <em>is</em>:
+</p>
+
+$$\mathcal{L}(W_1, b_1, W_2, b_2) \;=\; \text{BCE}\Big(\;
+\sigma\big(\,\sigma(XW_1 + b_1)\,W_2 + b_2\,\big)\;,\; y \Big)$$
+
+<p>
+Read it from the inside out and every step of the forward pass is there in order:
+multiply the inputs by $W_1$ and add $b_1$; squash; multiply by $W_2$ and add $b_2$;
+squash again; compare against $y$. Nothing has been hidden and nothing has been
+abbreviated — this one line <em>is</em> the network.
+</p>
+
+<p>
+Now notice what it tells you about differentiation. There are exactly four things that
+can change, they each appear exactly once, and each is buried under a different number of
+wrappers. That count is the whole of backpropagation:
+</p>
+
+<figure class="figure wide">
+<svg viewBox="0 0 760 336" role="img" aria-labelledby="f-nest-t f-nest-d" style="font-family:var(--sans)">
+  <title id="f-nest-t">The loss written as one nested expression</title>
+  <desc id="f-nest-d">Five nested boxes, numbered by depth. Innermost is X times W-one plus b-one; around it a sigmoid; around that, times W-two plus b-two; around that another sigmoid; outermost the binary cross-entropy against y. W-two sits inside two wrappers and W-one inside four.</desc>
+  <defs>
+    <marker id="nest-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
+  </defs>
+  <text x="34" y="30" font-size="13.0" text-anchor="start" fill="var(--ink-faint)">Read outward-in. Every wrapper you pass on the way to a parameter is one factor in its gradient.</text>
+  <rect x="118" y="46" width="606" height="232" rx="10" fill="none" stroke="var(--ink-soft)" stroke-width="1.6"/>
+  <text x="132" y="68" font-size="14.0" text-anchor="start" fill="var(--ink-soft)" font-weight="600">BCE(  ·  ,  y )</text>
+  <circle cx="96" cy="62" r="12" fill="none" stroke="var(--ink-soft)" stroke-width="1.3"/>
+  <text x="96" y="67" font-size="13.0" text-anchor="middle" fill="var(--ink-soft)" font-weight="600">1</text>
+  <rect x="174" y="74" width="494" height="176" rx="10" fill="none" stroke="var(--concept)" stroke-width="1.6"/>
+  <text x="188" y="96" font-size="14.0" text-anchor="start" fill="var(--concept)" font-weight="600">σ(  ·  )</text>
+  <circle cx="152" cy="90" r="12" fill="none" stroke="var(--concept)" stroke-width="1.3"/>
+  <text x="152" y="95" font-size="13.0" text-anchor="middle" fill="var(--concept)" font-weight="600">2</text>
+  <rect x="230" y="102" width="382" height="120" rx="10" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+  <text x="244" y="124" font-size="14.0" text-anchor="start" fill="var(--accent)" font-weight="600">·  W₂  +  b₂</text>
+  <circle cx="208" cy="118" r="12" fill="none" stroke="var(--accent)" stroke-width="1.3"/>
+  <text x="208" y="123" font-size="13.0" text-anchor="middle" fill="var(--accent)" font-weight="600">3</text>
+  <rect x="286" y="130" width="270" height="64" rx="10" fill="none" stroke="var(--concept)" stroke-width="1.6"/>
+  <text x="300" y="152" font-size="14.0" text-anchor="start" fill="var(--concept)" font-weight="600">σ(  ·  )</text>
+  <circle cx="264" cy="146" r="12" fill="none" stroke="var(--concept)" stroke-width="1.3"/>
+  <text x="264" y="151" font-size="13.0" text-anchor="middle" fill="var(--concept)" font-weight="600">4</text>
+  <rect x="316" y="152" width="210" height="34" rx="7" fill="var(--notebook)" fill-opacity="0.16" stroke="var(--notebook)" stroke-width="1.6"/>
+  <text x="421" y="175" font-size="14.5" text-anchor="middle" fill="var(--notebook)" font-weight="600">X  W₁  +  b₁</text>
+  <text x="34" y="300" font-size="13.5" text-anchor="start" fill="var(--accent)" font-weight="600">W₂ and b₂ sit inside 2 wrappers</text>
+  <text x="34" y="320" font-size="13.0" text-anchor="start" fill="var(--ink-faint)">∂L/∂W₂ has two factors</text>
+  <text x="410" y="300" font-size="13.5" text-anchor="start" fill="var(--notebook)" font-weight="600">W₁ and b₁ sit inside 4</text>
+  <text x="410" y="320" font-size="13.0" text-anchor="start" fill="var(--ink-faint)">∂L/∂W₁ has four — and that is the only difference</text>
+</svg>
+<figcaption><b>The loss is one function of four matrices.</b> Each ring is one operation
+you would have to differentiate through to reach what is inside it. $W_2$ sits inside two,
+so its gradient is a product of two factors; $W_1$ sits inside four, so its gradient is a
+product of four. When the next section produces a formula with four terms in it, this is
+the reason, and it is the only reason.</figcaption>
+</figure>
+
+<p>
+So $\partial\mathcal{L}/\partial W_2$ will be a short chain and
+$\partial\mathcal{L}/\partial W_1$ a longer one, and the difference between them is not
+conceptual — it is two extra factors, because $W_1$ sits two wrappers deeper. Every
+formula in the next section is that observation carried out.
+</p>
+
 <h2>Backpropagation</h2>
 
 <p>
@@ -240,6 +310,84 @@ the same $b_2$ was broadcast to all four examples, so all four contributions acc
   is an instance of that pattern.
 </div>
 
+<h3>What a gradient actually is</h3>
+
+<p>
+This is worth being pedantic about, because it is the step where people freeze when they
+sit down to type it. $\partial\mathcal{L}/\partial W_2$ is not a new kind of object and
+it is not a single number. It is a <strong>matrix of exactly the same shape as
+$W_2$</strong>, and the entry in row $j$, column $k$ is the ordinary partial derivative of
+the loss with respect to the one number sitting in row $j$, column $k$ of $W_2$.
+</p>
+
+<p>
+$W_2$ is <span class="shape">(4, 1)</span> — four hidden units feeding one output — so its
+gradient has four entries, written out in full:
+</p>
+
+<div class="given">          [ W2[0,0] ]                        [ dL/dW2[0,0] ]
+   W2  =  [ W2[1,0] ]        dL/dW2  =          [ dL/dW2[1,0] ]
+          [ W2[2,0] ]                           [ dL/dW2[2,0] ]
+          [ W2[3,0] ]                           [ dL/dW2[3,0] ]
+
+          shape (4, 1)                          shape (4, 1)   <- always</div>
+
+<p>
+Each of those four numbers answers a completely concrete question: <em>if I nudge this one
+weight up by a tiny amount and change nothing else, does the loss go up or down, and how
+fast?</em> There is no more to it than that. The gradient is just those four answers,
+arranged in the same shape as the weights so you can subtract one from the other.
+</p>
+
+<p>
+And you could compute each entry from its definition. Entry $j$ of
+$\partial\mathcal{L}/\partial W_2$ collects, over every example in the batch, how much
+that example's hidden activation $j$ contributed and how wrong that example's output was:
+</p>
+
+$$\frac{\partial\mathcal{L}}{\partial W_2[j,0]}
+   \;=\; \sum_{n} A_1[n, j]\;\delta_2[n, 0]$$
+
+<p>
+Written as a loop — which is what you would type if you did not know about matrix
+products — that is:
+</p>
+
+<pre><code class="language-python">dW2 = np.zeros_like(W2)                 # (4, 1), same shape as W2
+for j in range(4):                      # every hidden unit
+    total = 0.0
+    for n in range(4):                  # every example in the batch
+        total += A1[n, j] * d2[n, 0]
+    dW2[j, 0] = total</code></pre>
+
+<p>
+And this is the entire point of writing it with matrices — those two loops <em>are</em> a
+matrix product. Multiplying $A_1^\top$ by $\delta_2$ computes exactly that sum, for every
+$j$ at once:
+</p>
+
+<pre><code class="language-python">dW2 = A1.T @ d2                         # identical numbers, one line</code></pre>
+
+<div class="box concept">
+  <span class="box-label">Key concept</span>
+  A matrix product is not a new idea introduced to make this harder. It is a compact
+  spelling of "for every output, sum over the batch of (what came in) times (what wants to
+  change)". Whenever a backward formula in this book looks like
+  $\text{something}^\top \times \text{something}$, you can always unfold it back into
+  the loop above and check it entry by entry — and when a gradient comes out the wrong
+  shape, unfolding it is how you find out why.
+</div>
+
+<p>
+The bias is the same story with one axis fewer. $b_2$ is a single number added to every
+example's output, so nudging it affects all four examples, and its derivative is the sum
+of what each of them wanted:
+</p>
+
+<div class="given">dL/db2[0]  =  d2[0,0] + d2[1,0] + d2[2,0] + d2[3,0]
+
+in code:      db2 = d2.sum(axis=0)          shape (1,)  <- same as b2</div>
+
 <h3>Propagate to the hidden layer</h3>
 
 <p>
@@ -265,6 +413,49 @@ $$\frac{\partial \mathcal{L}}{\partial W_1} = X^{\top}\delta_1
 Same pattern, one layer down. That is the whole algorithm: compute $\delta$ at the top,
 alternately multiply by a weight matrix (to move down a layer) and by an activation
 derivative (to cross a non-linearity), collecting a weight gradient at each stop.
+</p>
+
+<h3>And once more, for the hidden layer</h3>
+
+<p>
+Deliberately repetitive, because this is the one people stall on. $W_1$ is
+<span class="shape">(2, 4)</span> — two input features feeding four hidden units — so its
+gradient has <em>eight</em> entries, one per weight, in exactly that shape:
+</p>
+
+<div class="given">        [ W1[0,0]  W1[0,1]  W1[0,2]  W1[0,3] ]
+   W1 = [ W1[1,0]  W1[1,1]  W1[1,2]  W1[1,3] ]        shape (2, 4)
+
+        [ dL/dW1[0,0]  dL/dW1[0,1]  dL/dW1[0,2]  dL/dW1[0,3] ]
+dL/dW1= [ dL/dW1[1,0]  dL/dW1[1,1]  dL/dW1[1,2]  dL/dW1[1,3] ]   (2, 4)</div>
+
+<p>
+Entry $(i, j)$ asks the same concrete question as before — <em>nudge the weight joining
+input feature $i$ to hidden unit $j$; what happens to the loss?</em> — and is computed the
+same way, by summing over the batch:
+</p>
+
+$$\frac{\partial\mathcal{L}}{\partial W_1[i,j]}
+   \;=\; \sum_{n} X[n, i]\;\delta_1[n, j]$$
+
+<pre><code class="language-python">dW1 = np.zeros_like(W1)                 # (2, 4), same shape as W1
+for i in range(2):                      # every input feature
+    for j in range(4):                  # every hidden unit
+        total = 0.0
+        for n in range(4):              # every example in the batch
+            total += X[n, i] * d1[n, j]
+        dW1[i, j] = total
+
+dW1 = X.T @ d1                          # the same eight numbers, one line</code></pre>
+
+<p>
+Compare the two results and the pattern is exact. For $W_2$ what came in was $A_1$ and
+what wanted to change was $\delta_2$, giving $A_1^\top\delta_2$. For $W_1$ what came in
+was $X$ and what wanted to change was $\delta_1$, giving $X^\top\delta_1$. Same
+sentence, different layer. The only work that was specific to $W_1$ was computing
+$\delta_1$ in the first place — and that, from the previous section, is
+$(\delta_2W_2^\top)\odot\sigma'(Z_1)$: the two extra factors that the nesting diagram
+predicted.
 </p>
 
 <h2>Gradient descent</h2>
