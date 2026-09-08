@@ -363,7 +363,8 @@ plausible-looking loss and is quietly solving a different problem.
   <p>
   Each snippet raises or misbehaves. Name the fault and the fix, without running it.
   </p>
-  <div class="given">A)  model = nn.Sequential(nn.Linear(10, 32), nn.ReLU(), nn.Linear(32, 3), nn.Softmax(dim=1))
+  <div class="given">A)  model = nn.Sequential(nn.Linear(10, 32), nn.ReLU(),
+                          nn.Linear(32, 3), nn.Softmax(dim=1))
     loss = nn.CrossEntropyLoss()(model(X), y)
 
 B)  y = torch.randint(0, 3, (16, 1))

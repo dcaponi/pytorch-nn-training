@@ -456,6 +456,26 @@ pre code {
 
 /* --- callouts ----------------------------------------------------------- */
 
+/* Pre-formatted data blocks: matrices, worked arithmetic, shape tables. These are
+   laid out by hand with spaces, so white-space MUST be preserved — without it the
+   browser collapses the alignment into a paragraph and the block becomes unreadable.
+   Sized for about 66 monospace columns, which fits 93% of the blocks in the book
+   without scrolling; the rest scroll horizontally rather than wrap, because a wrapped
+   ASCII table is worse than a scrolled one. */
+.given {
+  font-family: var(--mono);
+  font-size: 0.94rem;
+  line-height: 1.55;
+  white-space: pre;
+  tab-size: 4;
+  background: rgba(127, 127, 127, .1);
+  border-left: 2px solid var(--rule-strong);
+  border-radius: 0 6px 6px 0;
+  padding: 0.75rem 0.9rem;
+  margin: 0.9rem 0;
+  overflow-x: auto;
+}
+
 .box {
   margin: 1.7rem 0;
   padding: 1.05rem 1.25rem;
@@ -498,18 +518,9 @@ pre code {
   margin: 1.3rem 0;
 }
 .example .box-label { color: var(--ink-faint); }
-.example .given { background: rgba(127,127,127,.09); }
 .concept .example, .note .example, .byhand .example {
   border-left-color: currentColor;
   margin: 0.9rem 0 0.3rem;
-}
-.example .given {
-  font-family: var(--mono);
-  font-size: 0.8rem;
-  border-radius: 6px;
-  padding: 0.6rem 0.8rem;
-  margin: 0.7rem 0;
-  overflow-x: auto;
 }
 
 .warn { border-left: 3px solid var(--warn); background: var(--warn-soft); }
@@ -581,15 +592,6 @@ pre code {
 
 /* by-hand exercise internals */
 .byhand ol { padding-left: 1.2rem; }
-.byhand .given {
-  font-family: var(--mono);
-  font-size: 0.8rem;
-  background: rgba(127,127,127,.1);
-  border-radius: 6px;
-  padding: 0.6rem 0.8rem;
-  margin: 0.7rem 0;
-  overflow-x: auto;
-}
 details {
   margin-top: 0.9rem;
   border-top: 1px dashed var(--rule-strong);
@@ -679,6 +681,17 @@ figcaption b, .caption b { color: var(--ink-soft); }
    measure and centre on the column rather than overhanging it. Below the sidebar
    breakpoint they fall back to full width, where max-width:100% already holds. */
 @media (min-width: 74rem) {
+  /* A box holding a hand-aligned data block gets the wider column too. These blocks
+     cannot wrap without destroying the alignment they exist for, so the choice is
+     between scrolling them and giving them room; room is better. :has() is the whole
+     trick, and where it is unsupported the block simply scrolls as before. */
+  .box:has(.given) {
+    width: min(calc(var(--measure) + 14rem), calc(100vw - 27rem));
+    max-width: min(calc(var(--measure) + 14rem), calc(100vw - 27rem)) !important;
+  }
+}
+
+@media (min-width: 74rem) {
   /* Diagrams are not prose: they gain nothing from the 39rem reading measure and
      lose a lot to it. Left-aligned with the text and run out into the empty right
      margin, a 760-unit canvas renders slightly over 1:1 instead of at 0.75, which
@@ -717,16 +730,6 @@ figcaption b, .caption b { color: var(--ink-soft); }
 }
 .feel ol, .sayback ol { padding-left: 1.2rem; }
 .feel li, .sayback li { margin-bottom: 0.4rem; }
-.feel .given, .sayback .given {
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  background: rgba(127,127,127,.1);
-  border-radius: 6px;
-  padding: 0.7rem 0.8rem;
-  margin: 0.7rem 0;
-  white-space: pre;
-  overflow-x: auto;
-}
 .source .lic {
   display: block;
   font-family: var(--sans);
@@ -5444,7 +5447,8 @@ plausible-looking loss and is quietly solving a different problem.
   <p>
   Each snippet raises or misbehaves. Name the fault and the fix, without running it.
   </p>
-  <div class="given">A)  model = nn.Sequential(nn.Linear(10, 32), nn.ReLU(), nn.Linear(32, 3), nn.Softmax(dim=1))
+  <div class="given">A)  model = nn.Sequential(nn.Linear(10, 32), nn.ReLU(),
+                          nn.Linear(32, 3), nn.Softmax(dim=1))
     loss = nn.CrossEntropyLoss()(model(X), y)
 
 B)  y = torch.randint(0, 3, (16, 1))
