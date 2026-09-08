@@ -91,7 +91,8 @@ words between them — or six hundred.
     position 1                              position 7
 
 RNN   : information travels 1 → 2 → 3 → 4 → 5 → 6 → 7
-        the gradient is multiplied by ~6 Jacobians on the way back.
+        the gradient is multiplied by ~6 Jacobians on the way back
+        (one matrix of partial derivatives per step — chapter 00).
         At a typical factor of 0.5 per step: 0.5⁶ ≈ 0.016
         — 98% of the signal is gone before it arrives.
 

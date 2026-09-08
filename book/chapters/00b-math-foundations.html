@@ -250,6 +250,26 @@ row2 · x = (0)(1) + (3)(2) + (1)(4) = 10        →  [4, 10]</div>
   </details>
 </div>
 
+<div class="box note">
+  <span class="box-label" id="ch00-linear-map">Three names for this one operation</span>
+  <p style="margin-top:0">
+  You will meet all of these, in this book and everywhere else, and they all mean exactly
+  what you just did above:
+  </p>
+  <div class="given">"a linear map"                 multiply by a matrix
+"a linear transformation"      multiply by a matrix
+"an affine transformation"     multiply by a matrix, then add a bias
+"a linear layer"               multiply by a matrix, then add a bias
+"a fully-connected layer"      multiply by a matrix, then add a bias
+"a dense layer"                multiply by a matrix, then add a bias</div>
+  <p style="margin-bottom:0">
+  There is no distinction worth carrying except the bias. When a later chapter says a
+  stack of linear layers "collapses into a single linear map", it is saying that
+  multiplying by $W_2$ and then by $W_1$ is the same as multiplying once by the product
+  $W_2W_1$ — which is a fact about matrix multiplication and not a fact about networks.
+  </p>
+</div>
+
 <h3>Matrix multiplication</h3>
 
 <p>
@@ -1123,6 +1143,59 @@ dL/db1 = G1.sum(axis=0)         (h,)</div>
   each one first as an explicit triple loop and then as the matrix product above, and
   checks that the two agree. If the formulas here still read as assertions, that is the
   section that makes them concrete.
+</div>
+
+<h4 id="ch00-jacobian">What you are multiplying by, and what it is called</h4>
+
+<p>
+Each of those steps multiplied the incoming gradient by something. It is worth naming
+what that something is, because the word turns up constantly from here on and is rarely
+explained.
+</p>
+
+<p>
+When one number depends on one number, the derivative is one number. When a whole vector
+of outputs depends on a whole vector of inputs, there is a derivative for every
+<em>pair</em> — every output with respect to every input — and the natural place to put
+them all is a grid:
+</p>
+
+<div class="given">for an operation taking m inputs to n outputs, the derivative is
+an n x m matrix, and entry (i, j) is
+
+        d(output i) / d(input j)
+
+that matrix is called the JACOBIAN of the operation.</div>
+
+<p>
+So a Jacobian is not a new kind of mathematics. It is a table of ordinary partial
+derivatives, the same objects as everywhere else in this part, arranged so that
+<strong>moving a gradient back through an operation is a matrix multiply by that table</strong>.
+That is the entire reason it exists: it turns "apply the chain rule to every pair of
+things" into one product.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept — and why elementwise functions are cheap</span>
+  <p style="margin-top:0">
+  Look at what the Jacobian of an elementwise function like ReLU or sigmoid must be.
+  Output $i$ depends on input $i$ and on nothing else, so every off-diagonal entry —
+  every "how does output 3 respond to input 7" — is <strong>zero</strong>:
+  </p>
+  <div class="given">Jacobian of an elementwise f, for 3 values:
+
+        [ f'(z1)    0       0    ]
+        [   0     f'(z2)    0    ]
+        [   0       0     f'(z3) ]</div>
+  <p style="margin-bottom:0">
+  And multiplying by a diagonal matrix is the same as multiplying entry by entry. That is
+  why $f'(Z_1)$ appears in the backward pass with a $\odot$ rather than a matrix product,
+  and why activations cost almost nothing to differentiate through. When a later chapter
+  says a gradient was "multiplied by a Jacobian per step", picture one of these — and when
+  it says the softmax's Jacobian is $\operatorname{diag}(p) - pp^{\top}$, notice that the
+  softmax is <em>not</em> elementwise, so its off-diagonal entries are not zero and it
+  costs more.
+  </p>
 </div>
 
 <div class="box concept">

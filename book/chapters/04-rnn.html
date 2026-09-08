@@ -314,7 +314,10 @@ e^0.5=1.649  e^{−0.5}=0.607  e^{−1}=0.368  e^{−2}=0.135</div>
   <details>
     <summary>What a good answer covers — open this afterwards, not before</summary>
     <ol>
-    <li>The same weight matrix is applied at every timestep, so the backward pass multiplies by a similar Jacobian once per step.</li>
+    <li>The same weight matrix is applied at every timestep, so the backward pass multiplies
+        by a similar <a class="xref" href="#ch00-jacobian">Jacobian</a> once per step — the grid of every partial derivative of a
+        step's outputs with respect to its inputs, which is what moving a gradient back
+        through one step amounts to.</li>
     <li>A product of $T$ similar factors is exponential in $T$: it vanishes if the factor is below 1 and explodes if above.</li>
     <li>There is no value of the learning rate that changes a factor of $\lambda^{T}$ — the learning rate scales the step, not the signal that reaches it.</li>
     <li>Clipping fixes the exploding half only, because you can bound a gradient that is too large but cannot recover one that is already zero.</li>

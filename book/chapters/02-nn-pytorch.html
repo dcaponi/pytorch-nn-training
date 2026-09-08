@@ -392,7 +392,7 @@ D)  model = nn.Sequential(nn.Linear(10, 32), nn.Linear(32, 3))
     opposite — float targets — which is why the dtype is worth naming explicitly in
     question 4.)</p>
     <p><strong>D — no non-linearity.</strong> Two <code>Linear</code> layers with nothing
-    between them compose to a single linear map
+    between them compose to a single linear map (one matrix multiply, <a class="xref" href="#ch00-linear-map">chapter 00</a>)
     (<a class="xref" href="#ch01">Chapter 01</a>), so despite appearances this is a
     one-layer model and cannot learn anything a linear classifier cannot. Insert
     <code>nn.ReLU()</code>. Nothing errors; it just quietly underfits, which is the

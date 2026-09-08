@@ -45,7 +45,9 @@ because it is what every deep network is doing at every layer.
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
-  A neural network is a stack of alternating linear maps and elementwise non-linearities.
+  A neural network is a stack of alternating linear maps — matrix multiplies, in other
+  words (<a class="xref" href="#ch00-linear-map">Chapter 00</a>) — and elementwise
+  non-linearities.
   The linear maps rotate, scale, and shear the space; the non-linearities fold it. Composing
   the two, repeatedly, warps the input space until the classes become linearly separable —
   and the last layer draws the straight line. Without the non-linearity between them, two

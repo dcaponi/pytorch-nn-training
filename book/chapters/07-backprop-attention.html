@@ -164,8 +164,11 @@ $$\frac{\partial L}{\partial V} = P^{\top}G, \qquad\qquad \frac{\partial L}{\par
 <p>
 <strong>Through the softmax.</strong> This is the only interesting step. Softmax acts on each
 row independently, so take one row: $p = \operatorname{softmax}(s)$, both length $L$, and
-write $g = \partial L/\partial p$ for that row. The Jacobian is
-$J = \operatorname{diag}(p) - pp^{\top}$, and because $J$ is symmetric,
+write $g = \partial L/\partial p$ for that row. Its <a class="xref" href="#ch00-jacobian">Jacobian</a> — the matrix holding
+every $\partial p_i/\partial s_j$, which is what you multiply by to move the gradient
+back across the softmax — is $J = \operatorname{diag}(p) - pp^{\top}$. Note that it is
+<em>not</em> diagonal: a softmax mixes every input into every output, so unlike ReLU it
+cannot be applied entry by entry. Because $J$ is symmetric,
 </p>
 
 $$\frac{\partial L}{\partial s} = Jg = p \odot \big(g - (p \cdot g)\big)$$

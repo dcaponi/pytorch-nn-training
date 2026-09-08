@@ -594,7 +594,8 @@ pass, through causal self-attention, but the graph has no edge running from one 
 <p>
 The consequence is that a transformer has no backpropagation through time. Its graph depth is
 the number of layers, full stop — not layers times sequence length. Where an RNN over 200
-timesteps multiplies 200 Jacobians on the way back, a 6-layer decoder over 200 timesteps
+timesteps multiplies 200 <a class="xref" href="#ch00-jacobian">Jacobian</a>s on the way back — 200 matrices of partial
+derivatives, one per step — a 6-layer decoder over 200 timesteps
 multiplies 6 sub-layer Jacobians, and does all 200 positions in parallel while it is at it.
 Attention pays $O(L^2)$ memory for this; what it buys is not only the path length of
 <a class="xref" href="#ch06">Chapter 06</a> but a backward pass whose cost does not compound
