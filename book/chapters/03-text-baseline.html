@@ -19,10 +19,10 @@ and each is a design decision with consequences.
 </p>
 
 <p>
-<strong>Tokenise.</strong> Split text into units. Here, lowercased whitespace-and-punctuation
+<strong>Tokenize.</strong> Split text into units. Here, lowercased whitespace-and-punctuation
 tokens from NLTK. Simple, and it makes <em>"Don't"</em> and <em>"dont"</em> different words,
 which is a real cost. <a class="xref" href="#ch10">Chapter 10</a> introduces subword
-tokenisation, which fixes it properly.
+tokenization, which fixes it properly.
 </p>
 
 <p>
@@ -75,7 +75,7 @@ wastes, and the box below shows what the truncation costs in accuracy.
   cutting three quarters of a review removes three quarters of the evidence. A model that
   pooled by taking a <em>maximum</em> would barely notice, needing only the single most
   decisive phrase to survive the cut. Check what your preprocessing threw away before you
-  tune anything — here it is a larger effect than any modelling choice in this chapter.
+  tune anything — here it is a larger effect than any modeling choice in this chapter.
   </p>
 </div>
 
@@ -211,7 +211,7 @@ rather than pre-padding the whole dataset.
 
 <p>
 Two thousand reviews against a model with a million-plus parameters is an invitation to
-memorise. Dropout is the counter: during training, zero each activation independently with
+memorize. Dropout is the counter: during training, zero each activation independently with
 probability $p$, and scale the survivors by $1/(1-p)$ so the expected sum is unchanged.
 </p>
 
@@ -236,7 +236,7 @@ unlearn it.
 
 <p>
 The held-out test set is the only honest number you have. Training accuracy measures
-memorisation; test accuracy measures learning. A gap of a few points is normal, and a large
+memorization; test accuracy measures learning. A gap of a few points is normal, and a large
 and widening gap is the definition of overfitting — which is exactly what
 <a class="xref" href="#ch09">Chapter 09</a> runs into, and handles by keeping the weights
 from the best validation epoch.
@@ -272,7 +272,7 @@ the classifier predicts POSITIVE when the pooled value is above 0</div>
     "inverts what follows", only "contributes its own number". You could push <em>not</em>
     towards $+0.9$ and get this sentence right, and then "not good" would come out positive
     too. The failure is structural, not a matter of tuning: a single number per token,
-    combined by addition, has nowhere to put a rule about neighbours.</p>
+    combined by addition, has nowhere to put a rule about neighbors.</p>
     <p><strong>3.</strong> Identical, $-0.143$. Addition is commutative, so every ordering
     of the same tokens gives the same vector. The model is not <em>bad</em> at word order;
     it is blind to it, which is a stronger and more useful thing to know.</p>
@@ -310,13 +310,13 @@ model:  Embedding(V, d)  ->  masked mean over L  ->  Linear(d, 2)</div>
     <strong>99.98%</strong>. Essentially the whole model is a lookup table that does no
     computation at all. So overfitting will come from the embedding and nowhere else, and
     the levers that matter are the ones that touch it — shrink the vocabulary, shrink $d$,
-    initialise from pretrained vectors, freeze it. Tuning the classifier head, at 0.02% of
+    initialize from pretrained vectors, freeze it. Tuning the classifier head, at 0.02% of
     the parameters, is not going to do anything.</p>
     <p><strong>5.</strong> About $2{,}000 \times 230 = 460{,}000$ token occurrences spread
     over 10,000 rows — an average of 46 updates per row per epoch. But word frequencies are
     Zipfian, so that average is a lie: the top few hundred rows absorb most of it and the
     bottom half of the vocabulary may be updated once or twice in the whole run. Those rows
-    stay essentially at their random initialisation, which is exactly the argument
+    stay essentially at their random initialization, which is exactly the argument
     <a class="xref" href="#ch07">Chapter 07</a> makes from the backward pass — a row that is
     never looked up receives exactly zero gradient.</p>
   </details>
@@ -326,7 +326,7 @@ model:  Embedding(V, d)  ->  masked mean over L  ->  Linear(d, 2)</div>
   <span class="box-label">In the wild</span>
   <p>
   Word-level vocabularies with an <code>&lt;UNK&gt;</code> bucket are a teaching device.
-  Production text pipelines use <strong>subword tokenisation</strong>, which has no
+  Production text pipelines use <strong>subword tokenization</strong>, which has no
   unknown tokens at all — every string decomposes into pieces that are in the vocabulary:
   </p>
 <pre><code class="language-python">from tokenizers import Tokenizer, models, trainers, pre_tokenizers
@@ -395,7 +395,7 @@ tok.encode("antidisestablishmentarianism").tokens
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favourite LLM, in your own words: <strong>what does an embedding
+  Try explaining to your favorite LLM, in your own words: <strong>what does an embedding
   layer actually do, and why is averaging the embeddings both a reasonable baseline and a
   dead end?</strong> Then ask it to correct you, and to push back wherever you were vague
   rather than outright wrong — that is where the gaps hide. Do not use the word "vector"

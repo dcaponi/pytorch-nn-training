@@ -4,7 +4,7 @@
  * chapter navigation, cross-reference clicks, search, mode switching, and widget
  * mounting. Run with `npm test` from this directory.
  *
- * jsdom stubs canvas and does not meaningfully run KaTeX, so widget *drawing*, maths
+ * jsdom stubs canvas and does not meaningfully run KaTeX, so widget *drawing*, math
  * rendering, and CSS layout are out of scope here — see README.md.
  */
 
@@ -81,7 +81,7 @@ setTimeout(() => {
         `${visible().length}: ${visible().map(c => c.id).join(',')}`);
   check('landed on the first chapter', visible()[0] && visible()[0].id === 'preface',
         visible()[0] && visible()[0].id);
-  check('hash normalised to a route', window.location.hash === '#/preface', window.location.hash);
+  check('hash normalized to a route', window.location.hash === '#/preface', window.location.hash);
 
   console.log('\n--- routing ---');
   go('#/ch06');

@@ -664,7 +664,7 @@ figcaption b, .caption b { color: var(--ink-soft); }
 
 /* Diagrams are drawn on a 760-unit canvas. Rendered into the 39rem text column they
    scale to 0.75, which drags a 12px label down to 9px — so figures take the wider
-   measure and centre on the column rather than overhanging it. Below the sidebar
+   measure and center on the column rather than overhanging it. Below the sidebar
    breakpoint they fall back to full width, where max-width:100% already holds. */
 @media (min-width: 74rem) {
   /* A box holding a hand-aligned data block gets the wider column too. These blocks

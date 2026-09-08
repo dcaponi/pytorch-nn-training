@@ -29,7 +29,7 @@ It is the smallest dataset that a network without a hidden layer provably cannot
 </div>
 
 <p>
-Plot those four points. The two labelled 1 sit on one diagonal, the two labelled 0 on the
+Plot those four points. The two labeled 1 sit on one diagonal, the two labeled 0 on the
 other. A model of the form $\hat{y} = \sigma(w_1x_1 + w_2x_2 + b)$ can only carve the plane
 with a single straight line — the decision boundary is exactly where
 $w_1x_1 + w_2x_2 + b = 0$ — and no straight line separates one diagonal from the other. This
@@ -101,7 +101,7 @@ at once as a batch, which makes every operation a matrix multiply.
 <p>
 Reading a weight shape tells you what a layer does: <span class="shape">(2, 4)</span> means
 "consumes 2 features, produces 4". The batch dimension is always first and always passes
-through untouched. If you internalise one debugging habit from this book, make it this one:
+through untouched. If you internalize one debugging habit from this book, make it this one:
 when something breaks, print the shapes.
 </p>
 
@@ -110,7 +110,40 @@ when something breaks, print the shapes.
 $$Z_1 = XW_1 + b_1 \qquad A_1 = \sigma(Z_1) \qquad Z_2 = A_1W_2 + b_2 \qquad A_2 = \sigma(Z_2)$$
 
 <p>
-Four lines, and $A_2$ is the prediction. Two mechanisms inside them deserve unpacking.
+Four lines, and $A_2$ is the prediction. Before unpacking the mechanics, it is worth being
+explicit about the names, because they are not arbitrary and nothing later makes sense
+without them.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Why each layer has two names</span>
+  <p style="margin-top:0">
+  A layer does two things, and each gets its own letter because the backward pass needs
+  both of them separately.
+  </p>
+  <div class="given">Z   "pre-activation"   what the matrix multiply produced,
+                       before anything was squashed
+                       Z1 = X W1 + b1
+
+A   "activation"       the same numbers after the sigmoid
+                       A1 = sigma(Z1)</div>
+  <p>
+  The subscript is just which layer: $Z_1, A_1$ for the hidden layer, $Z_2, A_2$ for the
+  output. $A_2$ has a second name — it is also $\hat{y}$, the prediction — because by
+  then there is nothing left to do to it.
+  </p>
+  <p style="margin-bottom:0">
+  Why keep both rather than overwrite? Because the backward pass needs each for a
+  different reason. It needs $Z_1$ to ask <em>how steep was the sigmoid here</em>, which
+  is $\sigma'(Z_1)$. And it needs $A_1$ because $A_1$ was the <em>input</em> to the next
+  layer, and a weight's gradient is always built from what came into it. Throw either
+  away on the forward pass and you have to recompute it going back — which is exactly why
+  frameworks hold on to activations, and why memory grows with depth.
+  </p>
+</div>
+
+<p>
+Two mechanisms inside those four lines deserve unpacking.
 </p>
 
 <h3>Every entry is a dot product</h3>
@@ -178,7 +211,7 @@ $$\mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N}\Big[y_i \log a_{2,i} + (1-y_i)\log(1 
   subsequent gradient and weight. Working from scratch, the fix is to clip:
   <code>np.clip(a2, 1e-7, 1 - 1e-7)</code>. This is exactly the kind of hazard that
   <code>BCEWithLogitsLoss</code> exists to remove in <a class="xref" href="#ch02">Chapter
-  02</a>, by never materialising the probability at all.
+  02</a>, by never materializing the probability at all.
 </div>
 
 <h2>All of it, as one expression</h2>
@@ -262,7 +295,43 @@ results instead of recomputing them.
 <h3>Start at the output</h3>
 
 <p>
-Differentiate the loss with respect to the prediction, then push through the sigmoid:
+The loss is the only thing we actually care about, so the backward pass starts there and
+works outward. The first question is the simplest one that can be asked: <em>if the
+prediction $a_2$ were slightly larger, would the loss go up or down?</em>
+</p>
+
+<p>
+That is a derivative of the loss formula and nothing more, so take the loss for a single
+example and differentiate it. Only two terms contain $a_2$:
+</p>
+
+$$\mathcal{L}_{\text{one example}} = -\Big[\,y\log a_2 \;+\; (1-y)\log(1 - a_2)\,\Big]$$
+
+<p>
+The derivative of $\log a$ is $1/a$, and the derivative of $\log(1-a)$ is $-1/(1-a)$ by
+the chain rule. So:
+</p>
+
+<div class="given">dL/da2  =  -[  y · (1/a2)   +   (1-y) · (-1/(1-a2))  ]
+
+        =  -[    y/a2      -     (1-y)/(1-a2)          ]
+
+put the two fractions over the common denominator a2(1-a2):
+
+        =  -[  y(1-a2)  -  (1-y)a2  ]  /  [ a2(1-a2) ]
+
+expand the top:   y - y·a2 - a2 + y·a2   =   y - a2
+                      the y·a2 terms cancel
+
+        =  -( y - a2 ) / [ a2(1-a2) ]
+
+        =   ( a2 - y ) / [ a2(1-a2) ]        <- flip the sign, tidier</div>
+
+<p>
+Averaging over the $N$ examples in the batch puts a $1/N$ out front, which is where that
+factor comes from — it is the "mean" in "mean loss", nothing more. Alongside it we need
+the sigmoid's own derivative, which is the one from
+<a class="xref" href="#ch00">Chapter 00</a>:
 </p>
 
 $$\frac{\partial \mathcal{L}}{\partial a_2} = \frac{1}{N}\left(\frac{a_2 - y}{a_2(1-a_2)}\right)
@@ -270,10 +339,35 @@ $$\frac{\partial \mathcal{L}}{\partial a_2} = \frac{1}{N}\left(\frac{a_2 - y}{a_
 \frac{\partial a_2}{\partial z_2} = a_2(1-a_2)$$
 
 <p>
-Multiply them, and the denominator cancels the derivative exactly:
+Now multiply them, because that is what the chain rule says to do when you want to go one
+step further back — from the prediction $a_2$ to the number $z_2$ that produced it. And
+watch what happens: the $a_2(1-a_2)$ that was stuck in the denominator is exactly the
+$a_2(1-a_2)$ arriving from the sigmoid, so they cancel completely:
 </p>
 
 $$\delta_2 = \frac{\partial \mathcal{L}}{\partial z_2} = \frac{1}{N}(a_2 - y)$$
+
+<div class="box note">
+  <span class="box-label">What $\delta$ is, and why it gets a name</span>
+  <p style="margin-top:0">
+  $\delta_2$ is not new notation for its own sake. It is a shorthand for one specific
+  quantity — <strong>the derivative of the loss with respect to a layer's
+  pre-activation</strong>, $\partial\mathcal{L}/\partial z$ — and it earns a name
+  because everything else in that layer is built from it:
+  </p>
+  <div class="given">given delta for a layer, you immediately get:
+
+   the weight gradient    dL/dW  =  (what came in)^T  ·  delta
+   the bias gradient      dL/db  =  sum of delta over the batch
+   the PREVIOUS layer's   delta_prev = (delta · W^T) * sigma'(z_prev)</div>
+  <p style="margin-bottom:0">
+  So the backward pass is really just: compute $\delta$ for the last layer, read off its
+  two gradients, hand a $\delta$ back to the layer before, repeat. Informally $\delta$
+  is "how wrong this layer's output was, measured in a way the layer can act on" — which
+  is why it is often called the <em>error signal</em>. For the output layer it turns out
+  to be literally prediction minus target.
+  </p>
+</div>
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
@@ -480,8 +574,8 @@ training usually means, and lowering the learning rate is usually the fix.
 <p>
 Notice too that this landscape has two minima, and which one you land in depends entirely on
 where you started. Real loss surfaces have astronomically many, which is why weight
-initialisation matters and why two runs of identical code give different results. It is also
-why we initialise $W$ randomly rather than at zero: with identical weights, every hidden unit
+initialization matters and why two runs of identical code give different results. It is also
+why we initialize $W$ randomly rather than at zero: with identical weights, every hidden unit
 computes the same thing, receives the same gradient, and stays identical forever — a failure
 called <strong>symmetry breaking</strong>. Biases can safely start at zero because the
 random weights already break the symmetry.
@@ -649,7 +743,7 @@ optimizer.step()                             # replaces the four updates</code><
   <table>
     <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
     <tbody>
-    <tr><td>Loss at initialisation, $K$ classes</td><td>$\ln K$</td><td>$\ln K$</td><td>$\ln K$</td><td>not approximately — exactly, to two decimals</td></tr>
+    <tr><td>Loss at initialization, $K$ classes</td><td>$\ln K$</td><td>$\ln K$</td><td>$\ln K$</td><td>not approximately — exactly, to two decimals</td></tr>
     <tr><td>$\sigma'(z)$</td><td>0</td><td>0.25 at $z=0$</td><td>0.25</td><td>the ceiling is the problem, not the floor</td></tr>
     <tr><td>$\tanh'(z)$</td><td>0</td><td>1 at $z=0$</td><td>1</td><td>four times sigmoid's, which is why it is preferred</td></tr>
     <tr><td>Weight init std, fan-in $n$</td><td>—</td><td>$1/\sqrt{n}$</td><td>—</td><td>keeps activation variance near 1</td></tr>
@@ -675,7 +769,7 @@ optimizer.step()                             # replaces the four updates</code><
     <p><strong>3.</strong> $\ln 10 = 2.30$, so 6.9 means the network starts
     <em>confidently wrong</em> — it is putting most of its mass on incorrect classes.
     Almost always the initial weights are too large. A network that begins at 6.9 has to
-    spend its early steps undoing its own initialisation.</p>
+    spend its early steps undoing its own initialization.</p>
   </details>
   <p style="margin-bottom:0"><b>The habit.</b> Predict the first loss before you run anything. It is the cheapest bug detector in this book and it costs one logarithm.</p>
 </div>
@@ -683,7 +777,7 @@ optimizer.step()                             # replaces the four updates</code><
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favourite LLM, in your own words: <strong>how does the backward pass work, and why is computing it right-to-left the thing that makes it affordable?</strong>
+  Try explaining to your favorite LLM, in your own words: <strong>how does the backward pass work, and why is computing it right-to-left the thing that makes it affordable?</strong>
   Then ask it to correct you, and to push back wherever you were vague rather than
   outright wrong — that is where the gaps hide. Ban yourself from the word <em>backpropagation</em> entirely.
   </p>
@@ -712,7 +806,7 @@ optimizer.step()                             # replaces the four updates</code><
 <div class="box note">
   <span class="box-label">Where this goes next</span>
   <a class="xref" href="#ch02">Chapter 02</a> rebuilds this identical network in PyTorch.
-  The value of having done it by hand is that you will recognise every piece: autograd
+  The value of having done it by hand is that you will recognize every piece: autograd
   computes the same $\delta$s, <code>nn.Linear</code> holds the same $W$ and $b$, and the
   optimizer performs the same subtraction. Nothing becomes magic — it just gets shorter.
 </div>

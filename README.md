@@ -15,7 +15,7 @@ Two halves that are meant to be used together:
   solutions.
 
 Runs on any laptop: **8 GB of memory is enough**, 16 GB is comfortable, and a GPU is
-optional. No data-centre hardware, no API keys, no multi-gigabyte downloads. The heaviest
+optional. No data-center hardware, no API keys, no multi-gigabyte downloads. The heaviest
 training run in the book peaks at about 860 MB and finishes in minutes.
 
 ---
@@ -68,7 +68,7 @@ component to its production API, a guide to reading papers (with the papers behi
 chapter), and **the modern stack** — the roughly eight substitutions separating
 Chapter 08's transformer from a current frontier model. RMSNorm, SwiGLU, RoPE,
 GQA, latent attention, mixture-of-experts, FlashAttention, speculative decoding, and
-preference optimisation, each with the one-line idea and which resource it buys back.
+preference optimization, each with the one-line idea and which resource it buys back.
 None of them needs mathematics beyond Chapter 00.
 
 To edit it, change a fragment in `book/chapters/` and rebuild:
@@ -114,13 +114,13 @@ the rest are there for the reps.
 - **Calculus** — finite differences and gradient checking, the chain rule, summing over
   paths and the missing-`zero_grad()` bug it explains, the learning-rate convergence bound
 - **Statistics** — expectation and variance, why `σ'(z)` *is* a Bernoulli variance,
-  variance propagation through 20 layers (deriving Xavier and He initialisation, and
+  variance propagation through 20 layers (deriving Xavier and He initialization, and
   watching the wrong scale saturate a network before training starts), the dot-product
   variance behind attention's `√d_k`, dropout's `1/(1-p)`, standard error over seeds
 - **Probability and loss** — likelihood, why every loss is a negative log-likelihood,
   BCE / softmax / cross-entropy from their definitions, the `ŷ - y` gradient verified
   three ways, entropy, KL divergence, and perplexity
-- **Recognising which tool applies** — the skill students actually lack. Four triggers
+- **Recognizing which tool applies** — the skill students actually lack. Four triggers
   (applied repeatedly → variance; measured once → standard error; rare → base rates;
   an output choice → likelihood), three guided diagnoses, then two exercises that carry a
   problem *all the way* from identifying the category to a decision you could defend
@@ -154,7 +154,7 @@ later lesson.
 ### 03 — Text, Embeddings, and a Baseline
 The first real data: the NLTK movie_reviews corpus, 2,000 actual film reviews.
 
-- Tokenising, building a vocabulary, and the leakage that inflates your accuracy if you
+- Tokenizing, building a vocabulary, and the leakage that inflates your accuracy if you
   build it from the wrong split
 - `nn.Embedding` and why one-hot vectors are a bad encoding
 - A bag-of-embeddings classifier — a masked mean and a linear layer, and nothing else —
@@ -176,7 +176,7 @@ Train a recurrent network on *Alice's Adventures in Wonderland*.
 Predict a sine wave from sliding windows, then compare against the RNN.
 
 - Cell state vs hidden state, and the additive gradient path
-- Forget, input, and output gates read as behaviour
+- Forget, input, and output gates read as behavior
 - `nn.LSTM` API details: `batch_first`, `out` vs `h_n`, inter-layer dropout
 - Comparing architectures fairly at matched parameter counts
 
@@ -215,7 +215,7 @@ Assemble a full encoder: positional encoding, residuals, layer norm, feed-forwar
 English→French on the NLTK comtrans corpus.
 
 - Causal masking, and how it makes parallel training of a sequential model possible
-- Cross-attention as learned alignment, visualised
+- Cross-attention as learned alignment, visualized
 - Teacher forcing, the shift, and the exposure bias it creates
 - Autoregressive decoding, greedy vs beam search, BLEU
 
@@ -237,7 +237,7 @@ Both techniques implemented from scratch — no `bitsandbytes`, no `peft`.
 - Adapting a Carroll-trained model to Shakespeare with under 2% of its parameters
 - A rank sweep testing LoRA's low-rank claim empirically
 - QLoRA, and why sequence length rather than parameter count exhausts your memory
-- `torch.ao.quantization` measured against your fake quantization on real serialised
+- `torch.ao.quantization` measured against your fake quantization on real serialized
   bytes, and the `peft` merge operation verified numerically (including the scaling bug
   it catches)
 
@@ -369,16 +369,16 @@ already know what a transformer is, and 13 is open-ended project work.
 
 ---
 
-## Licence
+## License
 
 MIT, for everything written for this repository — the notebooks, the tooling, the book's
 prose and the figures drawn for it. See [`LICENSE`](LICENSE).
 
 Every diagram in the book is drawn for it, as inline SVG. Two sets of files are
 redistributed under their own terms, both MIT, so nothing here restricts reuse beyond
-what the MIT licence above already says:
+what the MIT license above already says:
 
-| Files | Source | Licence |
+| Files | Source | License |
 |---|---|---|
 | `book/images/transformer-explainer/` | [Transformer Explainer](https://poloclub.github.io/transformer-explainer/), Polo Club of Data Science | MIT |
 | `book/vendor/katex/` | [KaTeX](https://katex.org), Khan Academy | MIT |

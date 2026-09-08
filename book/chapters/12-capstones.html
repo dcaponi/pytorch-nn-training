@@ -55,8 +55,8 @@ teacher forcing, greedy decoding, and a corpus BLEU score against a held-out set
 
 <p>
 The highest-value extensions, roughly in order: <strong>beam search</strong> (worth
-1–3 BLEU, and remember length normalisation or the model will prefer short outputs);
-<strong>subword tokenisation</strong>, which attacks the real problem — a word-level
+1–3 BLEU, and remember length normalization or the model will prefer short outputs);
+<strong>subword tokenization</strong>, which attacks the real problem — a word-level
 vocabulary produces endless <code>&lt;UNK&gt;</code>s on French morphology;
 <strong>label smoothing</strong> at 0.1, standard in translation for a reason; and
 <strong>length bucketing</strong> from <a class="xref" href="#ch03-padding">Chapter
@@ -101,7 +101,7 @@ because each token carries more information.
 <a class="xref" href="#ch11">11</a>.</em></p>
 
 <p>
-Train one base model, then produce several specialised variants as LoRA adapters, and
+Train one base model, then produce several specialized variants as LoRA adapters, and
 demonstrate hot-swapping: load the base once, attach adapter A, generate, detach,
 attach adapter B. This is how adapter-based deployment actually works, and building
 it once makes the whole approach concrete in a way reading about it does not.
@@ -139,7 +139,7 @@ the clearest justification for keeping adapters separate rather than merging the
 Compare the bag-of-embeddings baseline, an LSTM, and a transformer on one task under
 conditions fair enough that the
 result means something. This project is not technically the hardest; it is the most
-demanding about rigour, and that is the point.
+demanding about rigor, and that is the point.
 </p>
 
 <p>
@@ -221,7 +221,7 @@ candidates, roughly in order of effort:
   <p>
   A reproduction that confirms the claim is fine. A reproduction that finds the claim
   holds <em>only under conditions the paper did not state</em> is considerably more
-  valuable, and it is common — sensitivity to learning rate, to initialisation, to
+  valuable, and it is common — sensitivity to learning rate, to initialization, to
   dataset size, or to a preprocessing detail buried in an appendix.
   </p>
   <p style="margin-bottom:0">
@@ -266,13 +266,13 @@ equipped for all of them.
 </p>
 
 <ul>
-  <li><strong>Subword tokenisation.</strong> Implement BPE from scratch — the last
+  <li><strong>Subword tokenization.</strong> Implement BPE from scratch — the last
       major component of a modern language model this curriculum does not build.</li>
   <li><strong>RLHF and DPO.</strong> How a base language model becomes an assistant.
       Conceptually distinct from everything here, and the natural sequel to
       <a class="xref" href="#ch10">Chapter 10</a>.</li>
   <li><strong>Retrieval augmentation.</strong> Embed a corpus, retrieve by nearest
-      neighbour, condition generation on what you retrieved.</li>
+      neighbor, condition generation on what you retrieved.</li>
   <li><strong>MLX.</strong> Apple's array framework, designed around unified memory.
       Reimplementing Chapter 10's GPT in it is an excellent way to see what PyTorch
       abstracts away.</li>
@@ -285,7 +285,7 @@ equipped for all of them.
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-must">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favourite LLM, in your own words: <strong>what does your capstone actually show, and where would a skeptical reader attack it first?</strong>
+  Try explaining to your favorite LLM, in your own words: <strong>what does your capstone actually show, and where would a skeptical reader attack it first?</strong>
   Then ask it to correct you, and to push back wherever you were vague rather than
   outright wrong — that is where the gaps hide.
   </p>

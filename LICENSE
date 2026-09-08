@@ -29,8 +29,8 @@ the build tooling, the stylesheet and scripts, the book's prose, and the figures
 drawn for it.
 
 Two sets of files are redistributed here under their own terms, and those terms
-travel with the files rather than being altered by the licence above. Both are
-MIT, so there is no restriction on this repository that the licence above does
+travel with the files rather than being altered by the license above. Both are
+MIT, so there is no restriction on this repository that the license above does
 not already state. `book/images/CREDITS.md` is the long-form record.
 
 --------------------------------------------------------------------------------
@@ -46,7 +46,7 @@ Georgia Tech:
     MIT License. Copyright (c) 2022 Polo Club of Data Science.
 
 The full notice is kept verbatim alongside the files, in
-book/images/transformer-explainer/LICENSE.txt, which is what the licence
+book/images/transformer-explainer/LICENSE.txt, which is what the license
 requires of anyone redistributing them. Do not delete it.
 
 Paper: Cho, A., Kim, G. C., Karpekov, A., Helbling, A., Wang, Z. J., Lee, S.,
@@ -83,10 +83,10 @@ credited in the text where their framing is used:
     https://jalammar.github.io/illustrated-transformer/
     Linked from chapter 06 as further reading.
 
-Neither carries a licence that would permit reproducing its figures here — Olah's
+Neither carries a license that would permit reproducing its figures here — Olah's
 states none at all — so none of their images are in this repository, and none
 should be added without written permission from the author.
 
 The NLTK corpora the notebooks use (movie_reviews, gutenberg, comtrans, punkt)
 are downloaded at runtime to ~/nltk_data/ and are not redistributed here. Each
-carries its own licence, which `nltk.download()` reports.
+carries its own license, which `nltk.download()` reports.

@@ -58,7 +58,7 @@ two ways, and both are essential:
 <figure class="figure wide">
 <svg viewBox="0 0 760 300" role="img" aria-labelledby="f-blk-t f-blk-d" style="font-family:var(--sans)">
   <title id="f-blk-t">Encoder block against decoder block</title>
-  <desc id="f-blk-d">Side by side. The encoder block has two sublayers: bidirectional self-attention then feed-forward. The decoder block has three: causally masked self-attention, cross-attention, then feed-forward. An arrow labelled memory runs from the encoder into the decoder's cross-attention.</desc>
+  <desc id="f-blk-d">Side by side. The encoder block has two sublayers: bidirectional self-attention then feed-forward. The decoder block has three: causally masked self-attention, cross-attention, then feed-forward. An arrow labeled memory runs from the encoder into the decoder's cross-attention.</desc>
   <defs>
     <marker id="blk-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
     <marker id="blk-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
@@ -112,7 +112,7 @@ attend to itself and everything before it, but nothing after. Applied as
 
 <p>
 Tick <em>causal mask</em>: the upper triangle goes dark, and each row's remaining weights
-renormalise to sum to 1.
+renormalize to sum to 1.
 </p>
 
 <div class="box concept">
@@ -402,7 +402,7 @@ size, is to read twenty outputs yourself.
   English→French is actually being trained on three language pairs at once — and will emit
   English where you expected French. Always name the file:
   <code>aligned_sents('alignment-en-fr.txt')</code>. Sanity-check your data by printing a
-  few pairs and reading them. The lesson generalises: almost every corpus has a trap like
+  few pairs and reading them. The lesson generalizes: almost every corpus has a trap like
   this, and printing ten examples is the cheapest bug-detector in machine learning.
 </div>
 
@@ -573,7 +573,7 @@ worth stating out loud, because they are the parts usually left implicit.
   <span class="box-label">Key concept</span>
   This is the general shape of end-to-end training, and it is why the phrase is worth taking
   literally. No component of a transformer has a target of its own. Encoders learn
-  representations, heads learn to specialise, and embeddings learn geometry — all of it as a
+  representations, heads learn to specialize, and embeddings learn geometry — all of it as a
   consequence of one scalar at the far end of the graph, routed back along whichever edges
   happen to exist. When you design a new architecture, the question "what gradient does this
   piece receive, and along which edges?" is usually more informative than "what is this piece
@@ -686,7 +686,7 @@ with sequence length.
 <div class="box warn">
   <span class="box-label">The severed edge is also the problem</span>
   Cut that edge and exposure bias is what grows in its place. Because no gradient ever
-  crosses from one generated token to the next, the model is never penalised for producing a
+  crosses from one generated token to the next, the model is never penalized for producing a
   token that makes the <em>rest</em> of the sentence hard — only for producing a token that
   is wrong given a perfect prefix. Restoring the edge means feeding the model's own output
   back in, and the <code>argmax</code> that picks that token has zero derivative almost
@@ -724,7 +724,7 @@ with sequence length.
     legible stated that way than "loss 2.0".</p>
     <p><strong>2.</strong> Its own mistakes. Every number in that loss was computed with a
     perfect prefix supplied by the data. The model has never been scored on a state it
-    produced itself, so nothing in training penalised entering a loop. A low
+    produced itself, so nothing in training penalized entering a loop. A low
     teacher-forced loss and broken generations are entirely consistent.</p>
     <p><strong>3.</strong> No. BLEU 65 is above most human inter-annotator agreement.
     The overwhelmingly likely explanations are test data leaking into training, or
@@ -737,7 +737,7 @@ with sequence length.
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favourite LLM, in your own words: <strong>how does the source sentence actually get into the decoder, and why is teacher forcing both necessary and a problem?</strong>
+  Try explaining to your favorite LLM, in your own words: <strong>how does the source sentence actually get into the decoder, and why is teacher forcing both necessary and a problem?</strong>
   Then ask it to correct you, and to push back wherever you were vague rather than
   outright wrong — that is where the gaps hide.
   </p>
@@ -758,7 +758,7 @@ with sequence length.
   <span class="box-label">Notebook</span>
   Open <code>09_seq2seq_translation/prompt.ipynb</code>. You will build the causal mask, the
   decoder layer with its three sub-layers, the full seq2seq model, teacher-forced training,
-  and greedy decoding — then visualise the cross-attention alignments. The model overfits
+  and greedy decoding — then visualize the cross-attention alignments. The model overfits
   after about epoch 11 on this small corpus, so the training loop keeps the best-validation
   weights, following <a class="xref" href="#ch03">Chapter 03</a>'s pattern.
 </div>

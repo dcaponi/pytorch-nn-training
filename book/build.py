@@ -167,7 +167,7 @@ PY_TOKEN_RE = re.compile(
 
 
 def highlight_python(code: str) -> str:
-    """Token-colour already-escaped HTML source text."""
+    """Token-color already-escaped HTML source text."""
     out: list[str] = []
     pos = 0
     for m in PY_TOKEN_RE.finditer(code):
@@ -393,7 +393,7 @@ def check_figures(chapters: list[Chapter]) -> list[str]:
                 elif enclosing[0].start() not in credited:
                     problems.append(
                         f"{ch.path.name}: {src} is borrowed but its <figure> has no "
-                        f'<p class="credit"> naming the source and licence'
+                        f'<p class="credit"> naming the source and license'
                     )
 
     img_dir = BOOK / "images"
@@ -504,7 +504,7 @@ def check_xref_labels(chapters: list[Chapter]) -> list[str]:
         for m in XREF_LABEL_RE.finditer(ch.body):
             if m.group(1)[2:] != m.group(2):
                 problems.append(
-                    f"{ch.path.name}: link to #{m.group(1)} is labelled "
+                    f"{ch.path.name}: link to #{m.group(1)} is labeled "
                     f"'Chapter {m.group(2)}'"
                 )
     return problems
@@ -559,7 +559,7 @@ PAGE = """<!DOCTYPE html>
   </div>
   @@TOC@@
   <div class="sidebar-foot">
-    <button id="theme-toggle" aria-label="Toggle colour theme">◐ Theme</button>
+    <button id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button>
     <button id="mode-toggle" aria-label="Toggle continuous reading mode">▤ One chapter</button>
   </div>
 </aside>

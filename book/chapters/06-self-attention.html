@@ -9,7 +9,7 @@ deletes both constraints at once: every position reads directly from every other
 parallel operation. The mechanism is four lines of algebra, and this chapter derives all four.
 </p>
 
-<h2>The problem with summarising</h2>
+<h2>The problem with summarizing</h2>
 
 <p>
 Consider <em>"The animal didn't cross the street because it was too tired."</em> Resolving
@@ -269,7 +269,7 @@ the step people skip and regret.
 
 <p>
 <strong>Softmax over the last dimension.</strong> Each <em>row</em> becomes a probability
-distribution: position $i$'s attention is a normalised allocation over all positions. Rows
+distribution: position $i$'s attention is a normalized allocation over all positions. Rows
 sum to 1; columns do not, and need not.
 </p>
 
@@ -283,7 +283,7 @@ row is the weighted average of all value vectors, weighted by that position's at
 <figure class="figure wide">
 <svg viewBox="0 0 560 210" role="img" aria-labelledby="f-form-t f-form-d" style="font-family:var(--sans)">
   <title id="f-form-t">Scaled dot-product attention, drawn as matrix blocks</title>
-  <desc id="f-form-d">The expression softmax of Q times K transpose over the square root of d_k, all times V, equals the output. Q, K transpose and V are drawn as coloured blocks with their shapes labelled. The Q K transpose product is ringed and marked as square, one score per pair of positions.</desc>
+  <desc id="f-form-d">The expression softmax of Q times K transpose over the square root of d_k, all times V, equals the output. Q, K transpose and V are drawn as colored blocks with their shapes labeled. The Q K transpose product is ringed and marked as square, one score per pair of positions.</desc>
   <defs>
     <marker id="form-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
   </defs>
@@ -355,9 +355,9 @@ weights stop learning. Dividing by $\sqrt{d_k}$ restores unit variance and keeps
 distribution soft.
 </p>
 <figure class="figure plate">
-  <img src="images/transformer-explainer/attention.png" alt="Three grids of attention scores for a six-token prompt: raw dot products ranging -25.3 to 7.4, then scaled and masked to -3.0 to 3.0, then softmaxed to 0 to 1, with the upper triangle greyed out by the causal mask." loading="lazy" decoding="async">
-  <figcaption><b>The argument above, measured on a real model.</b> GPT-2's raw dot products for this six-token prompt span $-25.3$ to $7.4$ — softmax of numbers that spread out is one-hot in all but name. Dividing by $\sqrt{d_k}$ brings them to $\pm 3.0$, back inside the range where the softmax Jacobian is not yet zero. The middle panel also shows the causal mask of the <em>Masking</em> section below: the greyed entries are the ones set to $-\infty$ before the softmax, never after.</figcaption>
-  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;licence. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
+  <img src="images/transformer-explainer/attention.png" alt="Three grids of attention scores for a six-token prompt: raw dot products ranging -25.3 to 7.4, then scaled and masked to -3.0 to 3.0, then softmaxed to 0 to 1, with the upper triangle grayed out by the causal mask." loading="lazy" decoding="async">
+  <figcaption><b>The argument above, measured on a real model.</b> GPT-2's raw dot products for this six-token prompt span $-25.3$ to $7.4$ — softmax of numbers that spread out is one-hot in all but name. Dividing by $\sqrt{d_k}$ brings them to $\pm 3.0$, back inside the range where the softmax Jacobian is not yet zero. The middle panel also shows the causal mask of the <em>Masking</em> section below: the grayed entries are the ones set to $-\infty$ before the softmax, never after.</figcaption>
+  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;license. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
 </figure>
 
 
@@ -516,7 +516,7 @@ $$\operatorname{MultiHead}(X) = \big[\operatorname{head}_1; \dots; \operatorname
 <p>
 With $d_k = d_{\text{model}}/h$, the total compute is essentially unchanged — you are
 splitting the same budget into independent subspaces rather than adding to it. Each head is
-free to specialise, and in trained models they demonstrably do: some track syntactic
+free to specialize, and in trained models they demonstrably do: some track syntactic
 dependencies, some attend to the previous token, some attend to rare words, and a good number
 attend to nothing in particular and can be pruned.
 </p>
@@ -536,9 +536,9 @@ heads next to the batch dimension so that the subsequent matrix multiplications 
 <span class="shape">(B, n_heads)</span> as batch and operate independently per head.
 </p>
 <figure class="figure plate">
-  <img src="images/transformer-explainer/QKV.png" alt="A 6-by-768 embedding matrix multiplied by a 768-by-2304 weight matrix, plus a 2304-long bias, giving a 6-by-2304 matrix whose three coloured thirds are Q, K and V." loading="lazy" decoding="async">
+  <img src="images/transformer-explainer/QKV.png" alt="A 6-by-768 embedding matrix multiplied by a 768-by-2304 weight matrix, plus a 2304-long bias, giving a 6-by-2304 matrix whose three colored thirds are Q, K and V." loading="lazy" decoding="async">
   <figcaption><b>What that paragraph looks like in a shipped model.</b> GPT-2 goes one step further than the code above and fuses all three projections into a single $768 \times 2304$ matrix — $2304 = 3 \times 768$ — so one matrix multiply produces $Q$, $K$ and $V$ for all twelve heads together, and the same <code>view</code>-and-<code>transpose</code> pair carves them apart. Two honest differences from this chapter's version: the fused layout, and the bias term, which the original paper omits and GPT-2 keeps.</figcaption>
-  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;licence. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
+  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;license. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
 </figure>
 
 
@@ -571,7 +571,7 @@ weights = F.softmax(scores, dim=-1)</code></pre>
 <p>
 Since $e^{-\infty} = 0$, those entries receive exactly zero weight, and the remaining weights
 still sum to 1 because the softmax denominator excludes them too. Masking after the softmax
-would leave the rows unnormalised — a subtle bug that degrades results without crashing.
+would leave the rows unnormalized — a subtle bug that degrades results without crashing.
 </p>
 
 <p>
@@ -629,7 +629,7 @@ q₃=[1,1]     1         1         2</div>
     <p>Notice the output is <em>not</em> any input row — it is a genuine blend. That is the
     whole point: position 1's new representation now contains information from position 3.</p>
     <p><strong>5.</strong> With a causal mask, scores at $j > 1$ become $-\infty$, so
-    $e^{-\infty} = 0$ and the row is $[1, 0, 0]$ after normalisation. The output is exactly
+    $e^{-\infty} = 0$ and the row is $[1, 0, 0]$ after normalization. The output is exactly
     $v_1 = [1, 0]$.</p>
     <p>This is inevitable and worth stating as a general fact: <strong>the first position of
     a causal attention layer can only ever return its own value vector</strong>, because it
@@ -691,14 +691,14 @@ after W^O          (32, 128, 256)</div>
   It computes exactly the formula you just implemented — you can and should verify that
   numerically, as the notebook does — but dispatches to a fused
   <strong>FlashAttention</strong> kernel where one is available. The difference is not
-  speed alone. The naive implementation materialises the
+  speed alone. The naive implementation materializes the
   <span class="shape">(B, H, L, L)</span> score matrix in memory; the fused kernel
-  computes attention in tiles and <em>never materialises it at all</em>, so memory grows
+  computes attention in tiles and <em>never materializes it at all</em>, so memory grows
   linearly in $L$ rather than quadratically.
   </p>
   <p style="margin-bottom:0">
   That is the difference between a 4k context and a 128k one, and it came from a
-  systems insight rather than a modelling one — which is a useful thing to notice about
+  systems insight rather than a modeling one — which is a useful thing to notice about
   where progress in this field actually comes from. <code>nn.MultiheadAttention</code>
   wraps the projections too, and <code>nn.TransformerEncoderLayer</code> wraps the whole
   block from <a class="xref" href="#ch08">Chapter 08</a>.
@@ -748,7 +748,7 @@ after W^O          (32, 128, 256)</div>
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favourite LLM, in your own words: <strong>why are there three projections rather than one, and what would break if keys and values were the same vector?</strong>
+  Try explaining to your favorite LLM, in your own words: <strong>why are there three projections rather than one, and what would break if keys and values were the same vector?</strong>
   Then ask it to correct you, and to push back wherever you were vague rather than
   outright wrong — that is where the gaps hide. Do not use the words <em>query</em>, <em>key</em> or <em>value</em> more than once each. Say what the vectors <em>do</em>.
   </p>
@@ -772,7 +772,7 @@ after W^O          (32, 128, 256)</div>
   classifier that applies them to the movie reviews from
   <a class="xref" href="#ch03">Chapter 03</a> — so you get a direct accuracy comparison
   against the bag-of-embeddings baseline on identical data — which isolates exactly what
-  attention buys, since the only thing that changed is how the token vectors are combined. The final section visualises the learned attention
+  attention buys, since the only thing that changed is how the token vectors are combined. The final section visualizes the learned attention
   weights, which is worth studying: several heads will have found something interpretable.
 </div>
 
@@ -794,7 +794,7 @@ after W^O          (32, 128, 256)</div>
       things to try once you have finished this chapter: set the temperature to 0 and to 2 and
       watch the final softmax, and click into a single head to see the values this chapter
       calls $q_i \cdot k_j$ with real numbers attached.
-      <span class="lic">MIT licence.</span>
+      <span class="lic">MIT license.</span>
     </li>
     <li>
       Vaswani et&nbsp;al., <a href="https://arxiv.org/abs/1706.03762"><i>Attention Is All You

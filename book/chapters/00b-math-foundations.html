@@ -6,7 +6,7 @@
 <p class="lede">
 Four areas of mathematics carry all the weight in this book. Linear algebra is what a
 network <em>computes</em>. Calculus is how it <em>learns</em>. Statistics is why it is
-<em>built the way it is</em> — initialisation, normalisation, dropout, and the
+<em>built the way it is</em> — initialization, normalization, dropout, and the
 $\sqrt{d_k}$ in attention are all variance arguments. Probability is what its outputs
 <em>mean</em>, and where every loss comes from.
 </p>
@@ -64,7 +64,7 @@ $$\|\mathbf{a}\| = \sqrt{\textstyle\sum_i a_i^2}$$
 unit vector in the same direction:  a/‖a‖ = [0.6, 0.8]
 check:  0.36 + 0.64 = 1.00  ✓</div>
   <p style="margin-bottom:0">
-  Normalising to unit length separates <em>direction</em> from <em>magnitude</em>. That
+  Normalizing to unit length separates <em>direction</em> from <em>magnitude</em>. That
   separation matters constantly: gradient clipping rescales a gradient's magnitude
   while preserving its direction, and cosine similarity compares direction while
   ignoring magnitude.
@@ -296,11 +296,11 @@ reading it is a skill: <code>mat1 and mat2 shapes cannot be multiplied (64x128 a
 <strong>It <em>is</em> associative</strong>, and this is not a technicality. $(AB)C$ and
 $A(BC)$ give the same answer at wildly different costs — and it is exactly why
 <a class="xref" href="#ch11">LoRA</a> is cheap: computing $x(BA)$ would build a full
-$d \times d$ matrix, while $(xB)A$ never materialises anything larger than $r$ columns.
+$d \times d$ matrix, while $(xB)A$ never materializes anything larger than $r$ columns.
 </p>
 
 <div class="box example">
-  <span class="box-label">Example — associativity as an optimisation</span>
+  <span class="box-label">Example — associativity as an optimization</span>
   <div class="given">x is (1×1000),  B is (1000×4),  A is (4×1000)
 
 (x @ B) @ A :  1×1000×4 = 4,000 mults, then 1×4×1000 = 4,000
@@ -353,8 +353,8 @@ after Linear(64,3)   (32,  3)     64×3  +  3 = 195
     <div class="given">(x@B)@A : (1×1000×4) + (1×4×1000) = 4,000 + 4,000 = 8,000
 x@(B@A) : (1000×4×1000) + (1×1000×1000)  = 4,000,000 + 1,000,000</div>
     <p>Identical answers; <strong>625× the work</strong>. Associativity is a free
-    optimisation, and it is precisely why <a class="xref" href="#ch11">LoRA</a> is cheap
-    at inference: you never materialise $BA$.</p>
+    optimization, and it is precisely why <a class="xref" href="#ch11">LoRA</a> is cheap
+    at inference: you never materialize $BA$.</p>
   </details>
 </div>
 
@@ -363,7 +363,7 @@ x@(B@A) : (1000×4×1000) + (1×1000×1000)  = 4,000,000 + 1,000,000</div>
 <p>
 $A^\top$ swaps rows and columns, so <span class="shape">(m, n)</span> becomes
 <span class="shape">(n, m)</span>. It appears in every backward pass, and the reason is
-worth understanding rather than memorising.
+worth understanding rather than memorizing.
 </p>
 
 <div class="box concept">
@@ -643,7 +643,7 @@ result             (N, N)        every prediction minus every target</div>
 </div>
 
 <div class="box example">
-  <span class="box-label">Example — the four cases worth recognising</span>
+  <span class="box-label">Example — the four cases worth recognizing</span>
   <div class="given">(4, 3) + (3,)       ->  (4, 3)    one row added to every row          OK
 (4, 3) + (4, 1)     ->  (4, 3)    one column added to every column     OK
 (4, 3) + (4,)       ->  ERROR     lines up as 3 vs 4: not equal, neither is 1
@@ -1144,7 +1144,7 @@ going back to B:   dL/dB = A^T (dL/dY)</div>
 <div class="box note">
   <span class="box-label">You can recover every line from the shapes alone</span>
   <p style="margin-top:0">
-  This is worth doing once, because it means you never have to memorise the backward pass
+  This is worth doing once, because it means you never have to memorize the backward pass
   — you can rebuild it at a whiteboard from nothing but the forward shapes.
   </p>
   <p style="margin-bottom:0">
@@ -1252,7 +1252,7 @@ optimum, on the other side. Above that, it diverges.</div>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 00.11 · gradient descent and the learning rate</span>
-  <p>Minimise $\mathcal{L}(w) = (w-4)^2$ from $w_0 = 1$.</p>
+  <p>Minimize $\mathcal{L}(w) = (w-4)^2$ from $w_0 = 1$.</p>
   <ol>
     <li>Write $d\mathcal{L}/dw$ and evaluate at $w = 1$.</li>
     <li>Take three steps at $\eta = 0.1$, tabulating $w$ and $\mathcal{L}$. Are the steps
@@ -1298,8 +1298,8 @@ w₂ = −8  (distance 12)   L = 144</div>
 <h2>Part 3 · Statistics: Why the Architecture Looks Like It Does</h2>
 
 <p>
-This part is the one most curricula skip, and skipping it is why initialisation,
-normalisation, and the $\sqrt{d_k}$ in attention feel like arbitrary folklore. They are
+This part is the one most curricula skip, and skipping it is why initialization,
+normalization, and the $\sqrt{d_k}$ in attention feel like arbitrary folklore. They are
 not. Each is a <strong>variance argument</strong>, and once you can compute variances
 they become obvious.
 </p>
@@ -1326,7 +1326,7 @@ Bernoulli(p): X is 1 with probability p, else 0.
   E[X²]  = p            (because 0² = 0 and 1² = 1, so X² = X)
   Var(X) = p − p² = p(1 − p)</div>
   <p style="margin-bottom:0">
-  Look hard at $p(1-p)$. It is maximised at $p = 0.5$, where it equals
+  Look hard at $p(1-p)$. It is maximized at $p = 0.5$, where it equals
   <strong>0.25</strong> — and it is the <em>same expression</em> as the sigmoid
   derivative $\sigma'(z) = \sigma(z)(1-\sigma(z))$. That is not a coincidence: a sigmoid
   output <em>is</em> a Bernoulli parameter, and its derivative is that Bernoulli's
@@ -1391,7 +1391,7 @@ follows from these two lines.
 </p>
 
 <div class="box concept">
-  <span class="box-label">Key concept — why weights are initialised at $1/\sqrt{n}$</span>
+  <span class="box-label">Key concept — why weights are initialized at $1/\sqrt{n}$</span>
   <p>
   One row of $W$ computes $z = \sum_{i=1}^{n} w_ix_i$ against the input. Take the inputs to have variance 1 and the
   weights to be independent with variance $\sigma_w^2$, all with mean zero. Then each
@@ -1401,8 +1401,8 @@ follows from these two lines.
   <p style="margin-bottom:0">
   For the signal to leave the layer at the same scale it entered — which is what keeps a
   deep stack from exploding or collapsing — you need $\operatorname{Var}(z) = 1$, hence
-  $\sigma_w = 1/\sqrt{n}$. That is Xavier/LeCun initialisation, derived in three lines.
-  ReLU discards the negative half and roughly halves the variance, so He initialisation
+  $\sigma_w = 1/\sqrt{n}$. That is Xavier/LeCun initialization, derived in three lines.
+  ReLU discards the negative half and roughly halves the variance, so He initialization
   uses $\sqrt{2/n}$ to compensate. PyTorch's <code>nn.Linear</code> default,
   $\mathcal{U}(-1/\sqrt{n}, 1/\sqrt{n})$, is the same idea.
   </p>
@@ -1429,9 +1429,9 @@ follows from these two lines.
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.13 · variance of a sum, and weight initialisation<span class="tag tag-must">Must do</span></span>
+  <span class="box-label">By hand — exercise 00.13 · variance of a sum, and weight initialization<span class="tag tag-must">Must do</span></span>
   <p>
-  This exercise derives Xavier initialisation from scratch. It is the single most
+  This exercise derives Xavier initialization from scratch. It is the single most
   useful piece of statistics in the chapter.
   </p>
   <div class="given">One row of W computes  z = Σᵢ wᵢxᵢ  over n = 100 inputs.
@@ -1465,7 +1465,7 @@ Weights wᵢ: independent of each other and of x, mean 0, variance σ²_w.</div>
     train at all. And nothing in the code is wrong — only one factor.</p>
     <p><strong>4.</strong> $n\sigma_w^2 = 1 \Rightarrow \sigma_w = 1/\sqrt{n} =
     1/\sqrt{100} = \mathbf{0.1}$. Check: $100 \times 0.01 = 1$ ✓. This is
-    <strong>Xavier/LeCun initialisation</strong>, and you have just derived it in two
+    <strong>Xavier/LeCun initialization</strong>, and you have just derived it in two
     lines.</p>
     <p><strong>5.</strong></p>
     <div class="given">c = 2.0 :  2¹⁰  = 1024×      variance explodes
@@ -1474,11 +1474,11 @@ c = 1.0 :  1¹⁰   = 1×         stable at any depth</div>
     <p>Any $c \ne 1$ compounds geometrically with depth. This is the <em>same</em>
     geometric-product problem as <a class="xref" href="#ch04">vanishing gradients</a>,
     appearing in the forward pass instead of the backward one — which is why the fix
-    (control the per-layer factor) and the fallback (normalise explicitly, as
+    (control the per-layer factor) and the fallback (normalize explicitly, as
     <a class="xref" href="#ch08">layer norm</a> does) are the same in both directions.</p>
     <p><strong>6.</strong> ReLU sets roughly half the values to zero, which approximately
     halves the variance. To restore $\operatorname{Var}(z) = 1$ you need to double
-    $\sigma_w^2$, so $\sigma_w = \sqrt{2/n}$. That is <strong>He initialisation</strong>,
+    $\sigma_w^2$, so $\sigma_w = \sqrt{2/n}$. That is <strong>He initialization</strong>,
     the default for ReLU networks — and it differs from Xavier by exactly the factor
     $\sqrt{2}$ that this one sentence predicts.</p>
   </details>
@@ -1563,33 +1563,33 @@ ratio ≈ 650×</div>
   </details>
 </div>
 
-<h3>Standardisation, and layer normalisation</h3>
+<h3>Standardization, and layer normalization</h3>
 
 <p>
 Given any variable, $z = (x - \mu)/\sigma$ has mean 0 and variance 1 by construction —
-subtracting the mean re-centres, dividing by the standard deviation rescales (and the
+subtracting the mean re-centers, dividing by the standard deviation rescales (and the
 $a^2$ rule says dividing by $\sigma$ divides the variance by $\sigma^2$, giving 1).
 </p>
 
 <p>
-That is exactly what <a class="xref" href="#ch08">layer normalisation</a> does, per token,
+That is exactly what <a class="xref" href="#ch08">layer normalization</a> does, per token,
 across features. The learned $\gamma$ and $\beta$ then let the network recover any scale
-and shift it actually wants — so normalisation stabilises training without reducing what
+and shift it actually wants — so normalization stabilizes training without reducing what
 the model can express.
 </p>
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.15 · standardisation and layer normalisation</span>
+  <span class="box-label">By hand — exercise 00.15 · standardization and layer normalization</span>
   <div class="given">One token's features:   x = [2, 4, 4, 4, 5, 5, 7, 9]</div>
   <ol>
     <li>Compute the mean $\mu$.</li>
     <li>Compute the variance (dividing by $n$, as layer norm does) and the standard
         deviation.</li>
-    <li>Standardise: $z_i = (x_i - \mu)/\sigma$.</li>
+    <li>Standardize: $z_i = (x_i - \mu)/\sigma$.</li>
     <li>Verify the result has mean 0 and variance 1.</li>
     <li>Apply learned parameters $\gamma = 2$, $\beta = 1$. What is the output's mean and
-        variance now — and why would a network want to undo the normalisation it just
+        variance now — and why would a network want to undo the normalization it just
         performed?</li>
     <li>If you had used <em>batch</em> norm instead, which numbers would have entered the
         mean, and what breaks at inference on a single example?</li>
@@ -1608,15 +1608,15 @@ the model can express.
     variance $2^2(1) = \mathbf{4}$ (by the $a^2$ rule).</p>
     <p>As for why: forcing every representation to mean 0 and variance 1 is a strong
     constraint, and sometimes the right answer genuinely involves a large-magnitude or
-    off-centre feature. $\gamma$ and $\beta$ let the network recover any scale and shift,
-    so normalisation stabilises training <em>without</em> restricting what the model can
+    off-center feature. $\gamma$ and $\beta$ let the network recover any scale and shift,
+    so normalization stabilizes training <em>without</em> restricting what the model can
     express — in the limit it can learn $\gamma = \sigma$, $\beta = \mu$ and undo the
     operation entirely. It is a helpful default, not a cage.</p>
     <p><strong>6.</strong> Batch norm would average feature 0 across every token in the
     batch, producing one mean and variance per <em>feature</em> rather than per token. At
     inference on a single example there is no batch to compute statistics from, so it must
     fall back on running averages accumulated during training — which is why batch norm
-    needs distinct train and eval behaviour and degrades at small batch sizes. Layer norm
+    needs distinct train and eval behavior and degrades at small batch sizes. Layer norm
     takes its statistics from within the token, so one example behaves exactly like a
     thousand. For variable-length sequence data that is decisive.</p>
   </details>
@@ -1641,7 +1641,7 @@ Inverted dropout divides by the keep probability:  y = xB/(1 − p)
   <p style="margin-bottom:0">
   The variance is not preserved, only the mean:
   $\operatorname{Var}(y) = x^2\,p/(1-p)$, which at $p = 0.9$ is $9x^2$. Heavy dropout
-  injects enormous noise — which is the regularisation, and also why very high dropout
+  injects enormous noise — which is the regularization, and also why very high dropout
   rates make training unstable rather than merely slow.
   </p>
 </div>
@@ -1680,7 +1680,7 @@ p = 0.9 :  Var = 1 × (0.9/0.1) = 9.0</div>
     <p><strong>5.</strong> Only the <em>mean</em> is preserved; the variance grows without
     bound as $p \to 1$. At $p = 0.9$ each activation carries nine times the variance of
     the signal itself, so gradients become extremely noisy and training turns unstable
-    rather than merely slower. That noise is the regularisation — it is what prevents
+    rather than merely slower. That noise is the regularization — it is what prevents
     co-adaptation — but it explains why dropout rates above about 0.5 usually hurt, and
     why the useful range is 0.1–0.5.</p>
   </details>
@@ -1760,7 +1760,7 @@ perfect quadratic relationship can have $\rho = 0$. And <strong>the variance add
 rule above required independence</strong>; for correlated variables,
 $\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y) +
 2\operatorname{Cov}(X,Y)$, which is why highly correlated activations make the
-initialisation arithmetic optimistic and deep networks drift out of scale anyway.
+initialization arithmetic optimistic and deep networks drift out of scale anyway.
 </p>
 
 
@@ -1801,9 +1801,9 @@ Var(y) = (2.25+0.25+2.25+0.25)/4 = 1.25    σ_y = 1.118
     $$\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y) + 2\operatorname{Cov}(X,Y)$$
     <p>With positively correlated inputs the cross terms are positive, so the true
     variance of a pre-activation is <em>larger</em> than the $n\sigma_w^2$ that
-    exercise 00.13 predicted. Initialisation calibrated on the independence assumption is
+    exercise 00.13 predicted. Initialization calibrated on the independence assumption is
     therefore optimistic, and activations drift upward with depth anyway — which is part
-    of why explicit normalisation layers earn their place even in a well-initialised
+    of why explicit normalization layers earn their place even in a well-initialized
     network. It is also an argument for decorrelating inputs where you cheaply can.</p>
   </details>
 </div>
@@ -1967,7 +1967,7 @@ BACKWARD (outcome known) — score candidate values of p:
 </div>
 
 <p>
-Flipping the sign to minimise and dividing by $N$ gives the
+Flipping the sign to minimize and dividing by $N$ gives the
 <strong>negative log-likelihood</strong>, which is the loss:
 </p>
 
@@ -2055,7 +2055,7 @@ batch loss = 1.244 / 3 = 0.415</div>
     <p><strong>4.</strong> No — it is <strong>4.1× larger</strong> for 3× the error. The
     log makes the loss superlinear in the error, so a single badly-classified example
     dominates the gradient. Usually that is what you want (hard examples deserve
-    attention) and occasionally a disaster (a mislabelled example dominates too). It is
+    attention) and occasionally a disaster (a mislabeled example dominates too). It is
     the same mechanism that makes MSE fragile to outliers, seen from the classification
     side.</p>
   </details>
@@ -2159,7 +2159,7 @@ $D_{\mathrm{KL}}(p\|q) = H(p,q) - H(p) \ge 0$.
 <div class="widget" data-widget="entropy"></div>
 
 <p>
-Since $H(p)$ depends only on the data, minimising cross-entropy <em>is</em> minimising
+Since $H(p)$ depends only on the data, minimizing cross-entropy <em>is</em> minimizing
 divergence from the truth. The maximum-likelihood story and the information-theory story
 are the same story told twice.
 </p>
@@ -2185,7 +2185,7 @@ are the same story told twice.
     <li>Compute $H(p,q)$.</li>
     <li>Compute $D_{\mathrm{KL}}(p\|q)$ and say what it means physically.</li>
     <li>Compute $D_{\mathrm{KL}}(q\|p)$. Why is it different?</li>
-    <li>Training minimises $H(p,q)$, not $D_{\mathrm{KL}}$. Why does that not matter?</li>
+    <li>Training minimizes $H(p,q)$, not $D_{\mathrm{KL}}$. Why does that not matter?</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
@@ -2201,10 +2201,10 @@ are the same story told twice.
     = \mathbf{0.189}$ bits. Different because the two average the discrepancy under
     different distributions — "how surprised will I be" depends on who is doing the
     expecting. The asymmetry is a feature: forward and reverse KL produce famously
-    different behaviours (mass-covering versus mode-seeking) as objectives.</p>
+    different behaviors (mass-covering versus mode-seeking) as objectives.</p>
     <p><strong>5.</strong> Because $D_{\mathrm{KL}} = H(p,q) - H(p)$ and $H(p)$ depends
     only on the data. Subtracting a constant shifts a function without moving its minimum,
-    so minimising cross-entropy <em>is</em> minimising divergence from the truth — you
+    so minimizing cross-entropy <em>is</em> minimizing divergence from the truth — you
     simply cannot compute the constant, and do not need to.</p>
   </details>
 </div>
@@ -2267,7 +2267,7 @@ a bug.
   </details>
 </div>
 
-<h2 id="ch00-which-tool">Part 5 · Recognising Which Tool Applies</h2>
+<h2 id="ch00-which-tool">Part 5 · Recognizing Which Tool Applies</h2>
 
 <p>
 Parts 1–4 gave you the machinery. The harder skill, and the one that actually separates
@@ -2325,7 +2325,7 @@ to hear the question and the tool follows.
     "I stacked 30 layers with <code>torch.randn</code> weights. The loss starts at 2.30
     and never moves. More epochs don't help and neither does a bigger learning rate."
   </p>
-  <p><strong>Recognise first, compute second.</strong></p>
+  <p><strong>Recognize first, compute second.</strong></p>
   <ol>
     <li><em>Is something applied repeatedly?</em> Yes — 30 layers, the same operation each
         time. That is the variance-propagation trigger.</li>
@@ -2342,7 +2342,7 @@ every saturating non-linearity is pinned, every derivative ≈ 0.</div>
   <p style="margin-bottom:0">
   Two triggers, two lines of arithmetic, and the diagnosis is certain rather than a
   guess. The fix is $\sigma_w = 1/\sqrt{n}$, and the general lesson is that "won't train"
-  plus "loss sits at $\ln K$" is nearly always initialisation or a broken gradient path —
+  plus "loss sits at $\ln K$" is nearly always initialization or a broken gradient path —
   never a hyperparameter you can tune your way out of.
   </p>
 </div>
@@ -2369,7 +2369,7 @@ Even a genuinely good model, at 90% recall and 95% specificity:
 
 85 of every 100 alerts are wrong — while "accuracy" reads 94.9%.</div>
   <p style="margin-bottom:0">
-  The claim is not false, it is <em>uninformative</em>, and recognising that took one
+  The claim is not false, it is <em>uninformative</em>, and recognizing that took one
   question: is the positive class rare? Ask for precision and recall, and for the
   majority-class baseline alongside every accuracy figure. This is the single most common
   way a plausible-sounding result turns out to be worthless.
@@ -2397,7 +2397,7 @@ It is not evidence the variant is worse; it is not evidence of anything.</div>
   Note the second-order trap: the test set was almost certainly used to <em>choose</em>
   the variant, which makes 84.9% optimistic on top of being noisy. Ask for three seeds,
   a standard error, and whether the test set was touched more than once. If the answer to
-  the last is yes, the number is a selection artefact.
+  the last is yes, the number is a selection artifact.
   </p>
 </div>
 
@@ -2442,7 +2442,7 @@ It is not evidence the variant is worse; it is not evidence of anything.</div>
     <p><strong>5. Repeatedly applied → variance.</strong> Inverted dropout preserves the
     <em>mean</em> but multiplies the variance by $p/(1-p)$, which at $p = 0.9$ is
     <strong>9×</strong>. That is noise, not slowness. <em>Check:</em> drop to 0.1–0.5;
-    above ~0.5 the injected variance usually outweighs the regularisation.</p>
+    above ~0.5 the injected variance usually outweighs the regularization.</p>
     <p><strong>6. Rare → base rates.</strong> Sensitivity alone says nothing about
     $P(\text{disease} \mid +)$ — that needs the prevalence and the false-positive rate.
     At 0.5% prevalence and 95% specificity, a positive result means roughly a
@@ -2483,7 +2483,7 @@ It is not evidence the variant is worse; it is not evidence of anything.</div>
     budget you gave your own method, and say what that budget was.</p>
     <p><strong>4. Flawed, subtly — repeated selection.</strong> Reporting the test set once
     is correct. But architecture <em>and</em> learning rate were both chosen on
-    validation, so the validation number is now an optimistic selection artefact and any
+    validation, so the validation number is now an optimistic selection artifact and any
     claim resting on it is overstated. The test figure is fine; just do not also present
     the validation score as an unbiased estimate.</p>
   </details>
@@ -2514,7 +2514,7 @@ it is the one that does not survive being told.
 <div class="box byhand">
   <span class="box-label">By hand — exercise 00.26 · a network that will not train, end to end<span class="tag tag-must">Must do</span></span>
   <p class="statement" style="font-family:var(--serif);font-style:italic;border-left:2px solid var(--byhand);padding-left:.9rem;margin:.4rem 0 1rem">
-    "I built a 12-layer classifier over 10 classes, width 256, ReLU, initialised with
+    "I built a 12-layer classifier over 10 classes, width 256, ReLU, initialized with
     <code>torch.randn(256, 256) * 1.0</code>. The loss starts at 2.30 and does not move.
     Learning rates from 1e-5 to 1e-1 all behave the same."
   </p>
@@ -2574,7 +2574,7 @@ sqrt(1.93e25) ≈ 4.4 × 10¹² before the final layer.</div>
     <div class="given">n · σ²_w · ½ = 1
 σ²_w = 2/n
 σ_w  = sqrt(2/256) = sqrt(0.0078) = 0.0884</div>
-    <p>That is <strong>He initialisation</strong>, $\sqrt{2/n}$ — derived here rather than
+    <p>That is <strong>He initialization</strong>, $\sqrt{2/n}$ — derived here rather than
     recalled, and note it is the ReLU-corrected version of Xavier precisely because of the
     factor of $\tfrac12$ in stage 2.</p>
     <p><strong>7.</strong> The fix:</p>
@@ -2589,7 +2589,7 @@ sqrt(1.93e25) ≈ 4.4 × 10¹² before the final layer.</div>
     gradient here is <em>zero</em> — every output is saturated, so $\sigma'$ or the ReLU
     derivative contributes nothing to propagate. Any multiple of zero is zero. A sweep can
     only help when there <em>is</em> a signal whose magnitude is wrong; it cannot
-    manufacture one. Recognising the difference between "wrong magnitude" and "no signal"
+    manufacture one. Recognizing the difference between "wrong magnitude" and "no signal"
     is what saves you the afternoon the sweep would have cost.</p>
   </details>
 </div>
@@ -2737,7 +2737,7 @@ two carry a problem <em>all the way through</em>: identify, set up, compute, dec
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favourite LLM, in your own words: <strong>why is minimising cross-entropy the same thing as maximising likelihood?</strong>
+  Try explaining to your favorite LLM, in your own words: <strong>why is minimizing cross-entropy the same thing as maximizing likelihood?</strong>
   Then ask it to correct you, and to push back wherever you were vague rather than
   outright wrong — that is where the gaps hide. Do not use the words <em>cross-entropy</em>, <em>likelihood</em> or <em>loss</em> in your first two sentences. Forcing the paraphrase is the whole exercise; if you cannot start without them, you are reciting.
   </p>
@@ -2746,9 +2746,9 @@ two carry a problem <em>all the way through</em>: identify, set up, compute, dec
     <ol>
     <li>A model outputs a distribution, not an answer — likelihood is the probability it assigned to the data that actually occurred.</li>
     <li>Multiplying many probabilities underflows and differentiates badly; taking a log turns the product into a sum.</li>
-    <li>Maximising log-likelihood is the same as minimising its negative, which is the average of $-\log q$ at the true class.</li>
+    <li>Maximizing log-likelihood is the same as minimizing its negative, which is the average of $-\log q$ at the true class.</li>
     <li>That average <em>is</em> cross-entropy $H(p,q)$ when $p$ is the one-hot truth.</li>
-    <li>$H(p,q) = H(p) + D_{\mathrm{KL}}(p\|q)$, and $H(p)$ is fixed by the data — so minimising cross-entropy minimises divergence from the truth.</li>
+    <li>$H(p,q) = H(p) + D_{\mathrm{KL}}(p\|q)$, and $H(p)$ is fixed by the data — so minimizing cross-entropy minimizes divergence from the truth.</li>
     </ol>
     <p style="margin-bottom:0"><b>Most common miss.</b> Most answers write the formula down and stop. The formula is the <em>consequence</em> of deciding that the model outputs beliefs; if your explanation would work equally well as a justification for MSE, it has not said anything yet.</p>
   </details>
@@ -2759,7 +2759,7 @@ two carry a problem <em>all the way through</em>: identify, set up, compute, dec
   Open <code>00_math_foundations/prompt.ipynb</code>. You will verify the linear algebra
   and broadcasting rules in code, check derivatives by finite differences, measure
   variance propagation through a deep stack and watch it explode and collapse at the
-  wrong initialisation, confirm the $\sqrt{d_k}$ argument empirically, implement BCE,
+  wrong initialization, confirm the $\sqrt{d_k}$ argument empirically, implement BCE,
   softmax, and cross-entropy from their definitions, and reproduce the $\hat{y}-y$
   gradient three independent ways. It is the only notebook here that trains nothing — it
   is entirely about the mathematics.

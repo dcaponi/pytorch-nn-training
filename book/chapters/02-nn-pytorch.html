@@ -4,7 +4,7 @@
 <h1>The Same Network in PyTorch</h1>
 
 <p class="lede">
-Nothing new is learned in this chapter — the network, the loss, and the maths are identical
+Nothing new is learned in this chapter — the network, the loss, and the math are identical
 to <a class="xref" href="#ch01">Chapter 01</a>. What changes is who computes the gradients.
 Understanding precisely what PyTorch automates, and what it deliberately does not, is what
 makes every later chapter readable.
@@ -132,10 +132,10 @@ Call the module, never its <code>forward</code>: <code>model(x)</code>, not
 them, which breaks anything built on hooks.
 </p>
 
-<h3>Initialisation, for free</h3>
+<h3>Initialization, for free</h3>
 
 <p>
-<code>nn.Linear</code> initialises its weights from
+<code>nn.Linear</code> initializes its weights from
 $\mathcal{U}(-1/\sqrt{n_{\text{in}}},\, 1/\sqrt{n_{\text{in}}})$ rather than from a plain
 standard normal. The $1/\sqrt{n_{\text{in}}}$ scaling keeps the variance of activations
 roughly constant as signal passes through a layer: sum $n$ independent terms and the
@@ -172,7 +172,7 @@ extra tensors per parameter in memory, which is a detail here and a
 </p>
 
 <div class="box note">
-  <span class="box-label">Defaults worth memorising</span>
+  <span class="box-label">Defaults worth memorizing</span>
   Adam at <code>lr=1e-3</code> is a sound starting point for small models; transformers
   usually want <code>1e-4</code> to <code>3e-4</code> with warmup
   (<a class="xref" href="#ch03">Chapter 03</a>). If training diverges, halve the learning
@@ -297,7 +297,7 @@ print(logits.shape, y.shape, y.dtype, loss.item())
 
 <p>
 Question 3 is the one that determines everything downstream, so it is worth having
-memorised in the forward direction — <em>from the words in the statement</em> to the code:
+memorized in the forward direction — <em>from the words in the statement</em> to the code:
 </p>
 
 <div class="table-wrap">
@@ -378,9 +378,9 @@ D)  model = nn.Sequential(nn.Linear(10, 32), nn.Linear(32, 3))
   <details>
     <summary>Worked solution</summary>
     <p><strong>A — double softmax.</strong> <code>CrossEntropyLoss</code> already applies
-    log-softmax, so this normalises twice. It <em>runs</em>, the loss decreases, and the
+    log-softmax, so this normalizes twice. It <em>runs</em>, the loss decreases, and the
     model is worse than it should be with no diagnostic anywhere. Remove the
-    <code>nn.Softmax</code>. This is the one to actually memorise.</p>
+    <code>nn.Softmax</code>. This is the one to actually memorize.</p>
     <p><strong>B — target shape.</strong> <code>(16, 1)</code> where
     <code>(16,)</code> is required. Raises <code>Expected target size [16, 3], got
     [16, 1]</code>. Fix with <code>y.squeeze(1)</code>, or build it as
@@ -451,7 +451,7 @@ z = [0.0, −0.1, −0.4]</div>
 ŷ₂ = 0.6703 / 2.5751 = 0.2603      (sums to 1.0000 ✓)</div>
     <p><strong>3. Loss.</strong> $\mathcal{L} = -\ln \hat{y}_1 = -\ln(0.3514) =
     \mathbf{1.0459}$ nats. Sanity check: a uniform guess over three classes costs
-    $\ln 3 = 1.0986$, so this barely-initialised model is a hair better than chance —
+    $\ln 3 = 1.0986$, so this barely-initialized model is a hair better than chance —
     exactly what you would expect before any training.</p>
     <p><strong>4. Gradient on the logits.</strong> With $y = [0, 1, 0]$:</p>
     <div class="given">∂L/∂z = ŷ − y = [0.3883 − 0,  0.3514 − 1,  0.2603 − 0]
@@ -522,7 +522,7 @@ Three separate switches that beginners routinely conflate.
 
 <p>
 <code>model.train()</code> and <code>model.eval()</code> set a flag that changes the
-behaviour of exactly two kinds of layer: dropout (active in train, identity in eval) and
+behavior of exactly two kinds of layer: dropout (active in train, identity in eval) and
 batch norm (batch statistics in train, running averages in eval). This network contains
 neither, so the calls do nothing here — but forget <code>model.eval()</code> in
 <a class="xref" href="#ch03">Chapter 03</a> and your reported accuracy will be wrong,
@@ -591,7 +591,7 @@ path 2 (w → b → L):      1 × 18      = 18
 <div class="box byhand">
   <span class="box-label">By hand — exercise 02.2</span>
   <p>
-  Count the parameters in <code>XORNet</code>, then generalise.
+  Count the parameters in <code>XORNet</code>, then generalize.
   </p>
   <ol>
     <li>How many numbers are in <code>hidden.weight</code>, <code>hidden.bias</code>,
@@ -648,7 +648,7 @@ list now rather than rediscovering them one at a time.
 <div class="box concept">
   <span class="box-label">Key concept — the single best debugging move</span>
   Before training on the full dataset, take <strong>eight examples and overfit them
-  completely</strong>. Turn off dropout and regularisation and train until the loss is
+  completely</strong>. Turn off dropout and regularization and train until the loss is
   essentially zero. If you cannot drive the loss to zero on eight examples, the bug is in your
   model, loss, or data pipeline — not in your hyperparameters — and no amount of tuning on the
   full dataset will find it. This takes two minutes and saves entire afternoons.
@@ -715,11 +715,11 @@ ep  tr    val    tr    val    tr    val    tr    val
     print <code>p.grad.norm()</code> after <code>backward()</code> — if it is zero or
     <code>None</code>, you have found it.</p>
     <p><strong>Run B — healthy.</strong> Both losses fall, with a modest and stable gap
-    (0.71 vs 1.14) that is normal generalisation error. Validation is still improving at
+    (0.71 vs 1.14) that is normal generalization error. Validation is still improving at
     epoch 15. <em>First move:</em> keep training, and consider a larger model.</p>
     <p><strong>Run C — textbook overfitting.</strong> Validation bottoms out around epoch 5
     at 1.61 and then climbs steadily while training loss drives towards zero. The model is
-    memorising. <em>First move:</em> restore the epoch-5 weights, then add regularisation —
+    memorizing. <em>First move:</em> restore the epoch-5 weights, then add regularization —
     dropout, weight decay, more data, or less capacity. Note that without best-checkpoint
     restore you would have shipped the epoch-15 model at val 2.55, which is worse than the
     model was after five epochs.</p>
@@ -754,7 +754,7 @@ ep  tr    val    tr    val    tr    val    tr    val
   <ol>
     <li>Your binary task is 95% negatives and the model reports 95% accuracy. What has it learned?</li>
     <li>You pass probabilities to <code>CrossEntropyLoss</code> instead of logits. What happens — an error, or something worse?</li>
-    <li>Adam at $\text{lr} = 0.1$. What symptom do you expect, and how do you tell it apart from a bad initialisation?</li>
+    <li>Adam at $\text{lr} = 0.1$. What symptom do you expect, and how do you tell it apart from a bad initialization?</li>
   </ol>
   <details>
     <summary>Answers</summary>
@@ -766,7 +766,7 @@ ep  tr    val    tr    val    tr    val    tr    val
     a smaller gradient, and a model that trains slowly for no visible reason. No
     exception, no warning. This is the most common silent bug in PyTorch.</p>
     <p><strong>3.</strong> Loss goes to <code>nan</code>, or plateaus <em>above</em>
-    $\ln K$. To tell it from bad initialisation, look at step 0: a bad init is already
+    $\ln K$. To tell it from bad initialization, look at step 0: a bad init is already
     wrong on the first printed loss, while too high a learning rate starts at
     $\ln K$ and then leaves.</p>
   </details>
@@ -776,7 +776,7 @@ ep  tr    val    tr    val    tr    val    tr    val
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favourite LLM, in your own words: <strong>what does <code>loss.backward()</code> actually do, and why must you call <code>optimizer.zero_grad()</code>?</strong>
+  Try explaining to your favorite LLM, in your own words: <strong>what does <code>loss.backward()</code> actually do, and why must you call <code>optimizer.zero_grad()</code>?</strong>
   Then ask it to correct you, and to push back wherever you were vague rather than
   outright wrong — that is where the gaps hide.
   </p>
@@ -789,7 +789,7 @@ ep  tr    val    tr    val    tr    val    tr    val
     <li>So without <code>zero_grad()</code> you step against the sum of every batch seen so far, which grows without bound.</li>
     <li><code>step()</code> only reads <code>.grad</code> and updates the parameters — the optimizer never computes a derivative itself.</li>
     </ol>
-    <p style="margin-bottom:0"><b>Most common miss.</b> Saying it "clears the old gradients" without saying why they would otherwise still be there. The accumulation is a feature; if you cannot name the use case it serves, you have memorised a ritual.</p>
+    <p style="margin-bottom:0"><b>Most common miss.</b> Saying it "clears the old gradients" without saying why they would otherwise still be there. The accumulation is a feature; if you cannot name the use case it serves, you have memorized a ritual.</p>
   </details>
 </div>
 
@@ -803,7 +803,7 @@ ep  tr    val    tr    val    tr    val    tr    val
   <details>
     <summary>Worked solution</summary>
     <ol>
-      <li>First that the loss at step 0 is $\ln K$ — it separates initialisation and wiring bugs from optimisation problems, and costs nothing.</li>
+      <li>First that the loss at step 0 is $\ln K$ — it separates initialization and wiring bugs from optimization problems, and costs nothing.</li>
       <li>Then overfit a handful of examples, which separates "the model cannot represent this" from "the training loop is broken".</li>
       <li>Then gradient norms per parameter group, distinguishing <code>None</code> (disconnected) from tiny (saturated).</li>
       <li>Only then the learning rate and schedule, because tuning an optimiser that is stepping on wrong gradients is wasted effort.</li>

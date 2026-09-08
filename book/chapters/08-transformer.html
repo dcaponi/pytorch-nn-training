@@ -7,7 +7,7 @@
 Attention alone is not a model. It is order-blind, it is shallow, and stacking it naively
 does not train. This chapter adds the three components that turn the mechanism of
 <a class="xref" href="#ch06">Chapter 06</a> into an architecture: positional encoding,
-residual connections with layer normalisation, and a position-wise feed-forward network.
+residual connections with layer normalization, and a position-wise feed-forward network.
 </p>
 
 <h2>Attention is permutation-equivariant</h2>
@@ -119,7 +119,7 @@ dimension index — from $2\pi$ at $i=0$ up to $10000 \cdot 2\pi$ at the top.
 
 <p>
 The picture explains the design better than the formula. Left-hand columns oscillate quickly
-and distinguish neighbouring positions; right-hand columns oscillate slowly and encode coarse
+and distinguish neighboring positions; right-hand columns oscillate slowly and encode coarse
 location in the sequence. Together they form a multi-resolution code — much like a binary
 counter, where the low bit alternates every step and the high bit once per half-sequence.
 Every position gets a distinct fingerprint, and positions close together get similar ones.
@@ -129,7 +129,7 @@ Every position gets a distinct fingerprint, and positions close together get sim
 The genuinely clever property is this: for any fixed offset $k$, $PE_{pos+k}$ is a
 <em>linear</em> function of $PE_{pos}$ — a rotation, by the angle-addition identities for
 sine and cosine. So a model can learn to attend "three positions back" as a single linear
-operation applied uniformly, rather than memorising every absolute pair. Relative position
+operation applied uniformly, rather than memorizing every absolute pair. Relative position
 becomes learnable.
 </p>
 
@@ -147,7 +147,7 @@ becomes learnable.
 <figure class="figure plate">
   <img src="images/transformer-explainer/embedding.png" alt="Four numbered columns: tokens 'Data', 'visualization', 'em', 'powers', 'users', 'to'; their token embeddings by vocabulary id; a positional encoding indexed by position 0 to 5; and the sum of the two." loading="lazy" decoding="async">
   <figcaption><b>The learned-embedding alternative, in GPT-2.</b> Column 3 is not a sinusoid — GPT-2 stores a plain lookup table with one trainable vector per position and indexes it by $0 \ldots 5$, so those vectors are shaped by the same gradient as everything else in the model (<a class="xref" href="#ch07">Chapter 07</a>). It buys flexibility and gives up extrapolation: a sinusoid is defined at position 5000 whether or not training ever reached it, while a lookup table simply has no row there. Column 1 is also worth a look — <em>empowers</em> arrives as the two subword tokens <em>em</em> and <em>powers</em>, which is the tokenizer of <a class="xref" href="#ch10">Chapter 10</a> showing through.</figcaption>
-  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;licence. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
+  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;license. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
 </figure>
 
 
@@ -206,10 +206,10 @@ approximately zero and become the identity, which means adding layers is close t
 That is why transformer depth scales so gracefully.
 </p>
 
-<h2>Layer normalisation</h2>
+<h2>Layer normalization</h2>
 
 <p>
-For each token independently, normalise across the feature dimension:
+For each token independently, normalize across the feature dimension:
 </p>
 
 $$\operatorname{LN}(x) = \gamma \odot \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta$$
@@ -222,9 +222,9 @@ keeps the network in the range where its non-linearities and its optimizer both 
 </p>
 
 <p>
-The contrast with batch normalisation is instructive. Batch norm computes statistics across
+The contrast with batch normalization is instructive. Batch norm computes statistics across
 the <em>batch</em> for each feature, which makes each example's output depend on its
-batch-mates, requires separate train and eval behaviour, and degrades badly at small batch
+batch-mates, requires separate train and eval behavior, and degrades badly at small batch
 sizes. Layer norm looks only at one token's own features: batch size is irrelevant, sequence
 length is irrelevant, train and eval are identical, and inference on a single example works
 unchanged. For variable-length sequence data that is decisive.
@@ -240,7 +240,7 @@ almost always use <strong>pre-norm</strong> instead:
 $$x \leftarrow x + \operatorname{Sublayer}\big(\operatorname{LayerNorm}(x)\big)$$
 
 <p>
-The difference is whether the residual path passes through a normalisation. In pre-norm it
+The difference is whether the residual path passes through a normalization. In pre-norm it
 does not — the skip connection is a completely clean highway from input to output, which
 makes deep stacks train without a learning-rate warmup and much more stably. Post-norm
 sometimes reaches marginally better final quality with careful tuning. The notebook uses
@@ -268,8 +268,8 @@ add their corrections onto that stream; they are not gates it has to pass throug
 </p>
 
 <figure class="figure plate">
-  <img src="images/transformer-explainer/mlp.png" alt="Six token streams flowing left to right. Each expands into a wide 3072-dimensional vector and contracts back, while a broad flat band labelled Residual runs above them from input to output without narrowing." loading="lazy" decoding="async">
-  <figcaption><b>The stream, drawn to scale.</b> The band labelled <em>Residual</em> is the
+  <img src="images/transformer-explainer/mlp.png" alt="Six token streams flowing left to right. Each expands into a wide 3072-dimensional vector and contracts back, while a broad flat band labeled Residual runs above them from input to output without narrowing." loading="lazy" decoding="async">
+  <figcaption><b>The stream, drawn to scale.</b> The band labeled <em>Residual</em> is the
   additive path; the excursion below it is the feed-forward network expanding each token to
   3072 dimensions and projecting it back. Read the picture right to left and it is the
   backward pass: gradient arriving at the far right splits, some of it detouring through the
@@ -277,7 +277,7 @@ add their corrections onto that stream; they are not gates it has to pass throug
   never merge here — the FFN is per-position, so no gradient crosses between tokens inside
   it. Attention is the only sub-layer where that happens, which is a useful thing to know
   when a bug moves information between positions that should not have it.</figcaption>
-  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;licence. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
+  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;license. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
 </figure>
 
 <h3>LayerNorm's backward is a projection</h3>
@@ -295,16 +295,16 @@ $$\frac{\partial L}{\partial x} = \frac{1}{\sigma}\Big(u - \operatorname{mean}(u
 Read the two subtractions as what they are: projections. The first removes the component of
 the gradient along the all-ones direction, the second removes the component along $\hat{x}$
 itself. LayerNorm therefore <em>discards</em> any part of the gradient that merely wants to
-shift a token's mean or rescale its length — which is correct, since normalisation would
+shift a token's mean or rescale its length — which is correct, since normalization would
 have undone such a change anyway, but it means gradient information really is lost at each
-normalisation, not merely rescaled.
+normalization, not merely rescaled.
 </p>
 
 <p>
 That is the argument for pre-norm in one line. In post-norm, every block's output passes
 through this projection on the residual path itself, so the identity term above is not
 actually an identity: it is $1/\sigma$ times a projection, $N$ times over. In pre-norm the
-normalisation sits inside the branch and the stream is untouched. This is why post-norm
+normalization sits inside the branch and the stream is untouched. This is why post-norm
 transformers need learning-rate warmup and pre-norm ones largely do not, and it is the whole
 of the difference between the two formulas above.
 </p>
@@ -349,7 +349,7 @@ associated with them.
 <figure class="figure wide">
 <svg viewBox="0 0 760 340" role="img" aria-labelledby="f-enc-t f-enc-d" style="font-family:var(--sans)">
   <title id="f-enc-t">One transformer encoder block</title>
-  <desc id="f-enc-d">Two token vectors enter at the bottom, pass through a self-attention sublayer that spans both, an add-and-normalise step, separate per-token feed-forward layers, and a second add-and-normalise. Dashed lines bypass each sublayer, carrying the input straight to the addition.</desc>
+  <desc id="f-enc-d">Two token vectors enter at the bottom, pass through a self-attention sublayer that spans both, an add-and-normalize step, separate per-token feed-forward layers, and a second add-and-normalize. Dashed lines bypass each sublayer, carrying the input straight to the addition.</desc>
   <defs>
     <marker id="enc-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
     <marker id="enc-res" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--sayback)"/></marker>
@@ -375,7 +375,7 @@ associated with them.
   <path d="M266,214 L266,190" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
   <path d="M506,214 L506,190" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
   <rect x="180" y="156" width="400" height="32" rx="7" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
-  <text x="380.0" y="175.66666666666666" font-size="13.0" text-anchor="middle" fill="var(--ink)">add &amp; normalise</text>
+  <text x="380.0" y="175.66666666666666" font-size="13.0" text-anchor="middle" fill="var(--ink)">add &amp; normalize</text>
   <path d="M266,156 L266,130" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
   <path d="M506,156 L506,130" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
   <rect x="212" y="96" width="108" height="32" rx="7" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.3"/>
@@ -387,7 +387,7 @@ associated with them.
   <text x="596" y="110" font-size="13.0" text-anchor="start" fill="var(--ink-faint)">one per position,</text>
   <text x="596" y="122" font-size="13.0" text-anchor="start" fill="var(--ink-faint)">never mixing</text>
   <rect x="180" y="40" width="400" height="32" rx="7" fill="var(--bg-raised)" stroke="var(--sayback)" stroke-width="1.3"/>
-  <text x="380.0" y="59.666666666666664" font-size="13.0" text-anchor="middle" fill="var(--ink)">add &amp; normalise</text>
+  <text x="380.0" y="59.666666666666664" font-size="13.0" text-anchor="middle" fill="var(--ink)">add &amp; normalize</text>
   <path d="M266,40 L266,18" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
   <path d="M506,40 L506,18" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#enc-ink)"/>
   <path d="M266,266 L330,266 L330,192" fill="none" stroke="var(--sayback)" stroke-width="1.3" stroke-dasharray="5 4" stroke-linejoin="round" marker-end="url(#enc-res)"/>
@@ -399,7 +399,7 @@ associated with them.
   <text x="34" y="84" font-size="13.0" text-anchor="start" fill="var(--sayback)">an untouched path from</text>
   <text x="34" y="96" font-size="13.0" text-anchor="start" fill="var(--sayback)">input to output</text>
 </svg>
-<figcaption><b>The same sixteen lines, drawn.</b> Map them onto each other directly: the dashed lines are the <code>x +</code> in each assignment, the two wide bars are <code>norm1</code> and <code>norm2</code>, and the fact that the two feed-forward boxes are drawn separately — one per token, no arrow between them — is the point made in the section above, that the FFN sees each position alone. <br><br> This is <strong>post-norm</strong>: normalisation sits <em>on</em> the residual path, after the addition. To picture pre-norm, move each wide bar down to just before its sublayer and let the dashed line run all the way to the top uninterrupted. That uninterrupted line is the entire argument for pre-norm.</figcaption>
+<figcaption><b>The same sixteen lines, drawn.</b> Map them onto each other directly: the dashed lines are the <code>x +</code> in each assignment, the two wide bars are <code>norm1</code> and <code>norm2</code>, and the fact that the two feed-forward boxes are drawn separately — one per token, no arrow between them — is the point made in the section above, that the FFN sees each position alone. <br><br> This is <strong>post-norm</strong>: normalization sits <em>on</em> the residual path, after the addition. To picture pre-norm, move each wide bar down to just before its sublayer and let the dashed line run all the way to the top uninterrupted. That uninterrupted line is the entire argument for pre-norm.</figcaption>
 </figure>
 
 
@@ -407,7 +407,7 @@ associated with them.
 That is the entire architecture. Stack $N$ of these, add embeddings and positional encoding at
 the bottom, and put a task head on top. Every transformer you have heard of is this block,
 repeated, at scale — the innovations since 2017 have been about efficiency, position encoding,
-normalisation placement, and data, not about the block.
+normalization placement, and data, not about the block.
 </p>
 
 <p>
@@ -437,14 +437,14 @@ rather than forcing an average.
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 08.1</span>
-  <p>Layer normalisation on one token with four features.</p>
+  <p>Layer normalization on one token with four features.</p>
   <div class="given">x = [2.0, 4.0, 4.0, 6.0]        γ = [1, 1, 1, 1]   β = [0, 0, 0, 0]   ε ≈ 0</div>
   <ol>
     <li>Compute the mean $\mu$ and variance $\sigma^2$ across the four features.</li>
-    <li>Normalise each feature.</li>
+    <li>Normalize each feature.</li>
     <li>Verify the result has mean 0 and variance 1.</li>
     <li>Now suppose $\gamma = [2,2,2,2]$ and $\beta = [1,1,1,1]$. What is the output, and why
-        would a network ever want to undo the normalisation it just performed?</li>
+        would a network ever want to undo the normalization it just performed?</li>
     <li>If instead you had applied <em>batch</em> norm to a batch containing this token and
         three others, which numbers would have entered the mean — and what breaks at
         inference time on a single example?</li>
@@ -465,14 +465,14 @@ rather than forcing an average.
     <p>As for why: forcing every representation to unit variance is a strong constraint, and
     sometimes the right answer really does involve a feature with large magnitude or a
     non-zero mean. $\gamma$ and $\beta$ let the network recover any scale and shift it needs,
-    so normalisation stabilises training <em>without</em> reducing what the model can express.
+    so normalization stabilizes training <em>without</em> reducing what the model can express.
     In the limit the network can learn $\gamma = \sigma$, $\beta = \mu$ and undo the operation
-    entirely — normalisation is a helpful default, not a restriction.</p>
+    entirely — normalization is a helpful default, not a restriction.</p>
     <p><strong>5.</strong> Batch norm would average feature 0 across all four tokens in the
     batch — $x_0$ of token 1, $x_0$ of token 2, and so on — producing four means, one per
     feature. At inference on a single example there is no batch to compute statistics from,
     so batch norm must fall back on running averages accumulated during training, which is
-    why it needs distinct train and eval behaviour. Layer norm has no such problem: the
+    why it needs distinct train and eval behavior. Layer norm has no such problem: the
     statistics come from within the token, so one example works exactly like a thousand.</p>
   </details>
 </div>
@@ -559,7 +559,7 @@ PE(2) = [sin 2,     cos 2,     sin 0.02,   cos 0.02 ] = [0.909, −0.416, 0.020,
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favourite LLM, in your own words: <strong>why can you not just stack attention layers — what do the residual connection and the normalisation each contribute?</strong>
+  Try explaining to your favorite LLM, in your own words: <strong>why can you not just stack attention layers — what do the residual connection and the normalization each contribute?</strong>
   Then ask it to correct you, and to push back wherever you were vague rather than
   outright wrong — that is where the gaps hide.
   </p>
@@ -568,7 +568,7 @@ PE(2) = [sin 2,     cos 2,     sin 0.02,   cos 0.02 ] = [0.909, −0.416, 0.020,
     <ol>
     <li>Attention alone is permutation-equivariant, so something must inject position before the first layer.</li>
     <li>The residual connection makes the gradient path from the loss to any layer include an untouched identity term, so depth stops attenuating the signal.</li>
-    <li>Normalisation resets the activation scale that repeated additions would otherwise let drift.</li>
+    <li>Normalization resets the activation scale that repeated additions would otherwise let drift.</li>
     <li>LayerNorm is used rather than BatchNorm because it looks only at one token's own features — so batch size and sequence length are irrelevant and train and eval behave identically.</li>
     <li>The feed-forward sublayer is where most of the parameters and most of the per-position computation live; attention moves information between positions, the FFN transforms it in place.</li>
     </ol>

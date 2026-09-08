@@ -156,7 +156,7 @@ start tuning:
 <p>
 Fine-tuning computes $W' = W + \Delta W$, where $\Delta W$ is a full-size matrix.
 LoRA's premise is that $\Delta W$ — the <em>change</em> needed to adapt a pretrained
-model — has far lower intrinsic rank than $W$ itself. So parameterise it as a product
+model — has far lower intrinsic rank than $W$ itself. So parameterize it as a product
 of two thin matrices:
 </p>
 
@@ -188,14 +188,14 @@ and the optimizer state shrinks by the same factor:
 <h3>Three details that make it work</h3>
 
 <p>
-<strong>$B$ is initialised to zero.</strong> So $BA = 0$ at step 0 and the adapted
+<strong>$B$ is initialized to zero.</strong> So $BA = 0$ at step 0 and the adapted
 model is <em>exactly</em> the base model. Fine-tuning starts from the pretrained
-behaviour rather than from a random perturbation of it — which would throw away part
+behavior rather than from a random perturbation of it — which would throw away part
 of what pretraining bought before the first gradient step.
 </p>
 
 <p>
-<strong>$A$ is initialised randomly.</strong> If both were zero, each one's gradient
+<strong>$A$ is initialized randomly.</strong> If both were zero, each one's gradient
 would be proportional to the other and both would stay zero forever. Exactly one of
 them may start at zero, and it must be the one on the output side.
 </p>
@@ -305,7 +305,7 @@ machine this curriculum targets.
 <h2>What actually runs you out of memory</h2>
 
 <p>
-A result from the notebook worth internalising, because it contradicts most people's
+A result from the notebook worth internalizing, because it contradicts most people's
 intuition. For a 0.8M-parameter model, activation memory at various sequence lengths:
 </p>
 
@@ -330,7 +330,7 @@ irrelevant to the memory problem.</strong>
 
 <p>
 That is why flash attention (which tiles the computation so the $L \times L$ matrix
-is never materialised) and sliding-window attention exist, and why they matter more
+is never materialized) and sliding-window attention exist, and why they matter more
 than any weight-compression technique for long-context work.
 </p>
 
@@ -472,7 +472,7 @@ activations (~30%) :               = 0.90 GB
     matrices dominate everything — recall the table above, where a 3 MB model needed
     17 GB of activations at 4096 tokens — and there halving the sequence length gives a
     <em>quadratic</em> saving that nothing else can match. <strong>Measure before
-    optimising</strong>: the right answer inverts depending on a number you have not
+    optimizing</strong>: the right answer inverts depending on a number you have not
     been told.</p>
   </details>
 </div>
@@ -511,7 +511,7 @@ model.save_pretrained("adapter/")    # a few hundred KB, not a few GB</code></pr
   needs an explicit backend: the engine is <code>'none'</code> by default on this build,
   and the first quantized op otherwise fails with
   <code>NoQEngine</code> — an error that does not obviously mean "pick a backend". The
-  module is also <strong>deprecated</strong> in current PyTorch in favour of the separate
+  module is also <strong>deprecated</strong> in current PyTorch in favor of the separate
   <code>torchao</code> package, so check its migration notes before building on it.
   </p>
   <p style="margin-bottom:0">
@@ -578,7 +578,7 @@ model.save_pretrained("adapter/")    # a few hundred KB, not a few GB</code></pr
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favourite LLM, in your own words: <strong>quantization and LoRA both make a model cheaper. What is each one actually trading away, and why do they compose?</strong>
+  Try explaining to your favorite LLM, in your own words: <strong>quantization and LoRA both make a model cheaper. What is each one actually trading away, and why do they compose?</strong>
   Then ask it to correct you, and to push back wherever you were vague rather than
   outright wrong — that is where the gaps hide.
   </p>

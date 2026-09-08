@@ -154,7 +154,7 @@
 
     var target = document.getElementById(raw);
     if (!target) return;
-    if (a.classList.contains('anchor-link')) return;   // copying a link, not travelling
+    if (a.classList.contains('anchor-link')) return;   // copying a link, not traveling
 
     e.preventDefault();
     returnTo = { chapter: currentChapter, y: window.scrollY };
@@ -269,7 +269,7 @@
     if (!byId[id]) id = chapterIds[0];
 
     // Always reassert visibility. Skipping this when id === currentChapter looks
-    // like a cheap optimisation but breaks the continuous-mode toggle, which
+    // like a cheap optimization but breaks the continuous-mode toggle, which
     // changes what should be visible without changing which chapter is current.
     chapters.forEach(function (c) {
       c.hidden = continuous ? false : (c.id !== id);
@@ -308,7 +308,7 @@
 
   function onRoute(opts) {
     var r = parseHash();
-    // normalise a legacy hash into the canonical route without adding history
+    // normalize a legacy hash into the canonical route without adding history
     var canonical = r.anchor ? '#/' + r.chapter + '/' + r.anchor : '#/' + r.chapter;
     if (location.hash !== canonical) {
       // replaceState can be restricted on file:// in some browsers; falling back to
@@ -787,8 +787,8 @@
         var CE = -(p * Math.log(q) + (1 - p) * Math.log(1 - q));
         return 'H(p) = <b>' + H.toFixed(3) + '</b>   H(p,q) = <b>' + CE.toFixed(3) + '</b>   ' +
           'KL(p‖q) = H(p,q) − H(p) = <b>' + (CE - H).toFixed(3) + '</b>\n' +
-          'The gap is zero only when q = p. Training minimises H(p,q); since H(p) is fixed by the data,\n' +
-          'minimising cross-entropy is exactly minimising KL divergence from the truth.';
+          'The gap is zero only when q = p. Training minimizes H(p,q); since H(p) is fixed by the data,\n' +
+          'minimizing cross-entropy is exactly minimizing KL divergence from the truth.';
       }
     });
   };
@@ -829,7 +829,7 @@
       },
       readout: function (v) {
         return 'At e = 3 the MSE gradient is <b>6</b>; MAE\'s is <b>1</b>; Huber\'s saturates at δ = <b>' +
-          v.delta.toFixed(1) + '</b>.\nOne mislabelled example with a large error dominates an MSE batch and barely ' +
+          v.delta.toFixed(1) + '</b>.\nOne mislabeled example with a large error dominates an MSE batch and barely ' +
           'registers under MAE.';
       }
     });
@@ -1054,7 +1054,7 @@
         var pal = palette();
         var cols = probs.map(function (_, i) { return keep[i] ? pal.accent : pal.faint; });
         var alpha = probs.map(function (_, i) { return keep[i] ? 1 : 0.22; });
-        // renormalise over the kept set, which is what actually gets sampled
+        // renormalize over the kept set, which is what actually gets sampled
         var Z = probs.reduce(function (a, p, i) { return a + (keep[i] ? p : 0); }, 0);
         var shown = probs.map(function (p, i) { return keep[i] ? p / Z : p; });
         barChart(canvas, 215, labels, shown, cols, { max: 1, alpha: alpha, vfmt: function (x) { return x.toFixed(2); } });
@@ -1658,7 +1658,7 @@
       },
       readout: function (v) {
         return 'Warmup exists because Adam\'s second-moment estimate is garbage for the first few dozen steps: ' +
-          'a full-size step taken on a bad variance estimate can wreck an initialisation that took no time to ruin ' +
+          'a full-size step taken on a bad variance estimate can wreck an initialization that took no time to ruin ' +
           'and a long time to recover from.\nCosine decay then spends the end of training taking small, careful steps ' +
           'near a minimum instead of bouncing around it.';
       }

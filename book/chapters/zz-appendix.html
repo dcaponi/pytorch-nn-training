@@ -26,14 +26,14 @@ budget that is yours alone, and tells you when you have exceeded it.
 </p>
 
 <ul>
-  <li><strong>Measure before optimising.</strong> MPS is asynchronous, so wall-clock timing
+  <li><strong>Measure before optimizing.</strong> MPS is asynchronous, so wall-clock timing
       around a forward pass measures only queueing. Call
       <code>torch.mps.synchronize()</code> before stopping the clock.</li>
   <li><strong>Batch size is the first lever.</strong> Small models are launch-overhead-bound;
       going from batch 16 to 128 is often nearly free in time and a large gain in throughput.</li>
   <li><strong>Watch for silent CPU fallback.</strong> With
       <code>PYTORCH_ENABLE_MPS_FALLBACK=1</code>, unsupported ops run on CPU — correct, but
-      each one forces a synchronisation. One fallback op inside your inner loop can cost more
+      each one forces a synchronization. One fallback op inside your inner loop can cost more
       than everything else combined.</li>
   <li><strong><code>torch.compile</code> is not the answer here.</strong> Its MPS support
       lags CUDA considerably; on these model sizes it usually costs more in compile time than
@@ -101,7 +101,7 @@ transform features, never the batch.
     <tr><td><code>nn.LSTM(i, h)</code></td><td><span class="shape">(B, L, i)</span></td><td><span class="shape">(B, L, h)</span>, $(h_n, c_n)$</td><td>needs <code>batch_first=True</code></td></tr>
     <tr><td>Multi-head attention</td><td><span class="shape">(B, L, d)</span></td><td><span class="shape">(B, L, d)</span></td><td>internally <span class="shape">(B, H, L, d/H)</span></td></tr>
     <tr><td>Attention weights</td><td>—</td><td><span class="shape">(B, H, L, L)</span></td><td>quadratic in $L$ — the memory hog</td></tr>
-    <tr><td><code>nn.LayerNorm(d)</code></td><td><span class="shape">(…, d)</span></td><td><span class="shape">(…, d)</span></td><td>normalises the last dim only</td></tr>
+    <tr><td><code>nn.LayerNorm(d)</code></td><td><span class="shape">(…, d)</span></td><td><span class="shape">(…, d)</span></td><td>normalizes the last dim only</td></tr>
     <tr><td><code>CrossEntropyLoss</code></td><td><span class="shape">(N, C)</span>, <span class="shape">(N,)</span></td><td>scalar</td><td>reshape sequences to <span class="shape">(B·L, V)</span></td></tr>
   </tbody>
 </table>
@@ -134,7 +134,7 @@ padding.
     <tr><td><strong>Exposure bias</strong></td><td>A model trained on perfect prefixes has never seen its own mistakes and cannot recover from them. <a class="xref" href="#ch09">Ch. 09</a></td></tr>
     <tr><td><strong>Gradient clipping</strong></td><td>Rescale the gradient vector if its norm exceeds a threshold. Fixes explosion, not vanishing. <a class="xref" href="#ch04">Ch. 04</a></td></tr>
     <tr><td><strong>KV cache</strong></td><td>Stored keys and values so each generation step processes one token instead of $t$. <a class="xref" href="#ch10-kv-cache">Ch. 10</a></td></tr>
-    <tr><td><strong>Layer norm</strong></td><td>Normalise across features within one token. Batch-size independent, unlike batch norm. <a class="xref" href="#ch08">Ch. 08</a></td></tr>
+    <tr><td><strong>Layer norm</strong></td><td>Normalize across features within one token. Batch-size independent, unlike batch norm. <a class="xref" href="#ch08">Ch. 08</a></td></tr>
     <tr><td><strong>Logit</strong></td><td>A raw unbounded score before softmax or sigmoid. Pass these to the loss, not probabilities. <a class="xref" href="#ch00">Ch. 00</a></td></tr>
     <tr><td><strong>LoRA</strong></td><td>Freeze $W$, train a low-rank $BA$ alongside it. $B$ starts at zero. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
     <tr><td><strong>Nucleus (top-p)</strong></td><td>Sample from the smallest set of tokens whose cumulative probability exceeds $p$. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
@@ -143,10 +143,10 @@ padding.
     <tr><td><strong>Pre-norm / post-norm</strong></td><td>Whether LayerNorm sits inside or outside the residual path. Pre-norm trains deeper, more stably. <a class="xref" href="#ch10">Ch. 10</a></td></tr>
     <tr><td><strong>Quantization</strong></td><td>Representing weights on a coarse integer grid. Error is bounded by half the step size. <a class="xref" href="#ch11">Ch. 11</a></td></tr>
     <tr><td><strong>Residual connection</strong></td><td>$x + F(x)$. Gives gradients an unobstructed additive path to every layer. <a class="xref" href="#ch08">Ch. 08</a></td></tr>
-    <tr><td><strong>FlashAttention</strong></td><td>Tiled attention with an online softmax; the $L\times L$ matrix is never materialised, so memory is linear in $L$. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>FlashAttention</strong></td><td>Tiled attention with an online softmax; the $L\times L$ matrix is never materialized, so memory is linear in $L$. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>GQA / MQA</strong></td><td>Heads share key/value projections, in groups or entirely. Shrinks the KV cache, which is what limits concurrent users. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
-    <tr><td><strong>GRPO</strong></td><td>Group Relative Policy Optimization: preference optimisation without a value network, normalising advantages within a sampled group. Used for reasoning training. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
-    <tr><td><strong>MLA</strong></td><td>Multi-head latent attention: cache a low-rank latent instead of full K and V. Chapter 11's factorisation, applied to the cache. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>GRPO</strong></td><td>Group Relative Policy Optimization: preference optimization without a value network, normalizing advantages within a sampled group. Used for reasoning training. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
+    <tr><td><strong>MLA</strong></td><td>Multi-head latent attention: cache a low-rank latent instead of full K and V. Chapter 11's factorization, applied to the cache. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>MoE</strong></td><td>Mixture of experts: many feed-forward blocks, a router picking top-$k$ per token. Total parameters grow; active parameters do not. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>RMSNorm</strong></td><td>LayerNorm without the mean subtraction or shift — scale only. <a class="xref" href="#appendix-the-modern-stack-what-changed-after-2017">Modern stack</a></td></tr>
     <tr><td><strong>RoPE</strong></td><td>Rotary position embedding: rotate $q$ and $k$ by an angle proportional to position, making the dot product depend on relative offset. <a class="xref" href="#ch08">Ch. 08</a></td></tr>
@@ -172,7 +172,7 @@ padding.
     <tr><td><code>nan</code> in attention only</td><td>a fully-masked row</td><td>check for empty/all-pad sequences</td></tr>
     <tr><td>Loss stuck at $\ln(K)$</td><td>no gradient reaching the weights</td><td>print <code>p.grad.norm()</code></td></tr>
     <tr><td>Loss decreases then plateaus high</td><td>underfitting, or bad lr</td><td>overfit 8 examples first</td></tr>
-    <tr><td>Train ↓, val ↑</td><td>overfitting</td><td>best-checkpoint restore, then regularise</td></tr>
+    <tr><td>Train ↓, val ↑</td><td>overfitting</td><td>best-checkpoint restore, then regularize</td></tr>
     <tr><td>Val better than train</td><td>dropout left on at eval</td><td><code>model.eval()</code></td></tr>
     <tr><td>Loss near zero in 2 epochs, output garbage</td><td>missing teacher-forcing shift</td><td>check <code>tgt[:, :-1]</code> / <code>tgt[:, 1:]</code></td></tr>
     <tr><td>Great val, poor in the wild</td><td>train/test leakage</td><td>rebuild the vocabulary from train only</td></tr>
@@ -221,7 +221,7 @@ e.to('mps')(torch.tensor([200], device='mps'))    # mps : a row of zeros</code><
       <code>Didn't find engine for operation quantized::linear_prepack NoQEngine</code>
       until you set it to <code>'qnnpack'</code>, the one supported backend on this
       platform. Note also that <code>torch.ao.quantization</code> is deprecated in
-      favour of the separate <code>torchao</code> package.</li>
+      favor of the separate <code>torchao</code> package.</li>
   <li><strong>The FlashAttention backend is CUDA-only.</strong>
       <code>F.scaled_dot_product_attention</code> is still the right call — it is
       correct and never meaningfully slower — but on MPS it dispatches to a math or
@@ -238,7 +238,7 @@ e.to('mps')(torch.tensor([200], device='mps'))    # mps : a row of zeros</code><
       appears from <a class="xref" href="#ch03">Chapter 03</a> onwards.</li>
   <li><strong>Watch for silent CPU fallback.</strong> With
       <code>PYTORCH_ENABLE_MPS_FALLBACK=1</code> an unsupported op runs on CPU —
-      correct, but each occurrence forces a synchronisation. One such op in an inner
+      correct, but each occurrence forces a synchronization. One such op in an inner
       loop can cost more than everything else combined.</li>
   <li><strong><code>num_workers=0</code> is often fastest in notebooks.</strong> macOS
       spawns rather than forks, so each worker re-imports your module.</li>
@@ -285,7 +285,7 @@ wrong. The map:
     <tr><td>manual backward pass</td><td>01</td><td><code>loss.backward()</code></td><td>arbitrary graphs, fused stable kernels</td></tr>
     <tr><td>manual SGD update</td><td>01</td><td><code>optim.AdamW</code></td><td>per-parameter step sizes, decoupled decay</td></tr>
     <tr><td>word vocabulary + <code>&lt;UNK&gt;</code></td><td>03</td><td><code>tokenizers</code> (BPE)</td><td>no unknown tokens; any byte string encodes</td></tr>
-    <tr><td>scaled dot-product attention</td><td>06</td><td><code>F.scaled_dot_product_attention</code></td><td>FlashAttention — the $L^2$ matrix is never materialised</td></tr>
+    <tr><td>scaled dot-product attention</td><td>06</td><td><code>F.scaled_dot_product_attention</code></td><td>FlashAttention — the $L^2$ matrix is never materialized</td></tr>
     <tr><td><code>MultiHeadAttention</code></td><td>06</td><td><code>nn.MultiheadAttention</code></td><td>fused projections, key-padding masks</td></tr>
     <tr><td>encoder block</td><td>07</td><td><code>nn.TransformerEncoderLayer</code></td><td><code>norm_first</code>, nested-tensor fast paths</td></tr>
     <tr><td>seq2seq model</td><td>09</td><td><code>nn.Transformer</code></td><td>both stacks, mask helpers</td></tr>
@@ -372,7 +372,7 @@ surrounded by experiments. What follows is how to get at it.
     <tr><td>10</td><td>Holtzman et al. (2019), <em>The Curious Case of Neural Text Degeneration</em></td><td>where nucleus sampling comes from, and why likelihood ≠ quality</td></tr>
     <tr><td>11</td><td>Hu et al. (2021), <em>LoRA</em></td><td>§4.1 is the low-rank claim you tested with the rank sweep</td></tr>
     <tr><td>11</td><td>Dettmers et al. (2023), <em>QLoRA</em></td><td>NF4, double quantization, paged optimizers</td></tr>
-    <tr><td>11</td><td>Dao et al. (2022), <em>FlashAttention</em></td><td>a systems paper that changed modelling; read it for the tiling argument</td></tr>
+    <tr><td>11</td><td>Dao et al. (2022), <em>FlashAttention</em></td><td>a systems paper that changed modeling; read it for the tiling argument</td></tr>
   </tbody>
 </table>
 </div>
@@ -391,7 +391,7 @@ Each entry below gives what it replaces, the idea, and which resource it buys ba
 None of them requires mathematics beyond <a class="xref" href="#ch00">Chapter 00</a>.
 </p>
 
-<h3>Normalisation: LayerNorm → RMSNorm</h3>
+<h3>Normalization: LayerNorm → RMSNorm</h3>
 
 $$\operatorname{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_i x_i^2 + \epsilon}}\odot\gamma$$
 
@@ -429,7 +429,7 @@ the attention operation.
 This directly fixes the hard context limit from <a class="xref" href="#ch10">Chapter
 10</a>: there is no position-embedding table to run out of, and interpolating or
 rescaling the frequencies extends the context of an already-trained model.
-<em>Buys: length generalisation.</em>
+<em>Buys: length generalization.</em>
 </p>
 
 <h3>KV cache: MHA → GQA/MQA → latent attention</h3>
@@ -448,7 +448,7 @@ concurrent users. Three successive attacks on it:
   <li><strong>Multi-head latent attention (MLA)</strong>, introduced in DeepSeek-V2 —
       compress keys and values into a low-rank latent vector and cache <em>that</em>,
       reconstructing per-head projections on the fly. It is
-      <a class="xref" href="#ch11">Chapter 11's low-rank factorisation</a> applied to
+      <a class="xref" href="#ch11">Chapter 11's low-rank factorization</a> applied to
       the cache instead of to the weights, and it is a good example of an idea you
       already own being moved to a new place.</li>
 </ul>
@@ -467,7 +467,7 @@ knowledge than it spends compute on at any one token.
 <p>
 The engineering problem is load balancing: a router left alone collapses onto a few
 experts. Classic MoE adds an auxiliary balancing loss, which competes with the language
-modelling objective; DeepSeek-V3 instead adjusts a per-expert routing <em>bias</em>
+modeling objective; DeepSeek-V3 instead adjusts a per-expert routing <em>bias</em>
 based on observed load, achieving balance without an auxiliary loss term. DeepSeekMoE
 also splits experts finer and keeps a few always-on shared experts for common
 patterns. <em>Buys: knowledge per FLOP.</em>
@@ -476,10 +476,10 @@ patterns. <em>Buys: knowledge per FLOP.</em>
 <h3>Attention kernels: FlashAttention</h3>
 
 <p>
-Not a modelling change at all — the same mathematics, computed in tiles with an online
+Not a modeling change at all — the same mathematics, computed in tiles with an online
 softmax so the <span class="shape">(B, H, L, L)</span> matrix is never written to
 memory. Memory becomes linear in $L$ instead of quadratic.
-<em>Buys: context length.</em> This is worth internalising as a lesson about the field:
+<em>Buys: context length.</em> This is worth internalizing as a lesson about the field:
 one of the largest capability jumps of the last several years came from rewriting a
 kernel, not from a new architecture.
 </p>
@@ -496,16 +496,16 @@ prediction</strong> objective, predicting more than one future token per positio
 <em>Buys: tokens per second.</em>
 </p>
 
-<h3>Post-training: SFT, then preference optimisation</h3>
+<h3>Post-training: SFT, then preference optimization</h3>
 
 <p>
 A base model trained as in <a class="xref" href="#ch10">Chapter 10</a> continues text;
 it does not follow instructions. Turning one into an assistant is a separate stage:
-supervised fine-tuning on demonstrations, then optimisation against preferences —
+supervised fine-tuning on demonstrations, then optimization against preferences —
 <strong>RLHF/PPO</strong> classically, <strong>DPO</strong> without a reward model, and
-<strong>GRPO</strong> (DeepSeek's variant, which drops the value network and normalises
+<strong>GRPO</strong> (DeepSeek's variant, which drops the value network and normalizes
 advantages within a group of sampled responses) for reasoning training. DeepSeek-R1 is
-the notable demonstration that reasoning behaviour can emerge from reinforcement
+the notable demonstration that reasoning behavior can emerge from reinforcement
 learning against verifiable answers with little or no supervised bootstrapping.
 <em>Buys: usefulness, which pretraining does not provide.</em>
 </p>
@@ -513,7 +513,7 @@ learning against verifiable answers with little or no supervised bootstrapping.
 <div class="box concept">
   <span class="box-label">Key concept — the shape of progress</span>
   Look at that list and notice how few entries are new mathematics. Two are
-  factorisations you already implemented (LoRA's low rank, reused for the KV cache),
+  factorizations you already implemented (LoRA's low rank, reused for the KV cache),
   two are gating (SwiGLU, MoE routing) which is the LSTM idea from
   <a class="xref" href="#ch05">Chapter 05</a>, one is a kernel rewrite, one is a
   rotation, and one is a change of training objective. <strong>The frontier is

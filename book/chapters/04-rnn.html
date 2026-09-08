@@ -15,7 +15,7 @@ follows.
 
 <p>
 An RNN processes a sequence one element at a time, maintaining a <strong>hidden state</strong>
-$h_t$ that is meant to summarise everything up to position $t$:
+$h_t$ that is meant to summarize everything up to position $t$:
 </p>
 
 $$h_t = \tanh\big(W_{xh}x_t + W_{hh}h_{t-1} + b_h\big) \qquad\qquad y_t = W_{hy}h_t + b_y$$
@@ -58,7 +58,7 @@ A 256-unit hidden state must therefore hold, simultaneously:
   </p>
 </div>
 
-<h3>Character-level language modelling</h3>
+<h3>Character-level language modeling</h3>
 
 <p>
 The notebook trains on <em>Alice's Adventures in Wonderland</em> at the character level. The
@@ -69,7 +69,7 @@ the alphabet size, trained with cross-entropy exactly as derived in
 
 <p>
 Characters rather than words is a deliberate simplification. The vocabulary is ~60 symbols
-instead of tens of thousands, there is no tokenisation to get wrong, and there are no unknown
+instead of tens of thousands, there is no tokenization to get wrong, and there are no unknown
 tokens. The cost is that the model must learn spelling before it can learn anything else,
 which is why early samples are letter soup, then pronounceable non-words, then real words in
 ungrammatical order. Watching that progression is the most instructive part of the exercise.
@@ -143,7 +143,7 @@ both use it.
 
 <div class="box warn">
   <span class="box-label">Asymmetry</span>
-  Clipping fixes explosion but has no analogue for vanishing — you cannot multiply a
+  Clipping fixes explosion but has no analog for vanishing — you cannot multiply a
   gradient that is genuinely zero back up to something meaningful. Vanishing gradients
   require an architectural fix, which is what <a class="xref" href="#ch05">Chapter 05</a>
   is about.
@@ -153,7 +153,7 @@ both use it.
 
 <p>
 After training, generation is a loop: feed a seed character, get a distribution over the next
-character, choose one, feed it back. The choosing is where all the interesting behaviour lives.
+character, choose one, feed it back. The choosing is where all the interesting behavior lives.
 </p>
 
 <p>
@@ -307,7 +307,7 @@ e^0.5=1.649  e^{−0.5}=0.607  e^{−1}=0.368  e^{−2}=0.135</div>
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favourite LLM, in your own words: <strong>why does a recurrent network forget, and why is it not something you can fix by tuning?</strong>
+  Try explaining to your favorite LLM, in your own words: <strong>why does a recurrent network forget, and why is it not something you can fix by tuning?</strong>
   Then ask it to correct you, and to push back wherever you were vague rather than
   outright wrong — that is where the gaps hide.
   </p>

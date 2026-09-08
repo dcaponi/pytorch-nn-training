@@ -14,7 +14,7 @@ honestly — by differentiating the whole thing and following the result back to
 <h2>The short answer, before the long one</h2>
 
 <p>
-$W^Q$, $W^K$ and $W^V$ are ordinary parameters. They are initialised at random, they are
+$W^Q$, $W^K$ and $W^V$ are ordinary parameters. They are initialized at random, they are
 updated by the same optimizer step as every other weight in the model, and they are trained
 <em>jointly with everything else</em> — the feed-forward head included — against one scalar
 loss. There is no separate objective for attention, no phase in which the projections are
@@ -24,11 +24,11 @@ tells a query what it ought to be looking for.
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
-  There is no attention loss. The only quantity the model ever minimises is the end-task
+  There is no attention loss. The only quantity the model ever minimizes is the end-task
   loss — next-token cross-entropy, translation cross-entropy, a classification objective —
   and $W^Q$ learns solely because changing it changes that number. Every interpretable head
   you have ever seen in a paper is a <em>by-product</em>. Nobody asked the model for a
-  coreference head; a coreference head is what minimised perplexity.
+  coreference head; a coreference head is what minimized perplexity.
 </div>
 
 <p>
@@ -41,7 +41,7 @@ question about the backward pass, and the rest of this chapter is the derivation
 <figure class="figure wide">
 <svg viewBox="0 0 760 190" role="img" aria-labelledby="f-fb-t f-fb-d" style="font-family:var(--sans)">
   <title id="f-fb-t">The forward chain of attention and the backward chain beneath it</title>
-  <desc id="f-fb-d">A left-to-right forward chain: X, then Q K and V, then the score matrix S, then the attention weights P, then the output O, then the loss. Beneath it a dashed right-to-left chain labelled backward, with the operation for each step written under the arrow.</desc>
+  <desc id="f-fb-d">A left-to-right forward chain: X, then Q K and V, then the score matrix S, then the attention weights P, then the output O, then the loss. Beneath it a dashed right-to-left chain labeled backward, with the operation for each step written under the arrow.</desc>
   <defs>
     <marker id="fb-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
     <marker id="fb-bk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--byhand)"/></marker>
@@ -87,7 +87,7 @@ question about the backward pass, and the rest of this chapter is the derivation
   <text x="250" y="162" font-size="13.0" text-anchor="middle" fill="var(--byhand)">× K and × Q, ÷ √d</text>
   <text x="126" y="162" font-size="13.0" text-anchor="middle" fill="var(--byhand)">Xᵀ ·</text>
 </svg>
-<figcaption><b>The chain this chapter differentiates.</b> Along the top, the forward pass with the shape of every intermediate; along the bottom, the same route travelled backwards. Read the backward row right to left and you have the six equations in order. Only the middle step does anything a first-year calculus course would not — everything else is a transpose and a matrix multiply. It is worth noticing how short the chain is: five links between a scalar loss and the matrix that decides what position 7 looks at.</figcaption>
+<figcaption><b>The chain this chapter differentiates.</b> Along the top, the forward pass with the shape of every intermediate; along the bottom, the same route traveled backwards. Read the backward row right to left and you have the six equations in order. Only the middle step does anything a first-year calculus course would not — everything else is a transpose and a matrix multiply. It is worth noticing how short the chain is: five links between a scalar loss and the matrix that decides what position 7 looks at.</figcaption>
 </figure>
 
 <h2>One function, one scalar</h2>
@@ -322,8 +322,8 @@ goes with it.
   <p style="margin-bottom:0">
   The collapse is there; it is just per-row. With scaling, the loudest row's gradient is
   about $9\times$ the quietest. Without, the spread is twelve orders of magnitude and 15% of
-  rows return less than $10^{-4}$ — dead, while their surviving neighbours shout loudly
-  enough to hold the average up. The lesson generalises past attention: a mean or a global
+  rows return less than $10^{-4}$ — dead, while their surviving neighbors shout loudly
+  enough to hold the average up. The lesson generalizes past attention: a mean or a global
   norm cannot see a failure that affects a subset. Plot the distribution.
   </p>
 </div>
@@ -334,10 +334,10 @@ goes with it.
   be one phenomenon. <strong>Attention entropy collapse</strong> is this row going one-hot
   early and never recovering. <strong>Learning-rate warmup</strong> helps because it keeps
   early updates small enough that no head sharpens before the representation it is attending
-  to is worth attending to. <strong>QK-LayerNorm</strong> — normalising $Q$ and $K$ before
+  to is worth attending to. <strong>QK-LayerNorm</strong> — normalizing $Q$ and $K$ before
   the dot product, now standard in large models — bounds the score magnitudes directly, which
   is the same intervention as $\sqrt{d_k}$ but robust to the scale the weights drift to
-  during training rather than only at initialisation.
+  during training rather than only at initialization.
 </div>
 
 <div class="box concept">
@@ -363,7 +363,7 @@ $$S = \frac{X W^Q (W^K)^{\top} X^{\top}}{\sqrt{d_k}}$$
 <p>
 so only the product $M = W^Q(W^K)^\top$ affects the function the model computes. Scale
 $W^Q$ by any $c \neq 0$ and $W^K$ by $1/c$ and the model is <em>identical</em> — same
-outputs, same loss, on every input. The parameterisation is redundant, and the loss surface
+outputs, same loss, on every input. The parameterization is redundant, and the loss surface
 therefore has a flat direction through every point.
 </p>
 
@@ -379,10 +379,10 @@ $$\Big\langle \frac{\partial L}{\partial W^Q},\, W^Q \Big\rangle
 Two consequences. It is a genuine test — if you implement attention backward yourself, this
 equality holds to floating-point noise, and the notebook checks it. And it explains a
 practical annoyance: the norms of $W^Q$ and $W^K$ individually are not meaningful quantities
-to monitor or to regularise, because the optimizer is free to slide along the flat direction
+to monitor or to regularize, because the optimizer is free to slide along the flat direction
 without changing anything. Weight decay applied to both does have an effect — it prefers the
 balanced point on each flat line — which is a small example of a regulariser acting on the
-parameterisation rather than on the function.
+parameterization rather than on the function.
 </p>
 
 <h2>Where the gradient is born</h2>
@@ -473,7 +473,7 @@ awkward Jacobian, and together they collapse to a subtraction.
   learning — it does not, and cannot, because no gradient is computed at all during
   generation. The $-\infty$ entries are the same device as attention masking, doing the same
   job in a different place.</figcaption>
-  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;licence. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
+  <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;license. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
 </figure>
 
 <h2>What gets updated, and by what</h2>
@@ -495,9 +495,9 @@ awkward Jacobian, and together they collapse to a subtraction.
 <p>
 The last two rows are the ones that catch people. A rare token's embedding is updated on
 the handful of steps where it appears and is otherwise untouched, which is why rare-word
-embeddings stay close to their initialisation and why a large vocabulary needs more data
+embeddings stay close to their initialization and why a large vocabulary needs more data
 rather than merely more parameters. And a learned positional table has never seen row 3000 if
-training never ran a sequence that long — the row is still at its initialisation, and the
+training never ran a sequence that long — the row is still at its initialization, and the
 model will produce confident nonsense there. A fixed formula, having no parameters at all,
 cannot fail that way — which is a trade
 <a class="xref" href="#ch08-positional-encoding">Chapter 08</a> comes back to when it
@@ -626,7 +626,7 @@ for name, p in model.named_parameters():
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favourite LLM, in your own words: <strong>an encoder–decoder's encoder has no loss of its own. So how does it learn anything?</strong>
+  Try explaining to your favorite LLM, in your own words: <strong>an encoder–decoder's encoder has no loss of its own. So how does it learn anything?</strong>
   Then ask it to correct you, and to push back wherever you were vague rather than
   outright wrong — that is where the gaps hide.
   </p>
@@ -681,7 +681,7 @@ for name, p in model.named_parameters():
   <span class="box-label">Where this goes next</span>
   You can now differentiate an attention head end to end, which is the prerequisite for
   stacking one. <a class="xref" href="#ch08">Chapter 08</a> does the stacking: positional
-  encoding, residual connections and normalisation, and the reason a deep stack of these
+  encoding, residual connections and normalization, and the reason a deep stack of these
   blocks trains at all — an argument that is entirely about the backward pass you just
   derived. Much later, <a class="xref" href="#ch11">Chapter 11</a> freezes most of these
   parameters and trains a low-rank correction instead, which only makes sense once you can
