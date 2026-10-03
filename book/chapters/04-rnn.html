@@ -4,35 +4,36 @@
 <h1>Recurrence and Its Limits</h1>
 
 <p class="lede">
-Averaging a review throws its order away entirely. A recurrent network keeps it, by
-reading one token at a time and carrying a running summary forward. That is a strictly more
-powerful idea than the baseline of <a class="xref" href="#ch03">Chapter 03</a>, and it fails
-for a reason worth understanding in detail — because the fix for it shapes everything that
-follows.
+When you average a review, you discard its word order completely. A recurrent network keeps
+the order. It reads one token at a time and carries a running summary forward. This idea is
+strictly more powerful than the baseline of <a class="xref" href="#ch03">Chapter 03</a>. But
+it fails, and you must understand the reason in detail. The fix for that failure shapes all
+the chapters after it.
 </p>
 
 <h2>The recurrence</h2>
 
 <p>
-An RNN processes a sequence one element at a time, maintaining a <strong>hidden state</strong>
-$h_t$ that is meant to summarize everything up to position $t$:
+An RNN processes a sequence one element at a time. It keeps a <strong>hidden state</strong>
+$h_t$, which must summarize everything up to position $t$:
 </p>
 
 $$h_t = \tanh\big(W_{xh}x_t + W_{hh}h_{t-1} + b_h\big) \qquad\qquad y_t = W_{hy}h_t + b_y$$
 
 <p>
-The essential feature is that $W_{xh}$, $W_{hh}$, and $W_{hy}$ do not depend on $t$. One
-set of matrices is reused at every step, which is what lets the model handle sequences of
-any length — there is no per-position parameter to run out of, and a sequence twice as long
-costs twice the compute rather than twice the weights.
+The important feature is that $W_{xh}$, $W_{hh}$ and $W_{hy}$ do not depend on $t$. The
+model uses one set of matrices at each step. Thus it can process sequences of any length.
+There is no parameter for each position, so the model cannot run out of them. A sequence
+two times as long costs two times the compute, not two times the weights.
 </p>
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
-  The hidden state is a fixed-size vector — 256 numbers, say — that must compress the entire
-  history. Whatever the model needs from token 1 at token 500 must survive 499 rounds of
-  being multiplied, squashed, and mixed with new input. That fixed-width bottleneck is the
-  source of both the RNN's elegance and its failure.
+  The hidden state is a vector with a fixed size, for example 256 numbers. It must compress
+  the full history. Suppose that the model needs something from token 1 at token 500. That
+  information must stay alive through 499 rounds of multiplication, squashing and mixing
+  with new input. That fixed-width bottleneck is the source of both the elegance of the RNN
+  and its failure.
 </div>
 
 <div class="box example">
@@ -51,142 +52,148 @@ A 256-unit hidden state must therefore hold, simultaneously:
 
 ...in 256 numbers, rewritten from scratch at every one of 12 steps.</div>
   <p style="margin-bottom:0">
-  Compare a transformer, which simply <a class="xref" href="#ch06">looks back at
-  "keys" directly</a> when it needs it. The RNN has to have <em>predicted</em>, at
-  step 2, that "keys" would matter later — and to have protected it through ten
-  rounds of overwriting. That is a much harder learning problem than it first looks.
+  Compare a transformer. When it needs "keys", it
+  <a class="xref" href="#ch06">looks back at "keys" directly</a>. The RNN must
+  <em>predict</em> at step 2 that "keys" will be important later. Then it must protect
+  "keys" through ten rounds of overwriting. That learning problem is much more difficult
+  than it first seems.
   </p>
 </div>
 
 <h3>Character-level language modeling</h3>
 
 <p>
-The notebook trains on <em>Alice's Adventures in Wonderland</em> at the character level. The
-task at every position is to predict the next character: a $K$-way classification with $K$
-the alphabet size, trained with cross-entropy exactly as derived in
+The notebook trains on <em>Alice's Adventures in Wonderland</em> at the character level. At
+each position, the task is to predict the next character. This is a $K$-way classification,
+where $K$ is the size of the alphabet. It trains with cross-entropy, exactly as in
 <a class="xref" href="#ch00-cross-entropy">Chapter 00</a>.
 </p>
 
 <p>
-Characters rather than words is a deliberate simplification. The vocabulary is ~60 symbols
-instead of tens of thousands, there is no tokenization to get wrong, and there are no unknown
-tokens. The cost is that the model must learn spelling before it can learn anything else,
-which is why early samples are letter soup, then pronounceable non-words, then real words in
-ungrammatical order. Watching that progression is the most instructive part of the exercise.
+We use characters, not words, to make the problem simpler on purpose. The vocabulary has
+72 symbols, not tens of thousands. There is no tokenization to get wrong, and
+there are no unknown tokens. The cost is that the model must learn spelling before it can
+learn anything else. Thus the first samples are random letters. Then they are words that you
+can say but that do not exist. Then they are real words without grammar. That progression
+is the most useful part of the exercise.
 </p>
 
 <h2>Backpropagation through time</h2>
 
 <p>
-To train, unroll the recurrence into a feed-forward graph: $T$ copies of the same cell,
-chained. This is not a metaphor — PyTorch's dynamic graph
-(<a class="xref" href="#ch02">Chapter 02</a>) literally builds it as the loop runs. Then
-backpropagate through the whole thing.
+To train, unroll the recurrence into a feed-forward graph: $T$ copies of the same cell, one
+after the other. This is not a metaphor. The dynamic graph of PyTorch
+(<a class="xref" href="#ch02">Chapter 02</a>) really builds it as the loop runs. Then
+backpropagate through the full graph.
 </p>
 
 <p>
-Because the weights are shared, gradients from every timestep accumulate into the same
-tensors:
+The weights are shared. Thus the gradients from all timesteps add into the same tensors:
 </p>
 
 $$\frac{\partial \mathcal{L}}{\partial W_{hh}} = \sum_{t=1}^{T} \frac{\partial \mathcal{L}_t}{\partial W_{hh}}$$
 
 <p>
-This is the gradient accumulation of <a class="xref" href="#ch02">Chapter 02</a> being used
-on purpose rather than by accident. And it means the memory cost of training scales with
-sequence length: every intermediate activation at every timestep must be retained for the
-backward pass. A 1,000-step sequence is, from the optimizer's point of view, a 1,000-layer
-network.
+This is the gradient accumulation of <a class="xref" href="#ch02">Chapter 02</a>, used on
+purpose and not by accident. It also means that the memory cost of training increases with
+sequence length. The backward pass needs each intermediate activation at each timestep. For
+the optimizer, a sequence of 1,000 steps is a network of 1,000 layers.
 </p>
 
 <h2>Why gradients vanish</h2>
 
 <p>
-Here is the failure, and it is arithmetic, not bad luck. Propagating a gradient from step $t$
-back to step $k$ means passing through every intermediate cell, and each crossing multiplies
-by the same two factors:
+Here is the failure. It comes from arithmetic, not from bad luck. To send a gradient from
+step $t$ back to step $k$, you must go through each cell between them. Each crossing
+multiplies by the same two factors:
 </p>
 
 $$\frac{\partial h_t}{\partial h_k} = \prod_{i=k+1}^{t} \frac{\partial h_i}{\partial h_{i-1}}
 = \prod_{i=k+1}^{t} W_{hh}^{\top} \operatorname{diag}\big(\tanh'(z_i)\big)$$
 
 <p>
-A product of $t - k$ nearly identical terms. If the typical magnitude of that term is $\lambda$,
-the gradient scales as $\lambda^{t-k}$ — geometric in the distance. And $\tanh' \le 1$ always,
-with equality only at zero, so unless $W_{hh}$ is large enough to compensate, $\lambda < 1$.
+This is a product of $t - k$ terms that are almost the same. If the typical magnitude of
+that term is $\lambda$, the gradient changes as $\lambda^{t-k}$. That is exponential in the
+distance. Also, $\tanh' \le 1$ always, and it is equal to 1 only at zero. Thus, if
+$W_{hh}$ is not large enough to compensate, $\lambda < 1$.
 </p>
 
 <div class="widget" data-widget="vanishing"></div>
 
 <p>
-Set the multiplier to 0.85 and look at 30 steps back: the gradient is $10^{-2}$ of its
-original size. At 50 steps it is $10^{-4}$. The information from early tokens is not
-distorted or noisy — it is <em>absent</em>, numerically indistinguishable from zero. No amount
-of additional training fixes this, because there is no signal to train on.
+Set the multiplier to 0.85, and look at 30 steps back. The gradient is $10^{-2}$ of its
+original size. At 40 steps, the right edge of the plot, it is approximately $10^{-3}$. The information from early tokens is not
+distorted or noisy. It is <em>absent</em>, and you cannot tell it from zero. More training
+does not fix this, because there is no signal to train on.
 </p>
 
 <p>
-Push the multiplier above 1 and the opposite happens: the product explodes, producing
+Push the multiplier above 1, and the opposite occurs. The product explodes. It gives
 gradients of $10^{6}$ and an immediate <code>nan</code>. Exploding gradients are the easier
-problem, because clipping solves them outright:
+problem, because clipping solves them completely:
 </p>
 
 <pre><code class="language-python">torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)</code></pre>
 
 <p>
-This rescales the whole gradient vector if its norm exceeds the threshold, preserving
-direction while capping magnitude. It goes after <code>backward()</code> and before
-<code>step()</code>, and it is standard in every sequence model in this book —
-<a class="xref" href="#ch09">Chapter 09</a> and <a class="xref" href="#ch10">Chapter 10</a>
-both use it.
+If the norm of the full gradient vector is more than the threshold, this scales the vector
+down. It keeps the direction and limits the magnitude. Put it after
+<code>backward()</code> and before <code>step()</code>. It is standard in each sequence
+model in this book. <a class="xref" href="#ch09">Chapter 09</a> and
+<a class="xref" href="#ch10">Chapter 10</a> both use it.
 </p>
 
 <div class="box warn">
   <span class="box-label">Asymmetry</span>
-  Clipping fixes explosion but has no analog for vanishing — you cannot multiply a
-  gradient that is genuinely zero back up to something meaningful. Vanishing gradients
-  require an architectural fix, which is what <a class="xref" href="#ch05">Chapter 05</a>
-  is about.
+  Clipping fixes explosion, but nothing like it fixes vanishing. You cannot multiply a
+  gradient that is really zero back up to something useful. Vanishing gradients need a fix
+  in the architecture. <a class="xref" href="#ch05">Chapter 05</a> gives that fix.
 </div>
 
 <h2>Generating text, and the sampling question</h2>
 
 <p>
-After training, generation is a loop: feed a seed character, get a distribution over the next
-character, choose one, feed it back. The choosing is where all the interesting behavior lives.
+After training, generation is a loop. Give the model a seed character, and get a
+distribution over the next character. Select one character, and give it back to the model.
+All the interesting behavior is in the selection.
 </p>
 
 <p>
-Always taking the <code>argmax</code> is the obvious approach and produces the worst output.
-It is deterministic, so the same seed always gives the same text, and it falls into loops
-almost immediately — "the the the the" is a perfectly reasonable greedy continuation.
-Sampling from the full distribution is the other extreme and produces occasional nonsense,
-because a distribution with 60 characters has a long tail that collectively holds real
-probability mass.
+The obvious approach is to always take the <code>argmax</code>. It gives the worst output.
+It is deterministic, so the same seed always gives the same text. Also, it goes into loops
+almost immediately: "the the the the" is a reasonable greedy continuation. The other
+extreme is to sample from the full distribution. That gives some nonsense. A distribution
+over 60 characters has a long tail, and together the tail holds real probability.
 </p>
 
 <p>
-The dial between them is <strong>temperature</strong>, applied to the logits before softmax:
+The control between the two extremes is <strong>temperature</strong>. Apply it to the logits
+before the softmax:
 </p>
 
 $$p_k = \frac{\exp(z_k / T)}{\sum_j \exp(z_j / T)}$$
 
 <div class="widget" data-widget="softmax"></div>
 
+<ul>
+  <li>$T < 1$ makes the distribution sharper, toward the argmax. The output is
+      conservative, repetitive and safe.</li>
+  <li>$T > 1$ makes it flatter. The output is creative and has more errors.</li>
+  <li>$T = 1$ samples from the real beliefs of the model.</li>
+</ul>
+
 <p>
-$T < 1$ sharpens the distribution towards the argmax — conservative, repetitive, safe.
-$T > 1$ flattens it — creative, error-prone. $T = 1$ samples from the model's actual beliefs.
-Temperature never changes the <em>ranking</em> of candidates, only how decisively the top ones
-dominate. In practice 0.7 to 0.9 is the useful band for character models, and
-<a class="xref" href="#ch10">Chapter 10</a> adds top-k and nucleus sampling, which truncate
-the tail rather than reweighting it.
+Temperature never changes the <em>ranking</em> of the candidates. It changes only how much
+the top candidates control the result. In practice, 0.7 to 0.9 is the useful range for
+character models. <a class="xref" href="#ch10">Chapter 10</a> adds top-k and nucleus
+sampling, which cut off the tail and do not reweight it.
 </p>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 04.1</span>
   <p>
-  Unroll a tiny RNN for three steps. Everything is one-dimensional, so all the matrices are
-  scalars.
+  Unroll a very small RNN for three steps. Everything is one-dimensional, so all the
+  matrices are scalars.
   </p>
   <div class="given">h₀ = 0.0        W_xh = 1.0     W_hh = 0.5     b = 0.0
 inputs:  x₁ = 1.0,  x₂ = 0.0,  x₃ = −1.0
@@ -194,13 +201,13 @@ inputs:  x₁ = 1.0,  x₂ = 0.0,  x₃ = −1.0
 tanh(1.000) = 0.762    tanh(0.381) = 0.364
 tanh(−0.818) = −0.674  tanh(0.5) = 0.462</div>
   <ol>
-    <li>Compute $h_1$, $h_2$, $h_3$.</li>
-    <li>At step 2 the input is zero. Explain what $h_2$ represents and where its value came
-        from.</li>
-    <li>Compute $\partial h_3 / \partial h_2$, then $\partial h_3/\partial h_1$, using
+    <li>Calculate $h_1$, $h_2$ and $h_3$.</li>
+    <li>At step 2, the input is zero. Explain what $h_2$ represents, and where its value
+        came from.</li>
+    <li>Calculate $\partial h_3 / \partial h_2$, then $\partial h_3/\partial h_1$. Use
         $\tanh'(z) = 1 - \tanh^2(z)$.</li>
-    <li>If this pattern continued, by what factor would the gradient shrink per step? How
-        many steps until it falls below $10^{-3}$?</li>
+    <li>If this pattern continued, by what factor would the gradient decrease at each step?
+        After how many steps would it be less than $10^{-3}$?</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
@@ -208,65 +215,67 @@ tanh(−0.818) = −0.674  tanh(0.5) = 0.462</div>
     <div class="given">z₁ = 1.0(1.0) + 0.5(0.0)   =  1.000   →  h₁ = 0.762
 z₂ = 1.0(0.0) + 0.5(0.762) =  0.381   →  h₂ = 0.364
 z₃ = 1.0(−1.0) + 0.5(0.364) = −0.818  →  h₃ = −0.674</div>
-    <p><strong>2.</strong> With $x_2 = 0$ the only contribution is $0.5 h_1$: $h_2$ is
-    <em>pure memory</em>, a decayed echo of step 1 and nothing else. Note it has already
-    halved-and-squashed from 0.762 to 0.364 after a single step of carrying nothing. That
-    decay is the vanishing problem visible in the forward pass — the state is forgetting on
-    its own, before any gradient is involved.</p>
+    <p><strong>2.</strong> With $x_2 = 0$, the only contribution is $0.5 h_1$. Thus $h_2$
+    is <em>only memory</em>: a weaker echo of step 1 and nothing more. Note that it already
+    decreased from 0.762 to 0.364 after one step that carried nothing. That decrease is the
+    vanishing problem in the forward pass. The state forgets by itself, before any gradient
+    is involved.</p>
     <p><strong>3.</strong> $\partial h_t/\partial h_{t-1} = \tanh'(z_t) \cdot W_{hh}
     = (1 - h_t^2)(0.5)$:</p>
     <div class="given">∂h₃/∂h₂ = (1 − 0.674²)(0.5) = (1 − 0.4543)(0.5) = 0.273
 ∂h₂/∂h₁ = (1 − 0.364²)(0.5) = (1 − 0.1325)(0.5) = 0.434
 
 ∂h₃/∂h₁ = 0.273 × 0.434 = 0.118</div>
-    <p>Two steps back, and 88% of the gradient is already gone.</p>
-    <p><strong>4.</strong> The per-step factor is at most $W_{hh} \cdot \max \tanh' = 0.5
-    \times 1 = 0.5$, and typically less. At 0.5 per step, reaching $10^{-3}$ takes
-    $\log(10^{-3})/\log(0.5) \approx \mathbf{10}$ steps. Ten characters — less than two
-    words. A model like this cannot possibly learn that a quotation mark opened forty
-    characters ago needs closing, and that is exactly the kind of dependency real text is
-    full of.</p>
+    <p>After only two steps back, 88% of the gradient is gone.</p>
+    <p><strong>4.</strong> The factor for each step is at most
+    $W_{hh} \cdot \max \tanh' = 0.5 \times 1 = 0.5$, and usually less. At 0.5 for each step,
+    the gradient gets to $10^{-3}$ in $\log(10^{-3})/\log(0.5) \approx \mathbf{10}$ steps.
+    That is ten characters, which is less than two words. A model like this cannot learn
+    that a quotation mark from forty characters ago needs a closing mark. Real text has many
+    dependencies of exactly that type.</p>
   </details>
 </div>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 04.2</span>
-  <p>Temperature, computed rather than dragged.</p>
+  <p>Calculate the effect of temperature. Do not use the slider.</p>
   <div class="given">logits over 4 characters:   z = [2.0, 1.0, 0.0, −1.0]
 
 e^0=1.000  e^1=2.718  e^2=7.389  e^4=54.60  e^6=403.4
 e^0.5=1.649  e^{−0.5}=0.607  e^{−1}=0.368  e^{−2}=0.135</div>
   <ol>
-    <li>Compute the distribution at $T = 1$.</li>
-    <li>Compute it at $T = 0.5$ (divide logits by 0.5, i.e. double them).</li>
-    <li>Compute it at $T = 2$.</li>
-    <li>State what happens in the limits $T \to 0$ and $T \to \infty$, and give one concrete
-        failure mode of each when generating text.</li>
+    <li>Calculate the distribution at $T = 1$.</li>
+    <li>Calculate it at $T = 0.5$. (Divide the logits by 0.5, which doubles them.)</li>
+    <li>Calculate it at $T = 2$.</li>
+    <li>What happens in the limits $T \to 0$ and $T \to \infty$? For each limit, give one
+        concrete failure in text generation.</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
     <p><strong>1. $T=1$:</strong> $\sum = 7.389 + 2.718 + 1.000 + 0.368 = 11.475$.</p>
     <div class="given">p = [0.644, 0.237, 0.087, 0.032]</div>
-    <p><strong>2. $T=0.5$:</strong> logits become $[4, 2, 0, -2]$, so
+    <p><strong>2. $T=0.5$:</strong> The logits become $[4, 2, 0, -2]$. Thus
     $\sum = 54.60 + 7.389 + 1.000 + 0.135 = 63.12$.</p>
     <div class="given">p = [0.865, 0.117, 0.016, 0.002]</div>
-    <p>The top character went from 64% to 87%; the last one all but vanished.</p>
-    <p><strong>3. $T=2$:</strong> logits become $[1, 0.5, 0, -0.5]$, so
+    <p>The top character went from 64% to 87%. The last character almost disappeared.</p>
+    <p><strong>3. $T=2$:</strong> The logits become $[1, 0.5, 0, -0.5]$. Thus
     $\sum = 2.718 + 1.649 + 1.000 + 0.607 = 5.974$.</p>
     <div class="given">p = [0.455, 0.276, 0.167, 0.102]</div>
-    <p>Much flatter — the least likely character now has a one-in-ten chance every step.</p>
-    <p><strong>4.</strong> As $T \to 0$ the distribution becomes one-hot on the argmax:
-    generation is deterministic and falls into repetition loops, because once the model
-    re-enters a state it has visited it must produce the identical continuation forever. As
-    $T \to \infty$ it becomes uniform: output is random characters, ignoring everything the
-    model learned. Both extremes destroy the model's usefulness in opposite directions,
-    which is why the interesting values are all in a narrow band around 0.7–1.0.</p>
+    <p>This is much flatter. The least likely character now has a one-in-ten chance at each
+    step.</p>
+    <p><strong>4.</strong> As $T \to 0$, the distribution becomes one-hot on the argmax.
+    Generation is deterministic, and it goes into repetition loops. When the model comes
+    back to a state that it visited before, it must give the same continuation forever. As
+    $T \to \infty$, the distribution becomes uniform. The output is random characters, and
+    it ignores everything that the model learned. The two extremes destroy the usefulness of
+    the model in opposite directions. That is why the interesting values are all in a narrow
+    range near 0.7–1.0.</p>
   </details>
 </div>
 
 <div class="box feel">
   <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
-  <p style="margin-top:0">A recurrent network's whole problem is one number raised to a power. Get fluent with that arithmetic and the vanishing gradient stops being a slogan and becomes something you can estimate in your head.</p>
+  <p style="margin-top:0">The full problem of a recurrent network is one number raised to a power. Learn that arithmetic well. Then the vanishing gradient is no longer a slogan. It is something that you can estimate in your head.</p>
   <div class="table-wrap">
   <table>
     <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
@@ -280,67 +289,69 @@ e^0.5=1.649  e^{−0.5}=0.607  e^{−1}=0.368  e^{−2}=0.135</div>
     </tbody>
   </table>
   </div>
-  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
-  the point is knowing <em>which</em> number to reach for.</p>
+  <p>Now do these on paper. Where you can, do them in your head. You can use a calculator
+  for the logarithms. The goal is to know <em>which</em> number to use.</p>
   <ol>
-    <li>At $\lambda = 0.9$, how many steps until only 1% of the gradient is left?</li>
-    <li>Same question at $\lambda = 0.99$. What does the comparison tell you about how sharp the cliff is?</li>
-    <li>Your gradient norm prints $10^{4}$. Is clipping the fix, a lower learning rate, or both — and which addresses the cause?</li>
+    <li>At $\lambda = 0.9$, after how many steps is only 1% of the gradient left?</li>
+    <li>Answer the same question at $\lambda = 0.99$. What does the comparison tell you about how sharp the cliff is?</li>
+    <li>Your gradient norm prints $10^{4}$. Is the fix clipping, a lower learning rate, or both? Which one addresses the cause?</li>
   </ol>
   <details>
     <summary>Answers</summary>
-    <p><strong>1.</strong> $\ln(0.01)/\ln(0.9) = 43.7$, so about 44 steps — roughly
-    one long sentence.</p>
-    <p><strong>2.</strong> $\ln(0.01)/\ln(0.99) = 458$ steps. A factor of 0.09 in
-    $\lambda$ buys ten times the reach. The dependence is exponential in $T$ but the
-    usable range of $\lambda$ is narrow, which is why this cannot be tuned away — you
-    would need $\lambda$ pinned near 1 for hundreds of steps, and nothing in a vanilla
-    RNN holds it there.</p>
-    <p><strong>3.</strong> Clipping stops the step from destroying the weights, so it
-    treats the symptom and treats it well. A lower learning rate makes every step smaller,
-    including the ones that were fine. Neither addresses the cause, which is architectural
-    and is what Chapter 05 changes.</p>
+    <p><strong>1.</strong> $\ln(0.01)/\ln(0.9) = 43.7$, so approximately 44 steps. That
+    is approximately one long sentence.</p>
+    <p><strong>2.</strong> $\ln(0.01)/\ln(0.99) = 458$ steps. A change of 0.09 in
+    $\lambda$ gives ten times the range. The dependence on $T$ is exponential, but the
+    usable range of $\lambda$ is narrow. Thus you cannot tune this away. You would need
+    $\lambda$ to stay near 1 for hundreds of steps, and nothing in a vanilla RNN keeps it
+    there.</p>
+    <p><strong>3.</strong> Clipping prevents the step from destroying the weights. Thus it
+    treats the symptom, and it treats it well. A lower learning rate makes each step
+    smaller, also the steps that were correct. Neither one addresses the cause. The cause is
+    in the architecture, and Chapter 05 changes it.</p>
   </details>
-  <p style="margin-bottom:0"><b>The habit.</b> When something is repeated $T$ times, ask what one repetition multiplies by, then raise it to the $T$. Almost every stability question in this book answers to that move.</p>
+  <p style="margin-bottom:0"><b>The habit.</b> When something repeats $T$ times, ask what one repetition multiplies by. Then raise it to the power $T$. This answers almost each stability question in this book.</p>
 </div>
 
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favorite LLM, in your own words: <strong>why does a recurrent network forget, and why is it not something you can fix by tuning?</strong>
-  Then ask it to correct you, and to push back wherever you were vague rather than
-  outright wrong — that is where the gaps hide.
+  Explain this to your favorite LLM, in your own words: <strong>why does a recurrent network forget, and why is it not something you can fix by tuning?</strong>
+  Then ask it to correct you. Ask it to question each part where you were vague, not only
+  the parts where you were wrong, because the gaps are in the vague parts.
   </p>
   <details>
     <summary>What a good answer covers — open this afterwards, not before</summary>
     <ol>
-    <li>The same weight matrix is applied at every timestep, so the backward pass multiplies
-        by a similar <a class="xref" href="#ch00-jacobian">Jacobian</a> once per step — the grid of every partial derivative of a
-        step's outputs with respect to its inputs, which is what moving a gradient back
-        through one step amounts to.</li>
-    <li>A product of $T$ similar factors is exponential in $T$: it vanishes if the factor is below 1 and explodes if above.</li>
-    <li>There is no value of the learning rate that changes a factor of $\lambda^{T}$ — the learning rate scales the step, not the signal that reaches it.</li>
-    <li>Clipping fixes the exploding half only, because you can bound a gradient that is too large but cannot recover one that is already zero.</li>
-    <li>So the fix has to be architectural: a path from step to step that is added to rather than multiplied through.</li>
+    <li>The network applies the same weight matrix at each timestep. Thus the backward pass
+        multiplies by a similar <a class="xref" href="#ch00-jacobian">Jacobian</a> one time
+        for each step. The Jacobian is the grid of all the partial derivatives of the
+        outputs of a step with respect to its inputs. A multiplication by it moves a
+        gradient back through one step.</li>
+    <li>A product of $T$ similar factors is exponential in $T$. It vanishes if the factor is less than 1, and it explodes if the factor is more than 1.</li>
+    <li>No value of the learning rate changes a factor of $\lambda^{T}$. The learning rate scales the step. It does not change the signal that gets to the step.</li>
+    <li>Clipping fixes only the exploding half. You can limit a gradient that is too large, but you cannot recover a gradient that is already zero.</li>
+    <li>Thus the fix must be in the architecture: a path from step to step that the network adds to, not multiplies through.</li>
     </ol>
-    <p style="margin-bottom:0"><b>Most common miss.</b> Treating vanishing and exploding as one symptom. They have the same cause and completely different remedies, and an explanation that offers clipping as the answer to forgetting has missed the asymmetry.</p>
+    <p style="margin-bottom:0"><b>Most common miss.</b> An answer treats vanishing and exploding as one symptom. They have the same cause and completely different fixes. If an explanation gives clipping as the answer to forgetting, it has missed the asymmetry.</p>
   </details>
 </div>
 
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>04_rnn_pytorch/prompt.ipynb</code>. You will build character sequences with a
-  sliding window, define the RNN, train with gradient clipping, and generate text at several
-  temperatures. Sample at intervals during training, not just at the end — the progression
-  from noise to spelling to grammar is the clearest picture of learning in the whole
-  curriculum.
+  sliding window, define the RNN, train with gradient clipping, and generate text at
+  several temperatures. Sample at intervals during training, not only at the end. The
+  progression from noise to spelling to grammar is the clearest picture of learning in the
+  full course.
 </div>
 
 <div class="box note">
   <span class="box-label">Where this goes next</span>
-  The vanishing gradient is not a tuning problem, so <a class="xref" href="#ch05">Chapter
-  05</a> changes the architecture: give the cell a memory that is <em>added to</em> rather
-  than multiplied through, and put learned gates in charge of what enters and leaves it.
+  The vanishing gradient is not a tuning problem. Thus <a class="xref" href="#ch05">Chapter
+  05</a> changes the architecture. It gives the cell a memory that the network <em>adds
+  to</em>, not multiplies through. It also puts learned gates in control of what goes into
+  and out of that memory.
 </div>
 
 </section>

@@ -4,32 +4,30 @@
 <h1>GPT: A Decoder-Only Model</h1>
 
 <p class="lede">
-Delete the encoder. Delete cross-attention. What remains is a stack of causally
-masked transformer blocks predicting the next token — and that, scaled up several
-thousand-fold, is every large language model you have used. This chapter builds one,
-and then examines the two things that separate a trained model from a useful one:
-how you sample from it, and how fast you can.
+Remove the encoder. Remove cross-attention. What stays is a stack of causally masked
+transformer blocks that predict the next token. Make that several thousand times larger, and
+it is each large language model that you have used. This chapter builds one. Then it
+examines the two things that separate a trained model from a useful one: how you sample from
+it, and how fast you can do that.
 </p>
 
 <h2>Why the encoder was optional</h2>
 
 <p>
-<a class="xref" href="#ch09">Chapter 09</a> needed two stacks because it had two
-sequences: an English source to read and a French target to write. Cross-attention
-was the bridge between them.
+<a class="xref" href="#ch09">Chapter 09</a> needed two stacks because it had two sequences:
+an English source to read and a French target to write. Cross-attention connected them.
 </p>
 
 <p>
-Text continuation has only one sequence. The context <em>is</em> the prefix of what
-you are generating, and causal self-attention already reads it. There is no second
-sequence, so there is nothing for cross-attention to attend to, and the encoder has
-no input. Both disappear, and the architecture gets simpler rather than more
-complicated.
+Text continuation has only one sequence. The context <em>is</em> the prefix of the text that
+you generate, and causal self-attention already reads it. There is no second sequence. Thus
+cross-attention has nothing to attend to, and the encoder has no input. Both disappear, and
+the architecture becomes simpler, not more complex.
 </p>
 
 <div class="table-wrap">
 <table>
-  <thead><tr><th></th><th>Seq2seq (Ch. 08)</th><th>GPT (this chapter)</th></tr></thead>
+  <thead><tr><th></th><th>Seq2seq (Ch. 09)</th><th>GPT (this chapter)</th></tr></thead>
   <tbody>
     <tr><td>Stacks</td><td>encoder + decoder</td><td>decoder only</td></tr>
     <tr><td>Self-attention</td><td>bidirectional / causal</td><td>causal throughout</td></tr>
@@ -42,19 +40,18 @@ complicated.
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
-  That last row is why language models scale and translation models do not. Parallel
-  corpora are expensive and finite; raw text is neither. Every position in every
-  document is a free supervised example, and the causal mask means a 1,000-token
-  document yields 1,000 of them <em>in a single parallel forward pass</em>. The only
-  limits are compute and data — which is precisely the condition under which
-  scaling laws become interesting.
+  The last row is why language models scale and translation models do not. Parallel corpora
+  are expensive and limited. Raw text is neither. Each position in each document is a free
+  supervised example. Because of the causal mask, a document of 1,000 tokens gives 1,000
+  examples <em>in one parallel forward pass</em>. The only limits are compute and data.
+  Under exactly that condition, scaling laws become interesting.
 </div>
 
 <h2>Pre-norm, and why this differs from Chapter 08</h2>
 
 <p>
-<a class="xref" href="#ch08">Chapter 08</a> used post-norm, following the original
-2017 paper. GPT-2 onwards uses pre-norm, and so does the notebook here:
+<a class="xref" href="#ch08">Chapter 08</a> used post-norm, as in the original 2017 paper.
+GPT-2 and later models use pre-norm, and so does the notebook here:
 </p>
 
 $$\text{post-norm:}\quad x \leftarrow \operatorname{LN}\big(x + F(x)\big)
@@ -62,18 +59,17 @@ $$\text{post-norm:}\quad x \leftarrow \operatorname{LN}\big(x + F(x)\big)
 \text{pre-norm:}\quad x \leftarrow x + F\big(\operatorname{LN}(x)\big)$$
 
 <p>
-The difference is what the residual path passes through. In post-norm, every skip
-connection goes through a normalization, so the "clean highway" for gradients is
-interrupted at every layer. In pre-norm it is genuinely uninterrupted: from the loss
-to layer 1, the gradient can travel by pure addition.
+The difference is what the residual path goes through. In post-norm, each skip connection
+goes through a normalization. Thus the "clear path" for gradients has an interruption at
+each layer. In pre-norm, the path really has no interruption. From the loss to layer 1, the
+gradient can move by pure addition.
 </p>
 
 <p>
-The practical consequences are large. Pre-norm trains deep stacks without needing a
-learning-rate warmup to survive the first few hundred steps, tolerates higher
-learning rates, and is far less likely to diverge. Post-norm occasionally reaches
-marginally better final quality with careful tuning, which is why the original paper
-used it — and essentially nothing trained since 2019 does.
+The practical results are large. Pre-norm trains deep stacks without learning-rate warmup.
+It tolerates higher learning rates, and it is much less likely to diverge. With careful
+tuning, post-norm sometimes gets slightly better final quality. That is why the original
+paper used it. But almost no model trained since 2019 uses it.
 </p>
 
 <h2>Three details in the model</h2>
@@ -81,18 +77,18 @@ used it — and essentially nothing trained since 2019 does.
 <h3>Learned positional embeddings</h3>
 
 <p>
-Instead of Chapter 08's fixed sinusoids, GPT uses an ordinary
-<code>nn.Embedding(block_size, n_embd)</code> and lets gradient descent choose the
-position codes. Simpler, works at least as well — and it caps the context length
-absolutely. There is no embedding vector for position <code>block_size</code>, so
-a longer input does not degrade gracefully; it raises.
+GPT does not use the fixed sinusoids of Chapter 08. It uses an ordinary
+<code>nn.Embedding(block_size, n_embd)</code>, and gradient descent selects the position
+codes. This is simpler, and it works at least as well. But it sets an absolute limit on the
+context length. There is no embedding vector for position <code>block_size</code>. Thus a
+longer input does not become slowly worse. It gives an error.
 </p>
 
 <p>
-That hard cap is why extending a trained model's context window is a research
-problem rather than a configuration change, and why rotary embeddings (RoPE), which
-encode <em>relative</em> position by rotating $Q$ and $K$ inside each attention
-layer, have largely replaced both approaches in current models.
+That hard limit is why the extension of the context window of a trained model is a research
+problem, not a configuration change. It is also why rotary embeddings (RoPE) have mostly
+replaced both approaches in current models. RoPE encodes <em>relative</em> position. It
+rotates $Q$ and $K$ inside each attention layer.
 </p>
 
 <h3>Weight tying</h3>
@@ -100,163 +96,158 @@ layer, have largely replaced both approaches in current models.
 <pre><code class="language-python">self.lm_head.weight = self.tok_emb.weight</code></pre>
 
 <p>
-The input embedding maps token → vector; the output head maps vector → token
-scores. These are inverse views of one relationship, so they share a matrix. It
-saves $V \times d$ parameters — trivial at $V = 73$ characters, but roughly 38
-million at a 50k vocabulary and $d = 768$ — and it typically <em>improves</em>
-perplexity rather than merely economising. The symmetry is real, not a convenient
-hack.
+The input embedding maps token → vector. The output head maps vector → token scores. These
+are two inverse views of one relation, so they share a matrix. This saves $V \times d$
+parameters. That is very few at $V = 73$ characters, but approximately 38 million at a
+vocabulary of 50k and $d = 768$. It also usually <em>improves</em> perplexity. It does not
+only save memory. The symmetry is real. It is not a convenient trick.
 </p>
 
 <h3>Depth-scaled initialization</h3>
 
 <p>
-Every block <em>adds</em> to the residual stream, so with $N$ blocks each
-contributing independent noise, the variance of the stream grows linearly with
-depth. Scaling the initialization of residual projections by
-$1/\sqrt{2N}$ cancels it, keeping activations in the same range at layer 1 and layer
-48.
+Each block <em>adds</em> to the residual stream. With $N$ blocks, each one adds independent
+noise, so the variance of the stream increases linearly with depth. To cancel this, scale the
+initialization of the residual projections by $1/\sqrt{2N}$. Then the activations stay in the
+same range at layer 1 and at layer 48.
 </p>
 
 <div class="box note">
   <span class="box-label">A one-line sanity check worth building the habit around</span>
-  A correctly initialized model's first loss should be almost exactly
-  $\ln(V)$ — the loss of a uniform distribution. The notebook's 73-character model
-  starts within a few thousandths of $\ln 73 = 4.290$ (the exact figure moves a
-  little with the seed). A substantially higher initial loss means
-  the model starts <em>confidently wrong</em> rather than uniformly uncertain, which
-  almost always means the initialization standard deviation is too large. This costs
-  one forward pass and catches a whole class of bugs before you waste an hour
-  training.
+  The first loss of a correctly initialized model must be almost exactly $\ln(V)$, the loss
+  of a uniform distribution. The 73-character model of the notebook starts within a few
+  thousandths of $\ln 73 = 4.290$. (The exact value changes a little with the seed.) If the
+  initial loss is much higher, the model starts <em>confident and wrong</em>, not uniformly
+  uncertain. Almost always, this means that the standard deviation of the initialization is
+  too large. This check costs one forward pass. It finds a full class of bugs before you
+  waste an hour on training.
 </div>
 
 <h2>Decoding: where the character of the output is decided</h2>
 
 <p>
-Training determines what the model believes. <em>Sampling</em> determines what it
-says, and the same model can produce anything from robotic repetition to
-incoherence depending on this choice alone.
+Training decides what the model believes. <em>Sampling</em> decides what it says. The same
+model can give anything from robotic repetition to incoherence, and only this choice causes
+the difference.
 </p>
 
 <div class="widget" data-widget="sampling"></div>
 
 <p>
-<strong>Temperature</strong> divides the logits before the softmax. It reweights the
-entire distribution but never truncates it — every token keeps some probability, so
-over hundreds of steps the absurd tail will eventually be sampled. Drag temperature
-up and watch the flat tail rise.
+<strong>Temperature</strong> divides the logits before the softmax. It reweights the full
+distribution, but it never cuts it off. Each token keeps some probability. Thus, over
+hundreds of steps, the model will eventually sample from the absurd tail. Increase the
+temperature, and watch the flat tail rise.
 </p>
 
 <p>
-<strong>Top-k</strong> keeps the $k$ highest-probability tokens and renormalizes. It
-truncates, which fixes the tail problem, but with a fixed pool size that ignores
-context. Set $k = 5$ in the widget, then imagine two situations: after "the" the
-model is genuinely uncertain across dozens of plausible nouns, and after "Alice was
-beginning t" it is 99% certain of "o". Top-k treats both identically.
+<strong>Top-k</strong> keeps the $k$ tokens with the highest probability and normalizes
+again. It cuts the tail, which fixes that problem. But it uses a fixed pool size that ignores
+the context. Set $k = 5$ in the widget. Then think of two situations. After "the", the model
+is really uncertain across dozens of possible nouns. After "Alice was beginning t", it is
+99% certain of "o". Top-k treats both in the same way.
 </p>
 
 <p>
-<strong>Nucleus sampling (top-p)</strong> keeps the smallest set whose cumulative
-probability exceeds $p$. The pool <em>adapts</em>: wide where the model is uncertain,
-narrow where it is confident. Drag $p$ down to 0.9 and watch the pool size change as
-you also change the temperature. This is the reason top-p at 0.9, with temperature
-around 0.8, is the default nearly everywhere.
+<strong>Nucleus sampling (top-p)</strong> keeps the smallest set of tokens whose cumulative
+probability is more than $p$. The pool <em>adapts</em>. It is wide where the model is
+uncertain, and narrow where the model is confident. Decrease $p$ to 0.9, and watch the pool
+size change as you also change the temperature. That is why top-p at 0.9, with a temperature
+of approximately 0.8, is the default almost everywhere.
 </p>
 
 <div class="box warn">
   <span class="box-label">Greedy decoding and the repetition trap</span>
-  Always taking the argmax is deterministic, and determinism is fatal for open-ended
-  generation: once the model re-enters a state it has visited, it must produce the
-  identical continuation, forever. The notebook's $T = 0.1$ sample shows this
-  clearly — "the was to go the trees the was on the same to the…". Note the contrast
-  with translation, where <a class="xref" href="#ch09">beam search</a> (greedy's more
-  thorough cousin) genuinely helps. Translation has roughly one correct answer;
-  storytelling does not, and searching harder for "the most likely continuation"
-  finds blandness.
+  If you always take the argmax, generation is deterministic. For open-ended generation,
+  that is fatal. When the model comes back to a state that it visited before, it must give
+  the same continuation forever. The notebook sample at $T = 0.1$ shows this clearly: "the
+  was to go the trees the was on the same to the…". Compare translation, where
+  <a class="xref" href="#ch09">beam search</a> (a more thorough relative of greedy) really
+  helps. Translation has approximately one correct answer. Storytelling does not. If you
+  search harder for "the most likely continuation", you find bland text.
 </div>
 
 <h2 id="ch10-kv-cache">The KV cache</h2>
 
 <p>
-The naive generation loop of <a class="xref" href="#ch09">Chapter 09</a> is
-wasteful. At step $t$ it runs the entire model over all $t$ previous tokens — but
-their keys and values are unchanged, because the causal mask guarantees a past
-token's representation never depends on a future one.
+The simple generation loop of <a class="xref" href="#ch09">Chapter 09</a> wastes work. At
+step $t$, it runs the full model over all $t$ previous tokens. But their keys and values do
+not change, because the causal mask makes sure that the representation of a past token never
+depends on a future one.
 </p>
 
 <p>
-A <strong>KV cache</strong> stores $k$ and $v$ per layer and appends one column per
-step, so each step processes exactly one token. Generation splits into two phases,
-which is exactly how production inference servers describe it:
+A <strong>KV cache</strong> stores $k$ and $v$ for each layer, and it adds one column at
+each step. Thus each step processes exactly one token. Generation divides into two phases.
+Production inference servers describe it in exactly this way:
 </p>
 
 <ul>
-  <li><strong>Prefill</strong> — run the whole prompt through in one batched pass,
-      seeding the cache. Compute-bound, parallel, efficient.</li>
-  <li><strong>Decode</strong> — one token at a time, reading and extending the
-      cache. Memory-bandwidth-bound, sequential, and where nearly all the wall-clock
-      time of a long generation goes.</li>
+  <li><strong>Prefill</strong>: run the full prompt through in one batched pass, and fill
+      the cache. This phase is limited by compute. It is parallel and efficient.</li>
+  <li><strong>Decode</strong>: one token at a time. Read the cache and extend it. This phase
+      is limited by memory bandwidth. It is sequential, and almost all the time of a long
+      generation goes here.</li>
 </ul>
 
 <div class="box concept">
   <span class="box-label">Key concept — a result the notebook gets "wrong"</span>
   <p>
-  On the notebook's 0.8M-parameter model, the KV cache measures <em>slower</em> than
-  the uncached loop. That is a genuine result, not a broken implementation, and it
-  is more instructive than a tidy speedup would have been.
+  On the 0.8M-parameter model of the notebook, the KV cache measures <em>slower</em> than
+  the loop without the cache. That is a real result, not a broken implementation. It
+  teaches more than a clean speedup would.
   </p>
   <p>
-  Count operations rather than seconds. Uncached, generating one token pushes 128
-  positions through the stack; cached, it pushes one. The cache does roughly two
-  orders of magnitude less arithmetic. But at this size each GPU kernel launch costs
-  more than the arithmetic it performs, and the uncached version gets to do its 128
-  positions in one well-batched call while the cached version makes the same number
-  of tiny, mostly-overhead calls.
+  Count operations, not seconds. Without the cache, each new token pushes 128 positions
+  through the stack. With the cache, it pushes one. The cache does approximately two orders
+  of magnitude less arithmetic. But at this size, each GPU kernel launch costs more than the
+  arithmetic that it does. The version without the cache does its 128 positions in one
+  well-batched call. The cached version makes the same number of very small calls, which are
+  mostly overhead.
   </p>
   <p style="margin-bottom:0">
-  The algorithmic saving is real and grows linearly with context length. Whether it
-  is <em>visible</em> depends on whether your kernels are large enough to dominate
-  their own launch overhead. At production scale they are, overwhelmingly — which is
-  why every serving stack uses a cache. Optimization results that hold
-  asymptotically but invert at small scale are common, and this is a cheap way to
-  learn to distrust a single benchmark.
+  The algorithmic saving is real, and it increases linearly with context length. Whether you
+  can <em>see</em> it depends on whether your kernels are large enough to be larger than
+  their own launch overhead. At production scale they are, by a very large amount. That is
+  why each serving stack uses a cache. Optimization results that are true asymptotically but
+  reverse at small scale are common. This is a cheap way to learn not to trust a single
+  benchmark.
   </p>
 </div>
 
 <p>
-The cache is not free in memory either. It holds
-$2 \times n_{\text{layer}} \times n_{\text{head}} \times T \times d_k$ floats
-<em>per sequence</em>, growing linearly with context and with the number of
-concurrent users. For a large served model it is the KV cache, not the weights,
-that determines how many requests you can handle at once — which is why techniques
-that shrink it (multi-query attention, grouped-query attention, cache quantization)
-get so much attention.
+The cache also costs memory. It holds
+$2 \times n_{\text{layer}} \times n_{\text{head}} \times T \times d_k$ floats <em>for each
+sequence</em>. That increases linearly with context, and with the number of concurrent
+users. For a large served model, the KV cache, not the weights, decides how many requests you
+can serve at the same time. That is why methods that make it smaller get so much attention:
+multi-query attention, grouped-query attention and cache quantization.
 </p>
 
 <h2>What this model is, and is not</h2>
 
 <p>
-The notebook's model reaches a validation loss of about 1.51 nats — a perplexity of
-4.5 against a uniform baseline of 73. It has learned spelling, capitalization after
-full stops, matched quotation marks, and Carroll's dialogue punctuation. It has
-learned very little about meaning, which is exactly what 145k characters of training
-data predicts.
+The model of the notebook gets to a validation loss of approximately 1.51 nats. That is a
+perplexity of 4.5, against a uniform baseline of 73. It has learned spelling, capital letters
+after full stops, matched quotation marks, and the dialogue punctuation of Carroll. It has
+learned very little about meaning. That is exactly what 145k characters of training data
+predict.
 </p>
 
 <p>
-The gap between this and a frontier model is entirely quantitative: more parameters,
-vastly more data, subword tokenization instead of characters, and a post-training
-phase (instruction tuning, RLHF or DPO) that this curriculum does not cover. The
-architecture in the notebook is the architecture. That is worth sitting with for a
-moment — it is genuinely surprising, and it is why the scaling-law literature reads
-the way it does.
+The gap between this model and a frontier model is only a matter of quantity. A frontier
+model has more parameters, much more data, and subword tokenization instead of characters.
+It also has a post-training phase (instruction tuning, RLHF or DPO) that this course does
+not cover. The architecture in the notebook is the real architecture. Think about that for a
+moment. It is really surprising, and it is why the scaling-law literature reads the way it
+does.
 </p>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 10.1</span>
   <p>
-  Causal attention plus next-token prediction, end to end, on a three-token
-  sequence with $d_k = 1$ (so every vector is a single number).
+  Do causal attention and next-token prediction from start to end, on a three-token
+  sequence with $d_k = 1$ (so each vector is one number).
   </p>
   <div class="given">tokens:   "the"   "cat"   "sat"
 queries:   q = [1.0,  2.0,  1.0]
@@ -266,14 +257,13 @@ values:    v = [0.0,  4.0,  8.0]
 d_k = 1, so the scale factor is 1/√1 = 1 — no scaling to apply.
 e^0 = 1.000   e^1 = 2.718   e^2 = 7.389   e^{-1} = 0.368</div>
   <ol>
-    <li>Compute the full $3 \times 3$ score matrix $q_i k_j$.</li>
-    <li>Apply the causal mask, then softmax each row.</li>
-    <li>Compute the attention output at each of the three positions.</li>
-    <li>Position 3's output feeds a language-model head with weight
-        $W = [0.5, -0.5]^\top$ and no bias, giving two logits for a two-word
-        vocabulary {"down", "up"}. Compute the logits and the predicted
-        distribution.</li>
-    <li>The true next word is "up". Compute the loss and the gradient on both
+    <li>Calculate the full $3 \times 3$ score matrix $q_i k_j$.</li>
+    <li>Apply the causal mask, then apply softmax to each row.</li>
+    <li>Calculate the attention output at each of the three positions.</li>
+    <li>The output of position 3 goes into a language-model head with weight
+        $W = [0.5, -0.5]^\top$ and no bias. This gives two logits for a vocabulary of two
+        words, {"down", "up"}. Calculate the logits and the predicted distribution.</li>
+    <li>The true next word is "up". Calculate the loss and the gradient on both
         logits.</li>
   </ol>
   <details>
@@ -283,21 +273,20 @@ e^0 = 1.000   e^1 = 2.718   e^2 = 7.389   e^{-1} = 0.368</div>
 q=1.0    1.0     1.0     2.0
 q=2.0    2.0     2.0     4.0
 q=1.0    1.0     1.0     2.0</div>
-    <p><strong>2.</strong> Mask everything above the diagonal, then softmax each row
-    over the surviving entries.</p>
+    <p><strong>2.</strong> Mask all entries above the diagonal. Then apply softmax to each
+    row over the entries that stay.</p>
     <div class="given">row 1:  [1.0, −∞, −∞]        → [1.000, 0, 0]
 row 2:  [2.0, 2.0, −∞]      → e^2, e^2 tie → [0.500, 0.500, 0]
 row 3:  [1.0, 1.0, 2.0]     → [2.718, 2.718, 7.389] / 12.825
                              → [0.212, 0.212, 0.576]</div>
-    <p><strong>3.</strong> Weighted sums of $v = [0, 4, 8]$:</p>
+    <p><strong>3.</strong> The weighted sums of $v = [0, 4, 8]$:</p>
     <div class="given">out₁ = 1.000(0.0)                            = 0.000
 out₂ = 0.500(0.0) + 0.500(4.0)               = 2.000
 out₃ = 0.212(0.0) + 0.212(4.0) + 0.576(8.0)  = 5.456</div>
     <p>Position 1 can only return its own value, as
-    <a class="xref" href="#ch06">exercise 06.1</a> established. Position 3 draws
-    most heavily on itself (0.576) because its key is largest, but genuinely mixes
-    in the earlier context.</p>
-    <p><strong>4.</strong> The head is applied to the scalar 5.456:</p>
+    <a class="xref" href="#ch06">exercise 06.1</a> showed. Position 3 uses itself most
+    (0.576) because its key is the largest. But it really mixes in the earlier context.</p>
+    <p><strong>4.</strong> Apply the head to the scalar 5.456:</p>
     <div class="given">z = [0.5 × 5.456,  −0.5 × 5.456] = [2.728, −2.728]
 
 difference = 5.456, so softmax([2.728, −2.728]) = softmax([5.456, 0])
@@ -309,19 +298,17 @@ e^5.456 ≈ 234.1,  e^0 = 1  →  sum 235.1
 
 ∂L/∂z = ŷ − y = [0.9957 − 0, 0.0043 − 1]
               = [+0.996, −0.996]</div>
-    <p>A loss of 5.45 nats against a uniform-guess baseline of $\ln 2 = 0.69$: the
-    model is confidently, badly wrong, and the gradient is correspondingly close to
-    its maximum magnitude of 1. This is the
-    <a class="xref" href="#ch00-cross-entropy">$\hat{y} - y$ cancellation</a> doing
-    exactly what it was designed to — no saturation term throttles the correction.
-    Note too that the two gradients sum to zero, for the same reason as in
-    exercise 00.21.</p>
+    <p>The loss is 5.45 nats, against a uniform-guess baseline of $\ln 2 = 0.69$. The model
+    is confident and badly wrong. Thus the gradient is close to its maximum magnitude of 1.
+    This is the <a class="xref" href="#ch00-cross-entropy">$\hat{y} - y$ cancellation</a>
+    doing exactly what it was designed to do. No saturation term slows the correction. Note
+    also that the two gradients sum to zero, for the same reason as in exercise 00.21.</p>
   </details>
 </div>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 10.2</span>
-  <p>Sampling arithmetic. Which tokens actually survive each strategy?</p>
+  <p>Do the sampling arithmetic. Which tokens really stay after each strategy?</p>
   <div class="given">probabilities over six tokens, already softmaxed at T = 1:
 
   the    0.40
@@ -331,43 +318,42 @@ e^5.456 ≈ 234.1,  e^0 = 1  →  sum 235.1
   seven  0.07
   purple 0.03</div>
   <ol>
-    <li>Which tokens survive top-k with $k = 3$? What is the renormalized
-        probability of "the"?</li>
-    <li>Which survive top-p with $p = 0.8$? Show the running cumulative sum.</li>
-    <li>Now suppose the model is much more certain: probabilities
-        $[0.97, 0.01, 0.01, 0.005, 0.003, 0.002]$. Which tokens survive top-k with
-        $k = 3$, and which survive top-p with $p = 0.8$?</li>
-    <li>Use part 3 to state, in one sentence, what top-p gives you that top-k
-        cannot.</li>
+    <li>Which tokens stay with top-k at $k = 3$? What is the probability of "the" after
+        normalization?</li>
+    <li>Which tokens stay with top-p at $p = 0.8$? Show the running cumulative sum.</li>
+    <li>Now suppose that the model is much more certain, with probabilities
+        $[0.97, 0.01, 0.01, 0.005, 0.003, 0.002]$. Which tokens stay with top-k at $k = 3$?
+        Which stay with top-p at $p = 0.8$?</li>
+    <li>Use part 3 to state, in one sentence, what top-p gives you that top-k cannot.</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> The three highest: <strong>the, a, my</strong>, totaling
-    $0.40 + 0.25 + 0.15 = 0.80$. Renormalizing, "the" becomes
-    $0.40 / 0.80 = \mathbf{0.50}$. Note that truncation makes the survivors
-    <em>more</em> likely, which is a second, often-overlooked effect of both methods.</p>
-    <p><strong>2.</strong> Accumulate from the top until the sum reaches 0.8:</p>
+    <p><strong>1.</strong> The three highest: <strong>the, a, my</strong>, with a total of
+    $0.40 + 0.25 + 0.15 = 0.80$. After normalization, "the" becomes
+    $0.40 / 0.80 = \mathbf{0.50}$. Note that the cut makes the tokens that stay <em>more</em>
+    likely. That is a second effect of both methods, and people often miss it.</p>
+    <p><strong>2.</strong> Add from the top until the sum gets to 0.8:</p>
     <div class="given">the    0.40   cumulative 0.40
 a      0.25   cumulative 0.65
 my     0.15   cumulative 0.80  ← reaches p, stop here
 one    0.10   excluded</div>
-    <p>Same three tokens. On this distribution the two methods happen to agree.</p>
-    <p><strong>3.</strong> Top-k with $k=3$ keeps <strong>the, a, my</strong> — still
-    exactly three, of which the second and third have probability 0.01 each, which
-    the model considers all but impossible. Top-p with $p=0.8$ stops at the first
-    token: 0.97 already exceeds 0.8, so the pool is <strong>{the}</strong> alone.</p>
-    <p><strong>4.</strong> Top-p adapts the pool size to the model's actual
-    confidence — wide when the model is genuinely uncertain, and as narrow as a single
-    token when it is not — whereas top-k forces the same number of candidates
-    regardless, which either admits near-impossible tokens or discards genuine ones
-    depending on the distribution it happens to meet.</p>
+    <p>These are the same three tokens. On this distribution, the two methods agree by
+    chance.</p>
+    <p><strong>3.</strong> Top-k with $k=3$ keeps <strong>the, a, my</strong>. That is still
+    exactly three. The second and third have probability 0.01 each, which the model
+    considers almost impossible. Top-p with $p=0.8$ stops at the first token, because 0.97
+    is already more than 0.8. Thus the pool is <strong>{the}</strong> alone.</p>
+    <p><strong>4.</strong> Top-p changes the pool size to match the real confidence of the
+    model, wide when the model is really uncertain and as narrow as one token when it is
+    not. Top-k always keeps the same number of candidates. Thus, depending on the
+    distribution, it either lets in almost impossible tokens or discards real ones.</p>
   </details>
 </div>
 
 <div class="box library">
   <span class="box-label">In the wild</span>
   <p>
-  The same model, in the ecosystem you will actually be handed:
+  Here is the same model in the ecosystem that people will really give you:
   </p>
 <pre><code class="language-python">from transformers import GPT2Config, GPT2LMHeadModel
 
@@ -379,24 +365,23 @@ out = model(input_ids, labels=input_ids)   # out.loss is the shift, done for you
 model.generate(ids, do_sample=True, temperature=0.8, top_p=0.9,
                use_cache=True)             # your sampling loop and KV cache</code></pre>
   <p>
-  Map it onto what you built: <code>GPT2Block</code> is your <code>Block</code>,
-  <code>use_cache</code> is your <code>CachedAttention</code>, <code>labels=</code>
-  performs the same one-token shift, and the config fields are the hyperparameters you
-  chose by hand. GPT-2 is <em>this notebook at 124M parameters</em>, which is worth
-  sitting with — the gap is scale, data, and a BPE tokenizer, not architecture.
+  Match it to what you built. <code>GPT2Block</code> is your <code>Block</code>.
+  <code>use_cache</code> is your <code>CachedAttention</code>. <code>labels=</code> does the
+  same one-token shift. The config fields are the hyperparameters that you selected by hand.
+  GPT-2 is <em>this notebook at 124M parameters</em>. Think about that. The gap is scale,
+  data and a BPE tokenizer, not architecture.
   </p>
   <p style="margin-bottom:0">
-  The library earns its place at inference: batched generation, beam search, stopping
-  criteria, quantized loading, and a KV cache that is correct at the boundaries yours is
-  not (see the <code>block_size</code> assertion in the notebook). Use it — and know
-  what every argument does, because that is what separates configuring a model from
-  understanding one.
+  The library is useful at inference. It gives batched generation, beam search, stopping
+  criteria, quantized loading, and a KV cache that is correct at the boundaries where yours
+  is not (see the <code>block_size</code> assertion in the notebook). Use it. But know what
+  each argument does, because that separates configuring a model from understanding one.
   </p>
 </div>
 
 <div class="box feel">
   <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
-  <p style="margin-top:0">Language-model numbers span many orders of magnitude, which makes them easy to quote and hard to sanity-check. These are the anchors that let you tell a plausible claim from an impossible one.</p>
+  <p style="margin-top:0">The numbers for language models cover many orders of magnitude. Thus they are easy to quote and difficult to check. These reference values let you tell a possible claim from an impossible one.</p>
   <div class="table-wrap">
   <table>
     <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
@@ -410,66 +395,66 @@ model.generate(ids, do_sample=True, temperature=0.8, top_p=0.9,
     </tbody>
   </table>
   </div>
-  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
-  the point is knowing <em>which</em> number to reach for.</p>
+  <p>Now do these on paper. Where you can, do them in your head. You can use a calculator
+  for the logarithms. The goal is to know <em>which</em> number to use.</p>
   <ol>
-    <li>A BPE model reports a validation loss of 3.0. What is the perplexity, and what fraction of the chance-level perplexity is that?</li>
-    <li>GPT-2 small (124M) trained on 300B tokens. Roughly how many FLOPs, and is that a number one person can afford?</li>
-    <li>Your character model reports a validation perplexity of 1.02. Are you delighted?</li>
+    <li>A BPE model reports a validation loss of 3.0. What is the perplexity? What fraction of the chance-level perplexity is that?</li>
+    <li>GPT-2 small (124M) trained on 300B tokens. Approximately how many FLOPs is that? Can one person afford it?</li>
+    <li>Your character model reports a validation perplexity of 1.02. Are you happy?</li>
   </ol>
   <details>
     <summary>Answers</summary>
-    <p><strong>1.</strong> $e^{3.0} = 20.1$, against a chance perplexity of 50,257 —
-    about 0.04% of it. The model has gone from fifty thousand plausible next tokens to
+    <p><strong>1.</strong> $e^{3.0} = 20.1$, against a chance perplexity of 50,257. That is
+    approximately 0.04% of it. The model went from fifty thousand possible next tokens to
     twenty.</p>
     <p><strong>2.</strong> $6 \times 1.24\times10^{8} \times 3\times10^{11} =
-    2.2\times10^{20}$ FLOPs. At a realistic 50 TFLOP/s sustained on one good GPU that is
-    about 50 GPU-days — expensive but not institutional. The same formula on a 70B model
-    and 15T tokens gives $6\times10^{24}$, which is four orders of magnitude more and
-    firmly out of reach. That single formula is how you tell those two situations apart
-    without asking anyone.</p>
-    <p><strong>3.</strong> No — be alarmed. Perplexity 1.02 means the model is almost
-    perfectly certain of every next character, which no language model should be. Your
-    validation set is almost certainly leaking into training, or you are evaluating on the
-    training split.</p>
+    2.2\times10^{20}$ FLOPs. At a realistic 50 TFLOP/s sustained on one good GPU, that is
+    approximately 50 GPU-days. It is expensive, but it does not need an institution. The
+    same formula for a 70B model and 15T tokens gives $6\times10^{24}$. That is four orders
+    of magnitude more, and far out of reach. With that one formula, you can tell the two
+    situations apart without asking anyone.</p>
+    <p><strong>3.</strong> No. Be alarmed. Perplexity 1.02 means that the model is almost
+    perfectly certain of each next character, and no language model should be. Almost
+    certainly, your validation set leaks into training, or you evaluate on the training
+    split.</p>
   </details>
-  <p style="margin-bottom:0"><b>The habit.</b> Convert every loss to perplexity before quoting it, and always say what the chance value is alongside. A loss without its baseline is not a result.</p>
+  <p style="margin-bottom:0"><b>The habit.</b> Change each loss to perplexity before you quote it, and always give the chance value next to it. A loss without its baseline is not a result.</p>
 </div>
 
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favorite LLM, in your own words: <strong>what actually changes between the translator of Chapter 09 and a decoder-only GPT, and why does the supervision become free?</strong>
-  Then ask it to correct you, and to push back wherever you were vague rather than
-  outright wrong — that is where the gaps hide.
+  Explain this to your favorite LLM, in your own words: <strong>what actually changes between the translator of Chapter 09 and a decoder-only GPT, and why does the supervision become free?</strong>
+  Then ask it to correct you. Ask it to question each part where you were vague, not only
+  the parts where you were wrong, because the gaps are in the vague parts.
   </p>
   <details>
     <summary>What a good answer covers — open this afterwards, not before</summary>
     <ol>
-    <li>The encoder and the cross-attention sublayer are deleted; what remains is causally-masked self-attention and a feed-forward network.</li>
-    <li>The target is the input shifted by one, so every position is simultaneously an input and a label.</li>
-    <li>That means no labeled pairs are needed — any text at all is training data, which is where the scale comes from.</li>
-    <li>The causal mask is what makes it legitimate to score every position in one parallel pass without a position seeing its own answer.</li>
-    <li>Generation is unchanged in kind from Chapter 09 — still one token at a time, still $O(L^2)$ wasted work without a cache.</li>
+    <li>The encoder and the cross-attention sublayer are removed. What stays is causally masked self-attention and a feed-forward network.</li>
+    <li>The target is the input shifted by one. Thus each position is both an input and a label at the same time.</li>
+    <li>Thus the model needs no labeled pairs. Any text is training data, and that is the source of the scale.</li>
+    <li>The causal mask makes it legitimate to score each position in one parallel pass, without a position seeing its own answer.</li>
+    <li>Generation is the same type of process as in Chapter 09: one token at a time, with $O(L^2)$ wasted work if there is no cache.</li>
     </ol>
-    <p style="margin-bottom:0"><b>Most common miss.</b> Framing it as an architectural simplification only. The interesting consequence is economic: removing the encoder is what turns "we need aligned sentence pairs" into "we need text", and that is the reason these models got large.</p>
+    <p style="margin-bottom:0"><b>Most common miss.</b> An answer describes it only as a simpler architecture. The interesting result is economic. Without the encoder, "we need aligned sentence pairs" becomes "we need text". That is the reason these models became large.</p>
   </details>
 </div>
 
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>10_gpt_from_scratch/prompt.ipynb</code>. You will implement causal
-  self-attention, a pre-norm block, the full GPT with tied weights, a training loop
-  with warmup and cosine decay, three sampling strategies compared side by side, and
-  a KV cache with both a wall-clock measurement and an operation count. Training
-  takes about four minutes on an M4.
+  self-attention, a pre-norm block, and the full GPT with tied weights. You will write a
+  training loop with warmup and cosine decay. You will compare three sampling strategies
+  next to each other. Last, you will build a KV cache, and measure it with both a clock and
+  an operation count. Training takes approximately four minutes on an M4.
 </div>
 
 <div class="box note">
   <span class="box-label">Where this goes next</span>
-  <a class="xref" href="#ch11">Chapter 11</a> takes the model you just trained and
-  attacks its resource cost directly: quantizing the weights to 8 and 4 bits, and
-  fine-tuning it to a completely different author while training under 2% of its
+  <a class="xref" href="#ch11">Chapter 11</a> takes the model that you just trained and
+  attacks its resource cost directly. It quantizes the weights to 8 and 4 bits. Then it
+  fine-tunes the model to a completely different author, and trains less than 2% of its
   parameters.
 </div>
 

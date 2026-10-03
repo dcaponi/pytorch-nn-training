@@ -4,8 +4,8 @@
 <h1>The Transformer Encoder</h1>
 
 <p class="lede">
-Attention alone is not a model. It is order-blind, it is shallow, and stacking it naively
-does not train. This chapter adds the three components that turn the mechanism of
+Attention alone is not a model. It cannot see order, it is shallow, and a simple stack of it
+does not train. This chapter adds three components that change the mechanism of
 <a class="xref" href="#ch06">Chapter 06</a> into an architecture: positional encoding,
 residual connections with layer normalization, and a position-wise feed-forward network.
 </p>
@@ -13,23 +13,23 @@ residual connections with layer normalization, and a position-wise feed-forward 
 <h2>Attention is permutation-equivariant</h2>
 
 <p>
-Start with the gap. Take the attention formula and permute the input rows. Every $q_i$,
-$k_j$, and $v_j$ moves with its token, every pairwise score is preserved, and the output rows
-come out permuted in exactly the same way — with identical contents.
+Start with the gap. Take the attention formula and permute the input rows. Each $q_i$, $k_j$
+and $v_j$ moves with its token, and each pairwise score stays the same. The output rows are
+permuted in exactly the same way, and their contents do not change.
 </p>
 
 <p>
-So <em>"dog bites man"</em> and <em>"man bites dog"</em> produce the same set of
-representations. For a task where word order carries meaning — which is all of them — that is
-fatal. An RNN gets order for free from the sequential recurrence; attention, having thrown
-recurrence away, must be told.
+Thus <em>"dog bites man"</em> and <em>"man bites dog"</em> give the same set of
+representations. For a task where word order carries meaning, which is every task, that is
+fatal. An RNN gets order automatically from the sequential recurrence. Attention removed
+recurrence, so we must tell it the order.
 </p>
 
 <h2>Positional encoding</h2>
 
 <p>
-The fix is to add a position-dependent vector to each token embedding before the first
-attention layer. The original transformer uses fixed sinusoids:
+The fix is to add a vector that depends on position to each token embedding, before the
+first attention layer. The original transformer uses fixed sinusoids:
 </p>
 
 $$PE_{(pos,\,2i)} = \sin\!\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)
@@ -37,8 +37,9 @@ $$PE_{(pos,\,2i)} = \sin\!\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)
 PE_{(pos,\,2i+1)} = \cos\!\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)$$
 
 <p>
-Even dimensions get sines, odd get cosines, and the wavelength grows geometrically with
-dimension index — from $2\pi$ at $i=0$ up to $10000 \cdot 2\pi$ at the top.
+Even dimensions get sines, and odd dimensions get cosines. The wavelength increases
+exponentially with the dimension index, from $2\pi$ at $i=0$ up to $10000 \cdot 2\pi$ at the
+top.
 </p>
 <figure class="figure wide">
 <svg viewBox="0 0 760 228" role="img" aria-labelledby="f-pe-t f-pe-d" style="font-family:var(--sans)">
@@ -111,42 +112,43 @@ dimension index — from $2\pi$ at $i=0$ up to $10000 \cdot 2\pi$ at the top.
   <rect x="636" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
   <rect x="674" y="186" width="38" height="26" fill="var(--sayback)" fill-opacity="0.28" stroke="var(--sayback)" stroke-width="1"/>
 </svg>
-<figcaption><b>Position added to content, with real numbers in it.</b> The addition is the whole mechanism — no gate, no concatenation, no extra parameters. These values come straight from the formula above rather than from any particular implementation, so you can check them: at position 0 every sine is $\sin 0 = 0$ and every cosine is $\cos 0 = 1$, giving $[0, 1, 0, 1]$. Watch the fourth column across the three tokens. It barely moves, because its wavelength is a hundred times the first column's — that is the multi-resolution code the widget above draws in full.</figcaption>
+<figcaption><b>Position added to content, with real numbers in it.</b> The addition is the full mechanism. There is no gate, no concatenation and no extra parameter. These values come directly from the formula above, not from a specific implementation, so you can check them. At position 0, each sine is $\sin 0 = 0$ and each cosine is $\cos 0 = 1$. This gives $[0, 1, 0, 1]$. Watch the fourth column across the three tokens. It almost does not move, because its wavelength is a hundred times the wavelength of the first column. That is the multi-resolution code that the widget above draws in full.</figcaption>
 </figure>
 
 
 <div class="widget" data-widget="posenc"></div>
 
 <p>
-The picture explains the design better than the formula. Left-hand columns oscillate quickly
-and distinguish neighboring positions; right-hand columns oscillate slowly and encode coarse
-location in the sequence. Together they form a multi-resolution code — much like a binary
-counter, where the low bit alternates every step and the high bit once per half-sequence.
-Every position gets a distinct fingerprint, and positions close together get similar ones.
+The picture explains the design better than the formula. The columns on the left oscillate
+quickly, and they tell neighboring positions apart. The columns on the right oscillate
+slowly, and they encode the approximate location in the sequence. Together they make a
+multi-resolution code. It is much like a binary counter, where the low bit changes at each
+step and the high bit changes one time for each half of the sequence. Each position gets a
+different fingerprint, and positions near each other get similar fingerprints.
 </p>
 
 <p>
-The genuinely clever property is this: for any fixed offset $k$, $PE_{pos+k}$ is a
-<em>linear</em> function of $PE_{pos}$ — a rotation, by the angle-addition identities for
-sine and cosine. So a model can learn to attend "three positions back" as a single linear
-operation applied uniformly, rather than memorizing every absolute pair. Relative position
-becomes learnable.
+Here is the really clever property. For any fixed offset $k$, $PE_{pos+k}$ is a
+<em>linear</em> function of $PE_{pos}$. It is a rotation, by the angle-addition identities for
+sine and cosine. Thus a model can learn to attend "three positions back" as one linear
+operation, applied in the same way at each position. It does not need to memorize each
+absolute pair. The model can learn relative position.
 </p>
 
 <div class="box note">
   <span class="box-label">Why add rather than concatenate</span>
-  Adding position to content seems like it should corrupt the content, and it is reasonable
-  to expect concatenation instead. Two answers. Practically, concatenation costs dimensions
-  you would rather spend on meaning. Structurally, in a high-dimensional space a learned
-  embedding can simply keep the two kinds of information in near-orthogonal subspaces, and
-  trained models do exactly that. Modern alternatives — learned absolute embeddings, or
-  rotary embeddings (RoPE) that rotate $Q$ and $K$ by a position-dependent angle inside each
-  attention layer — mostly outperform sinusoids, and RoPE is what current large language
-  models use.
+  It seems that an addition of position to content would damage the content, and you could
+  reasonably expect concatenation. There are two answers. In practice, concatenation costs
+  dimensions that you would prefer to use for meaning. In structure, a high-dimensional
+  space lets a learned embedding keep the two types of information in subspaces that are
+  almost orthogonal, and trained models do exactly that. Modern alternatives mostly perform
+  better than sinusoids. One is learned absolute embeddings. Another is rotary embeddings
+  (RoPE), which rotate $Q$ and $K$ by an angle that depends on position, inside each
+  attention layer. Current large language models use RoPE.
 </div>
 <figure class="figure plate">
   <img src="images/transformer-explainer/embedding.png" alt="Four numbered columns: tokens 'Data', 'visualization', 'em', 'powers', 'users', 'to'; their token embeddings by vocabulary id; a positional encoding indexed by position 0 to 5; and the sum of the two." loading="lazy" decoding="async">
-  <figcaption><b>The learned-embedding alternative, in GPT-2.</b> Column 3 is not a sinusoid — GPT-2 stores a plain lookup table with one trainable vector per position and indexes it by $0 \ldots 5$, so those vectors are shaped by the same gradient as everything else in the model (<a class="xref" href="#ch07">Chapter 07</a>). It buys flexibility and gives up extrapolation: a sinusoid is defined at position 5000 whether or not training ever reached it, while a lookup table simply has no row there. Column 1 is also worth a look — <em>empowers</em> arrives as the two subword tokens <em>em</em> and <em>powers</em>, which is the tokenizer of <a class="xref" href="#ch10">Chapter 10</a> showing through.</figcaption>
+  <figcaption><b>The learned-embedding alternative, in GPT-2.</b> Column 3 is not a sinusoid. GPT-2 stores a plain lookup table with one trainable vector for each position, and it uses the index $0 \ldots 5$. Thus the same gradient as everything else in the model shapes those vectors (<a class="xref" href="#ch07">Chapter 07</a>). This gives flexibility, but it loses extrapolation. A sinusoid has a value at position 5000 whether or not training got there. A lookup table has no row there. Also look at column 1. <em>empowers</em> comes in as the two subword tokens <em>em</em> and <em>powers</em>. That is the tokenizer of <a class="xref" href="#ch10">Chapter 10</a>.</figcaption>
   <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;license. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
 </figure>
 
@@ -154,35 +156,35 @@ becomes learnable.
 <h2>Residual connections</h2>
 
 <p>
-Each sub-layer is wrapped rather than applied directly:
+The model does not apply each sub-layer directly. It wraps each one:
 </p>
 
 $$x \leftarrow \operatorname{LayerNorm}\big(x + \operatorname{Sublayer}(x)\big)$$
 
 <p>
-The <code>x +</code> is a <strong>residual connection</strong>, and it is what makes depth
-possible. Differentiate it: because $\partial(x + f(x))/\partial x = 1 + f'(x)$, the gradient
-reaching the input is the gradient from above <em>plus</em> a correction. Even if $f'$ is
-tiny, the 1 remains. Gradients therefore have an unobstructed path from the loss to every
-layer, however deep the stack.
+The <code>x +</code> is a <strong>residual connection</strong>, and it makes depth possible.
+Differentiate it: $\partial(x + f(x))/\partial x = 1 + f'(x)$. Thus the gradient that gets to
+the input is the gradient from above <em>plus</em> a correction. Even if $f'$ is very small,
+the 1 stays. Thus gradients have a clear path from the loss to each layer, however deep the
+stack is.
 </p>
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
   This is the same structural idea as the LSTM cell state in
-  <a class="xref" href="#ch05">Chapter 05</a> — an additive path that gradients traverse
-  without repeated multiplication. The LSTM gates it, the transformer leaves it open. Every
-  deep architecture that trains successfully has some version of this, because
-  <a class="xref" href="#ch04">Chapter 04</a>'s product-of-<a class="xref" href="#ch00-jacobian">Jacobian</a>s problem — one
-  matrix of partial derivatives per step, all multiplied together — is universal, not
-  specific to recurrence.
+  <a class="xref" href="#ch05">Chapter 05</a>: an additive path where gradients do not go
+  through repeated multiplication. The LSTM puts a gate on it. The transformer leaves it
+  open. Each deep architecture that trains successfully has some version of this. The
+  problem of the product of <a class="xref" href="#ch00-jacobian">Jacobian</a>s in
+  <a class="xref" href="#ch04">Chapter 04</a> (one matrix of partial derivatives for each
+  step, all multiplied together) is universal. It is not specific to recurrence.
 </div>
 
 <div class="box example">
   <span class="box-label">Example — 24 layers, with and without the skip</span>
   <p>
-  Suppose each sub-layer's Jacobian has typical magnitude $f' = 0.8$ — not a
-  pathological value, just slightly contractive.
+  Suppose that the Jacobian of each sub-layer has a typical magnitude of $f' = 0.8$. That is
+  not an extreme value. It is only slightly contractive.
   </p>
   <div class="given">WITHOUT residuals:  the gradient scales as  0.8²⁴ = 0.0047
                     layer 1 receives 0.5% of the signal.
@@ -191,20 +193,20 @@ WITH residuals:     each factor is (1 + f′) instead of f′.
                     Even if every f′ were exactly 0, the product of
                     the 1-terms is 1 — layer 1 still receives 100%.</div>
   <p style="margin-bottom:0">
-  The point is not the exact arithmetic but the structure: the additive term makes
-  <strong>1 the floor rather than the ceiling</strong>. Without it, depth multiplies
-  the signal away; with it, depth cannot starve any layer. This is why networks
-  stalled around 20 layers before residual connections and went past 150 immediately
-  after, with nothing else about the training changed.
+  The exact arithmetic is not the point. The structure is. The additive term makes
+  <strong>1 the minimum, not the maximum</strong>. Without it, depth multiplies the signal
+  away. With it, depth cannot starve any layer. That is why networks stopped at
+  approximately 20 layers before residual connections, and went past 150 layers immediately
+  after. Nothing else about the training changed.
   </p>
 </div>
 
 
 <p>
-There is a second reading. Each sub-layer computes a <em>correction</em> to the running
-representation rather than replacing it. A block that has learned nothing useful can output
-approximately zero and become the identity, which means adding layers is close to harmless.
-That is why transformer depth scales so gracefully.
+There is a second way to read it. Each sub-layer calculates a <em>correction</em> to the
+running representation. It does not replace it. A block that learned nothing useful can give
+approximately zero, and then it is the identity. Thus more layers are almost harmless. That
+is why transformer depth scales so easily.
 </p>
 
 <h2>Layer normalization</h2>
@@ -216,98 +218,99 @@ For each token independently, normalize across the feature dimension:
 $$\operatorname{LN}(x) = \gamma \odot \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta$$
 
 <p>
-with $\mu$ and $\sigma^2$ computed over that token's $d_{\text{model}}$ features, and
-$\gamma, \beta$ learned per-feature scale and shift. Adding attention outputs to residuals
-repeatedly lets activation magnitudes drift; layer norm resets the scale at every step, which
-keeps the network in the range where its non-linearities and its optimizer both behave.
+$\mu$ and $\sigma^2$ come from the $d_{\text{model}}$ features of that token. $\gamma$ and
+$\beta$ are a learned scale and shift for each feature. Repeated addition of attention
+outputs to residuals lets the magnitude of the activations drift. Layer norm sets the scale
+again at each step. This keeps the network in the range where both its non-linearities and
+its optimizer behave well.
 </p>
 
 <p>
-The contrast with batch normalization is instructive. Batch norm computes statistics across
-the <em>batch</em> for each feature, which makes each example's output depend on its
-batch-mates, requires separate train and eval behavior, and degrades badly at small batch
-sizes. Layer norm looks only at one token's own features: batch size is irrelevant, sequence
-length is irrelevant, train and eval are identical, and inference on a single example works
-unchanged. For variable-length sequence data that is decisive.
+Compare it with batch normalization. Batch norm calculates statistics across the
+<em>batch</em> for each feature. Thus the output of each example depends on the other
+examples in its batch. It needs different behavior in training and in evaluation, and it
+becomes much worse at small batch sizes. Layer norm looks only at the features of one token.
+Batch size has no effect, sequence length has no effect, training and evaluation are the
+same, and inference on one example works without a change. For sequence data with variable
+length, that is the deciding factor.
 </p>
 
 <h3>Post-norm and pre-norm</h3>
 
 <p>
 The formula above is <strong>post-norm</strong>, as in the original paper. Modern models
-almost always use <strong>pre-norm</strong> instead:
+almost always use <strong>pre-norm</strong>:
 </p>
 
 $$x \leftarrow x + \operatorname{Sublayer}\big(\operatorname{LayerNorm}(x)\big)$$
 
 <p>
-The difference is whether the residual path passes through a normalization. In pre-norm it
-does not — the skip connection is a completely clean highway from input to output, which
-makes deep stacks train without a learning-rate warmup and much more stably. Post-norm
-sometimes reaches marginally better final quality with careful tuning. The notebook uses
-post-norm to match the original formulation;
-<a class="xref" href="#ch10">Chapter 10</a>'s GPT uses pre-norm, as GPT-2 onwards does.
+The difference is whether the residual path goes through a normalization. In pre-norm, it
+does not. The skip connection is a completely clear path from input to output. Thus deep
+stacks train without learning-rate warmup, and much more stably. With careful tuning,
+post-norm sometimes gets slightly better final quality. The notebook uses post-norm to match
+the original paper. The GPT of <a class="xref" href="#ch10">Chapter 10</a> uses pre-norm, as
+GPT-2 and later models do.
 </p>
 
 <h2>The residual stream is the road back</h2>
 
 <p>
-So much for what residual connections do on the way forward. What makes them
-indispensable is what they do on the way back, and it is worth seeing now rather than
-later. Between the loss and layer 1's weights there are, in a twelve-layer model,
-something like fifty sub-layers. At an addition $y = x + f(x)$ the gradient splits rather
-than passing through a bottleneck,
+That is what residual connections do in the forward direction. What makes them necessary is
+what they do in the backward direction, so look at it now. In a twelve-layer model, there are
+approximately fifty sub-layers between the loss and the weights of layer 1. At an addition
+$y = x + f(x)$, the gradient divides into two parts. It does not go through a bottleneck:
 </p>
 
 $$\frac{\partial L}{\partial x} = \frac{\partial L}{\partial y} + f'(x)^{\top}\frac{\partial L}{\partial y}$$
 
 <p>
-and the first term carries the gradient onward <em>unchanged</em>. Expand that across $N$
-blocks and one of the resulting terms is the pure identity path — the loss gradient arriving
-at layer 1 having been multiplied by nothing at all. Attention blocks and feed-forward blocks
-add their corrections onto that stream; they are not gates it has to pass through.
+The first term carries the gradient forward <em>without a change</em>. Expand that across
+$N$ blocks. One of the terms that results is the pure identity path: the loss gradient gets
+to layer 1, and nothing multiplied it on the way. Attention blocks and feed-forward blocks
+add their corrections to that stream. They are not gates that it must go through.
 </p>
 
 <figure class="figure plate">
   <img src="images/transformer-explainer/mlp.png" alt="Six token streams flowing left to right. Each expands into a wide 3072-dimensional vector and contracts back, while a broad flat band labeled Residual runs above them from input to output without narrowing." loading="lazy" decoding="async">
-  <figcaption><b>The stream, drawn to scale.</b> The band labeled <em>Residual</em> is the
-  additive path; the excursion below it is the feed-forward network expanding each token to
-  3072 dimensions and projecting it back. Read the picture right to left and it is the
-  backward pass: gradient arriving at the far right splits, some of it detouring through the
-  MLP and some of it continuing along the band untouched. Note too that the six token streams
-  never merge here — the FFN is per-position, so no gradient crosses between tokens inside
-  it. Attention is the only sub-layer where that happens, which is a useful thing to know
-  when a bug moves information between positions that should not have it.</figcaption>
+  <figcaption><b>The stream, drawn to scale.</b> The band with the label <em>Residual</em> is
+  the additive path. The path below it is the feed-forward network. It expands each token to
+  3072 dimensions and projects it back. Read the picture from right to left, and it is the
+  backward pass. Gradient comes in at the far right and divides. Some of it goes through the
+  MLP, and some of it continues along the band without a change. Note also that the six
+  token streams never merge here. The FFN works on each position separately, so no gradient
+  goes between tokens inside it. Attention is the only sub-layer where that happens. That is
+  useful to know when a bug moves information between positions that should not have it.</figcaption>
   <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;license. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
 </figure>
 
 <h3>LayerNorm's backward is a projection</h3>
 
 <p>
-One sub-layer does interfere with the stream, and it is worth knowing exactly how. For
-$\hat{x} = (x - \mu)/\sigma$ over a token's $d$ features, writing $u = \partial L/\partial
-\hat{x}$, the gradient with respect to the input is
+One sub-layer does interfere with the stream, and you should know exactly how. Let
+$\hat{x} = (x - \mu)/\sigma$ over the $d$ features of a token, and write
+$u = \partial L/\partial \hat{x}$. Then the gradient with respect to the input is:
 </p>
 
 $$\frac{\partial L}{\partial x} = \frac{1}{\sigma}\Big(u - \operatorname{mean}(u)
    - \hat{x}\,\operatorname{mean}(u \odot \hat{x})\Big)$$
 
 <p>
-Read the two subtractions as what they are: projections. The first removes the component of
-the gradient along the all-ones direction, the second removes the component along $\hat{x}$
-itself. LayerNorm therefore <em>discards</em> any part of the gradient that merely wants to
-shift a token's mean or rescale its length — which is correct, since normalization would
-have undone such a change anyway, but it means gradient information really is lost at each
-normalization, not merely rescaled.
+The two subtractions are projections. The first removes the component of the gradient along
+the all-ones direction. The second removes the component along $\hat{x}$ itself. Thus
+LayerNorm <em>discards</em> each part of the gradient that only wants to shift the mean of a
+token or change its length. That is correct, because normalization would cancel such a
+change. But it means that each normalization really loses gradient information. It does not
+only rescale it.
 </p>
 
 <p>
-That is the argument for pre-norm in one line. In post-norm, every block's output passes
-through this projection on the residual path itself, so the identity term above is not
-actually an identity: it is $1/\sigma$ times a projection, $N$ times over. In pre-norm the
-normalization sits inside the branch and the stream is untouched. This is why post-norm
-transformers need learning-rate warmup and pre-norm ones largely do not, and it is the whole
-of the difference between the two formulas above.
+That is the argument for pre-norm in one line. In post-norm, the output of each block goes
+through this projection on the residual path itself. Thus the identity term above is not
+really an identity. It is $1/\sigma$ times a projection, $N$ times. In pre-norm, the
+normalization is inside the branch, and nothing touches the stream. That is why post-norm
+transformers need learning-rate warmup and pre-norm transformers mostly do not. It is the
+full difference between the two formulas above.
 </p>
 
 <h2>The feed-forward network</h2>
@@ -315,19 +318,19 @@ of the difference between the two formulas above.
 $$\operatorname{FFN}(x) = W_2\,\operatorname{ReLU}(W_1x + b_1) + b_2$$
 
 <p>
-Applied identically and independently at every position — it is a
-<span class="shape">(1×1)</span> convolution in disguise. The inner dimension is conventionally
-$4d_{\text{model}}$: expand, apply a non-linearity, project back.
+The model applies it in the same way, independently, at each position. It is really a
+<span class="shape">(1×1)</span> convolution. By convention, the inner dimension is
+$4d_{\text{model}}$: expand, apply a non-linearity, and project back.
 </p>
 
 <p>
-Why is it there at all? Attention is, between its softmax weights, a linear operation on
-values: it moves and mixes information but does not transform it non-linearly. Stack attention
-layers without an FFN and you get an expensive linear map. The FFN supplies the per-position
-non-linear processing — and it holds roughly two-thirds of the parameters in a transformer
-block ($8d^2$ against attention's $4d^2$). Recent interpretability work reads it as a
-key-value memory: the first matrix detects patterns, the second writes learned facts
-associated with them.
+Why is it there at all? Apart from its softmax weights, attention is a linear operation on
+values. It moves and mixes information, but it does not transform it non-linearly. A stack
+of attention layers without an FFN is an expensive linear map. The FFN gives the non-linear
+processing at each position. It also holds approximately two thirds of the parameters in a
+transformer block ($8d^2$ against $4d^2$ for attention). Recent interpretability research
+reads it as a key-value memory. The first matrix detects patterns, and the second writes
+learned facts related to them.
 </p>
 
 <h2>The full encoder block</h2>
@@ -400,59 +403,60 @@ associated with them.
   <text x="34" y="84" font-size="13.0" text-anchor="start" fill="var(--sayback)">an untouched path from</text>
   <text x="34" y="96" font-size="13.0" text-anchor="start" fill="var(--sayback)">input to output</text>
 </svg>
-<figcaption><b>The same sixteen lines, drawn.</b> Map them onto each other directly: the dashed lines are the <code>x +</code> in each assignment, the two wide bars are <code>norm1</code> and <code>norm2</code>, and the fact that the two feed-forward boxes are drawn separately — one per token, no arrow between them — is the point made in the section above, that the FFN sees each position alone. <br><br> This is <strong>post-norm</strong>: normalization sits <em>on</em> the residual path, after the addition. To picture pre-norm, move each wide bar down to just before its sublayer and let the dashed line run all the way to the top uninterrupted. That uninterrupted line is the entire argument for pre-norm.</figcaption>
+<figcaption><b>The same sixteen lines, drawn.</b> Match them directly. The dashed lines are the <code>x +</code> in each assignment. The two wide bars are <code>norm1</code> and <code>norm2</code>. The two feed-forward boxes are drawn separately, one for each token, with no arrow between them. That shows the point from the section above: the FFN sees each position alone. <br><br> This is <strong>post-norm</strong>. Normalization is <em>on</em> the residual path, after the addition. To see pre-norm, move each wide bar down to just before its sublayer. Then let the dashed line go all the way to the top with no interruption. That line with no interruption is the full argument for pre-norm.</figcaption>
 </figure>
 
 
 <p>
-That is the entire architecture. Stack $N$ of these, add embeddings and positional encoding at
-the bottom, and put a task head on top. Every transformer you have heard of is this block,
-repeated, at scale — the innovations since 2017 have been about efficiency, position encoding,
-normalization placement, and data, not about the block.
+That is the full architecture. Stack $N$ of these. Add embeddings and positional encoding at
+the bottom, and put a task head on top. Each transformer that you know is this block,
+repeated, at scale. The new ideas since 2017 are about efficiency, position encoding, the
+location of normalization, and data. They are not about the block.
 </p>
 
 <p>
-Note <code>self.attn(x, x, x)</code>: query, key, and value all come from the same sequence,
-which is what makes it <em>self</em>-attention. In <a class="xref" href="#ch09">Chapter 09</a>
-the decoder's cross-attention passes a different tensor for the query, and that one change
-turns the block into a translator.
+Note <code>self.attn(x, x, x)</code>. The query, the key and the value all come from the
+same sequence. That is what makes it <em>self</em>-attention. In
+<a class="xref" href="#ch09">Chapter 09</a>, the cross-attention of the decoder gives a
+different tensor for the query. That one change turns the block into a translator.
 </p>
 
 <h2>Pooling for classification</h2>
 
 <p>
-The encoder outputs one vector per token; classification needs one per sequence. Mean-pool
-over non-padding positions is the simple option and works well. BERT instead prepends a
-<code>[CLS]</code> token and uses its final representation — reasonable, since attention lets
-that position gather from everywhere, and it gives the model a dedicated slot for a summary
-rather than forcing an average.
+The encoder gives one vector for each token. Classification needs one vector for each
+sequence. The simple option is a mean over the positions that are not padding, and it works
+well. BERT adds a <code>[CLS]</code> token at the start and uses its final representation.
+This is reasonable, because attention lets that position collect information from all
+positions. It also gives the model a dedicated place for a summary, so the model does not
+have to use an average.
 </p>
 
 <div class="box warn">
   <span class="box-label">Pool with the mask</span>
-  <code>x.mean(dim=1)</code> averages over padding too, so a 10-token review padded to 200
+  <code>x.mean(dim=1)</code> also averages over padding. Thus a 10-token review padded to 200
   gets 95% of its representation from <code>&lt;PAD&gt;</code> embeddings. Multiply by the
-  mask and divide by the true length. This is a quiet accuracy killer — the model still
-  trains, it just trains worse, and nothing in the output tells you why.
+  mask, and divide by the true length. This bug silently decreases accuracy. The model still
+  trains, but it trains worse, and nothing in the output tells you why.
 </div>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 08.1</span>
-  <p>Layer normalization on one token with four features.</p>
+  <p>Do layer normalization on one token with four features.</p>
   <div class="given">x = [2.0, 4.0, 4.0, 6.0]        γ = [1, 1, 1, 1]   β = [0, 0, 0, 0]   ε ≈ 0</div>
   <ol>
-    <li>Compute the mean $\mu$ and variance $\sigma^2$ across the four features.</li>
+    <li>Calculate the mean $\mu$ and the variance $\sigma^2$ across the four features.</li>
     <li>Normalize each feature.</li>
-    <li>Verify the result has mean 0 and variance 1.</li>
-    <li>Now suppose $\gamma = [2,2,2,2]$ and $\beta = [1,1,1,1]$. What is the output, and why
-        would a network ever want to undo the normalization it just performed?</li>
-    <li>If instead you had applied <em>batch</em> norm to a batch containing this token and
-        three others, which numbers would have entered the mean — and what breaks at
-        inference time on a single example?</li>
+    <li>Make sure that the result has mean 0 and variance 1.</li>
+    <li>Now let $\gamma = [2,2,2,2]$ and $\beta = [1,1,1,1]$. What is the output? Why would a
+        network ever want to cancel the normalization that it just did?</li>
+    <li>Suppose that you had applied <em>batch</em> norm to a batch with this token and three
+        others. Which numbers would have gone into the mean? What fails at inference on one
+        example?</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> $\mu = (2+4+4+6)/4 = 4$. Squared deviations are
+    <p><strong>1.</strong> $\mu = (2+4+4+6)/4 = 4$. The squared deviations are
     $4, 0, 0, 4$, so $\sigma^2 = 8/4 = 2$ and $\sigma = 1.414$.</p>
     <p><strong>2.</strong></p>
     <div class="given">(2 − 4)/1.414 = −1.414
@@ -463,24 +467,25 @@ rather than forcing an average.
     $= (2 + 0 + 0 + 2)/4 = 1$ ✓.</p>
     <p><strong>4.</strong> Output $= 2 \times [-1.414, 0, 0, 1.414] + 1 =
     \mathbf{[-1.828, 1, 1, 3.828]}$.</p>
-    <p>As for why: forcing every representation to unit variance is a strong constraint, and
-    sometimes the right answer really does involve a feature with large magnitude or a
-    non-zero mean. $\gamma$ and $\beta$ let the network recover any scale and shift it needs,
-    so normalization stabilizes training <em>without</em> reducing what the model can express.
-    In the limit the network can learn $\gamma = \sigma$, $\beta = \mu$ and undo the operation
-    entirely — normalization is a helpful default, not a restriction.</p>
+    <p>Now the reason. Unit variance for each representation is a strong constraint.
+    Sometimes the correct answer really needs a feature with a large magnitude or a mean
+    that is not zero. $\gamma$ and $\beta$ let the network get back any scale and shift that
+    it needs. Thus normalization makes training stable <em>without</em> a decrease in what
+    the model can express. In the extreme case, the network can learn $\gamma = \sigma$ and
+    $\beta = \mu$ and cancel the operation completely. Normalization is a useful default,
+    not a restriction.</p>
     <p><strong>5.</strong> Batch norm would average feature 0 across all four tokens in the
-    batch — $x_0$ of token 1, $x_0$ of token 2, and so on — producing four means, one per
-    feature. At inference on a single example there is no batch to compute statistics from,
-    so batch norm must fall back on running averages accumulated during training, which is
-    why it needs distinct train and eval behavior. Layer norm has no such problem: the
-    statistics come from within the token, so one example works exactly like a thousand.</p>
+    batch: $x_0$ of token 1, $x_0$ of token 2, and so on. It makes four means, one for each
+    feature. At inference on one example, there is no batch to calculate statistics from.
+    Thus batch norm must use running averages from training. That is why it needs different
+    behavior in training and evaluation. Layer norm does not have this problem. The
+    statistics come from inside the token, so one example works exactly like a thousand.</p>
   </details>
 </div>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 08.2</span>
-  <p>Positional encoding, computed directly.</p>
+  <p>Calculate positional encoding directly.</p>
   <div class="given">d_model = 4, so dimension pairs are i = 0 (dims 0,1) and i = 1 (dims 2,3)
 
 PE(pos, 2i)   = sin(pos / 10000^{2i/4})
@@ -491,37 +496,40 @@ sin 0 = 0    cos 0 = 1    sin 1 = 0.841   cos 1 = 0.540
 sin 2 = 0.909  cos 2 = −0.416   sin 0.01 = 0.010   cos 0.01 = 1.000
 sin 0.02 = 0.020   cos 0.02 = 1.000</div>
   <ol>
-    <li>Compute $PE(0)$, $PE(1)$, and $PE(2)$ — each a 4-vector.</li>
-    <li>Which dimensions distinguish position 1 from position 2 clearly? Which barely change?</li>
-    <li>At what position would dimension 2 complete a full cycle back to $\sin = 0$?</li>
+    <li>Calculate $PE(0)$, $PE(1)$ and $PE(2)$. Each one is a 4-vector.</li>
+    <li>Which dimensions clearly tell position 1 from position 2? Which ones almost do not
+        change?</li>
+    <li>At what position does dimension 2 complete a full cycle back to $\sin = 0$?</li>
     <li>Explain what would go wrong with $d_{\text{model}} = 4$ and a sequence of length
         50,000.</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> For $i = 0$ the divisor is 1; for $i = 1$ it is 100.</p>
+    <p><strong>1.</strong> For $i = 0$ the divisor is 1. For $i = 1$ it is 100.</p>
     <div class="given">PE(0) = [sin 0,     cos 0,     sin 0,      cos 0    ] = [0.000,  1.000, 0.000, 1.000]
 PE(1) = [sin 1,     cos 1,     sin 0.01,   cos 0.01 ] = [0.841,  0.540, 0.010, 1.000]
 PE(2) = [sin 2,     cos 2,     sin 0.02,   cos 0.02 ] = [0.909, −0.416, 0.020, 1.000]</div>
-    <p><strong>2.</strong> Dimensions 0 and 1 change sharply — cos goes from 0.540 to −0.416
-    between consecutive positions. Dimensions 2 and 3 barely move (0.010 → 0.020, and 1.000 →
-    1.000 to three decimals). Fast dimensions resolve <em>local</em> position, slow ones carry
-    <em>global</em> position, exactly as the widget above shows.</p>
-    <p><strong>3.</strong> Dimension 2 has $\sin(pos/100)$, so a full cycle needs
-    $pos/100 = 2\pi$, i.e. $pos \approx \mathbf{628}$.</p>
-    <p><strong>4.</strong> The slowest dimension here has wavelength ~628, so beyond that
-    positions start repeating in every dimension and the encoding is no longer unique —
-    positions 700 and 72 would receive nearly identical codes and the model could not tell
-    them apart. That is why $d_{\text{model}}$ must be large enough that the slowest
-    wavelength ($2\pi \times 10000 \approx 62{,}800$ at realistic sizes) exceeds your longest
-    sequence. It is also a preview of why extending a trained model's context window is hard:
-    the position codes beyond the training range are ones the model has never seen.</p>
+    <p><strong>2.</strong> Dimensions 0 and 1 change sharply: the cosine goes from 0.540 to
+    −0.416 between two neighboring positions. Dimensions 2 and 3 almost do not move
+    (0.010 → 0.020, and 1.000 → 1.000 to three decimals). Fast dimensions resolve
+    <em>local</em> position, and slow dimensions carry <em>global</em> position, exactly as
+    the widget above shows.</p>
+    <p><strong>3.</strong> Dimension 2 has $\sin(pos/100)$. Thus a full cycle needs
+    $pos/100 = 2\pi$, which is $pos \approx \mathbf{628}$.</p>
+    <p><strong>4.</strong> Here, the slowest dimension has a wavelength of only approximately
+    628, and the fast dimensions repeat every 6.3 positions. Over 50,000 positions, many
+    pairs of positions far apart get almost the same code. For example, positions 100 and
+    13,923 have codes that agree to approximately two decimal places in all four dimensions.
+    The model could not tell them apart. Thus $d_{\text{model}}$ must be large enough that the slowest wavelength
+    ($2\pi \times 10000 \approx 62{,}800$ at realistic sizes) is more than your longest
+    sequence. This also shows why it is difficult to extend the context window of a trained
+    model. The model has never seen the position codes past the training range.</p>
   </details>
 </div>
 
 <div class="box feel">
   <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
-  <p style="margin-top:0">A transformer block's parameter count is one formula, and knowing it lets you size a model — or check someone else's claim about one — without opening a file. It is $12d^2$ per block, and the derivation is four numbers you already have.</p>
+  <p style="margin-top:0">The parameter count of a transformer block is one formula. If you know it, you can size a model, or check a claim about one, without opening a file. It is $12d^2$ for each block, and you derive it from four numbers that you already have.</p>
   <div class="table-wrap">
   <table>
     <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
@@ -535,64 +543,66 @@ PE(2) = [sin 2,     cos 2,     sin 0.02,   cos 0.02 ] = [0.909, −0.416, 0.020,
     </tbody>
   </table>
   </div>
-  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
-  the point is knowing <em>which</em> number to reach for.</p>
+  <p>Now do these on paper. Where you can, do them in your head. You can use a calculator
+  for the logarithms. The goal is to know <em>which</em> number to use.</p>
   <ol>
-    <li>GPT-2 small: $d = 768$, 12 layers. How many parameters live in the transformer blocks?</li>
-    <li>Of a single block, what fraction is the feed-forward network?</li>
-    <li>GPT-2 small is quoted at 124M parameters. Add the token embedding ($V = 50{,}257$) and the learned position table (1024 slots). Does it reconcile?</li>
+    <li>GPT-2 small has $d = 768$ and 12 layers. How many parameters are in the transformer blocks?</li>
+    <li>What fraction of one block is the feed-forward network?</li>
+    <li>People say that GPT-2 small has 124M parameters. Add the token embedding ($V = 50{,}257$) and the learned position table (1024 slots). Does the total agree?</li>
   </ol>
   <details>
     <summary>Answers</summary>
-    <p><strong>1.</strong> $12 \times 768^2 = 7.08$M per block, times 12 layers =
-    <strong>84.9M</strong>.</p>
-    <p><strong>2.</strong> $8/12 = 67\%$. Two thirds of every transformer is the part
-    with no attention in it, which is worth remembering whenever someone describes these
-    models as "attention-based".</p>
-    <p><strong>3.</strong> Token embedding $50{,}257 \times 768 = 38.6$M; positions
-    $1024 \times 768 = 0.8$M. Total $84.9 + 38.6 + 0.8 = \mathbf{124.3}$M. It
-    reconciles — and the output head adds nothing because GPT-2 ties it to the input
-    embedding. If you can do this, you can sanity-check any model card you are handed.</p>
+    <p><strong>1.</strong> $12 \times 768^2 = 7.08$M for each block. Multiply by 12 layers
+    to get <strong>84.9M</strong>.</p>
+    <p><strong>2.</strong> $8/12 = 67\%$. Two thirds of each transformer is the part with no
+    attention in it. Remember this when someone describes these models as
+    "attention-based".</p>
+    <p><strong>3.</strong> The token embedding is $50{,}257 \times 768 = 38.6$M. The
+    positions are $1024 \times 768 = 0.8$M. The total is
+    $84.9 + 38.6 + 0.8 = \mathbf{124.3}$M. It agrees. The output head adds nothing, because
+    GPT-2 ties it to the input embedding. If you can do this, you can check any model card
+    that someone gives you.</p>
   </details>
-  <p style="margin-bottom:0"><b>The habit.</b> Reconstruct the published parameter count of a model you did not build. When it reconciles you have understood the architecture; when it does not, you have found the part you were wrong about.</p>
+  <p style="margin-bottom:0"><b>The habit.</b> Calculate again the published parameter count of a model that you did not build. When it agrees, you understand the architecture. When it does not agree, you found the part where you were wrong.</p>
 </div>
 
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favorite LLM, in your own words: <strong>why can you not just stack attention layers — what do the residual connection and the normalization each contribute?</strong>
-  Then ask it to correct you, and to push back wherever you were vague rather than
-  outright wrong — that is where the gaps hide.
+  Explain this to your favorite LLM, in your own words: <strong>why can you not just stack attention layers — what do the residual connection and the normalization each contribute?</strong>
+  Then ask it to correct you. Ask it to question each part where you were vague, not only
+  the parts where you were wrong, because the gaps are in the vague parts.
   </p>
   <details>
     <summary>What a good answer covers — open this afterwards, not before</summary>
     <ol>
-    <li>Attention alone is permutation-equivariant, so something must inject position before the first layer.</li>
-    <li>The residual connection makes the gradient path from the loss to any layer include an untouched identity term, so depth stops attenuating the signal.</li>
-    <li>Normalization resets the activation scale that repeated additions would otherwise let drift.</li>
-    <li>LayerNorm is used rather than BatchNorm because it looks only at one token's own features — so batch size and sequence length are irrelevant and train and eval behave identically.</li>
-    <li>The feed-forward sublayer is where most of the parameters and most of the per-position computation live; attention moves information between positions, the FFN transforms it in place.</li>
+    <li>Attention alone is permutation-equivariant. Thus something must add position before the first layer.</li>
+    <li>The residual connection puts an identity term, which nothing touches, on the gradient path from the loss to each layer. Thus depth no longer makes the signal smaller.</li>
+    <li>Normalization sets the activation scale again. Without it, repeated additions would let the scale drift.</li>
+    <li>The model uses LayerNorm, not BatchNorm, because LayerNorm looks only at the features of one token. Thus batch size and sequence length have no effect, and training and evaluation behave the same.</li>
+    <li>The feed-forward sublayer holds most of the parameters and does most of the calculation for each position. Attention moves information between positions. The FFN transforms it in place.</li>
     </ol>
-    <p style="margin-bottom:0"><b>Most common miss.</b> Saying residuals "help with vanishing gradients" without the mechanism. The point is specific and provable: differentiating $x + f(x)$ leaves a 1, so there is a path along which the gradient is multiplied by nothing at all.</p>
+    <p style="margin-bottom:0"><b>Most common miss.</b> An answer says that residuals "help with vanishing gradients" but does not give the mechanism. The point is specific, and you can prove it. When you differentiate $x + f(x)$, a 1 stays. Thus there is a path where nothing multiplies the gradient.</p>
   </details>
 </div>
 
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>08_transformer_pytorch/prompt.ipynb</code>. You will implement positional
-  encoding, assemble the encoder layer, stack it into a sentiment classifier, and compare
-  against both the baseline of <a class="xref" href="#ch03">Chapter 03</a> and plain
-  self-attention
-  (<a class="xref" href="#ch06">Chapter 06</a>) on the same reviews. With 2,000 training
-  examples do not expect the transformer to dominate — it is the most data-hungry of the
-  three, and seeing that empirically is more valuable than seeing it win.
+  encoding, build the encoder layer, and stack it into a sentiment classifier. Then you will
+  compare it with the baseline of <a class="xref" href="#ch03">Chapter 03</a> and with plain
+  self-attention (<a class="xref" href="#ch06">Chapter 06</a>) on the same reviews. With
+  2,000 reviews, do not expect the transformer to win. It needs the most data of the three.
+  Even when you train it until it fits the training set, it gets approximately 75% test
+  accuracy, against approximately 81% for the bag of embeddings. To see that in an
+  experiment is more useful than to see it win.
 </div>
 
 <div class="box note">
   <span class="box-label">Where this goes next</span>
-  <a class="xref" href="#ch09">Chapter 09</a> adds a second stack and turns this encoder
-  into a translator — which introduces the whole category of problems that arrive the
-  moment a model has to <em>generate</em> a sequence rather than label one.
+  <a class="xref" href="#ch09">Chapter 09</a> adds a second stack and turns this encoder into
+  a translator. That brings a full new category of problems. They start as soon as a model
+  must <em>generate</em> a sequence, not label one.
 </div>
 
 </section>

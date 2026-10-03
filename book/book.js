@@ -1018,7 +1018,7 @@
         return 'logits z = [' + logits.join(', ') + ']   T = <b>' + v.T.toFixed(2) + '</b>\n' +
           'p = [' + probs.map(function (x) { return x.toFixed(3); }).join(', ') + ']   ' +
           'entropy = <b>' + H.toFixed(3) + '</b>\n' +
-          'T → 0 collapses onto the argmax (greedy); T → ∞ flattens towards uniform. The ranking never changes — ' +
+          'T → 0 collapses onto the argmax (greedy); T → ∞ flattens toward uniform. The ranking never changes — ' +
           'only the confidence does.';
       }
     });

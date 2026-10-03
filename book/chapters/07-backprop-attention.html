@@ -4,38 +4,37 @@
 <h1>Where Q, K and V Come From</h1>
 
 <p class="lede">
-Every treatment of attention derives the forward pass, and almost none derive the backward
-one. That leaves the question readers actually have unanswered: the three projections make
-queries, keys and values out of an embedding, but nothing ever says where the
-<em>projections</em> came from. This chapter answers it the only way it can be answered
-honestly — by differentiating the whole thing and following the result back to each matrix.
+Each explanation of attention derives the forward pass, and almost none derive the backward
+pass. Thus the question that readers really have stays without an answer. The three
+projections make queries, keys and values from an embedding. But nothing says where the
+<em>projections</em> came from. This chapter answers that question in the only honest way:
+it differentiates the full calculation and follows the result back to each matrix.
 </p>
 
 <h2>The short answer, before the long one</h2>
 
 <p>
-$W^Q$, $W^K$ and $W^V$ are ordinary parameters. They are initialized at random, they are
-updated by the same optimizer step as every other weight in the model, and they are trained
-<em>jointly with everything else</em> — the feed-forward head included — against one scalar
-loss. There is no separate objective for attention, no phase in which the projections are
-fitted before the rest of the network is attached, and nothing anywhere in training that
-tells a query what it ought to be looking for.
+$W^Q$, $W^K$ and $W^V$ are ordinary parameters. They start at random values. The same
+optimizer step as each other weight in the model updates them. They train <em>together with
+everything else</em>, also the feed-forward head, against one scalar loss. There is no
+separate objective for attention. There is no phase where the projections train before the
+rest of the network. And nothing in training tells a query what it should look for.
 </p>
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
-  There is no attention loss. The only quantity the model ever minimizes is the end-task
-  loss — next-token cross-entropy, translation cross-entropy, a classification objective —
-  and $W^Q$ learns solely because changing it changes that number. Every interpretable head
-  you have ever seen in a paper is a <em>by-product</em>. Nobody asked the model for a
-  coreference head; a coreference head is what minimized perplexity.
+  There is no attention loss. The only quantity that the model ever minimizes is the loss of
+  the end task: next-token cross-entropy, translation cross-entropy or a classification
+  objective. $W^Q$ learns only because a change to it changes that number. Each head that
+  you can interpret in a paper is a <em>by-product</em>. Nobody asked the model for a
+  coreference head. A coreference head is what minimized perplexity.
 </div>
 
 <p>
-That answer is correct and completely unsatisfying, because it does not explain how a signal
-computed at the output — thousands of dimensions and a dozen layers away — turns into a
-sensible change to a matrix whose job is to decide what position 7 should look at. That is a
-question about the backward pass, and the rest of this chapter is the derivation.
+That answer is correct, but it does not satisfy. It does not explain how a signal from the
+output turns into a sensible change to a matrix. That signal is thousands of dimensions and
+a dozen layers away. The matrix decides what position 7 looks at. That is a question about
+the backward pass. The rest of this chapter is the derivation.
 </p>
 
 <figure class="figure wide">
@@ -87,29 +86,29 @@ question about the backward pass, and the rest of this chapter is the derivation
   <text x="250" y="162" font-size="13.0" text-anchor="middle" fill="var(--byhand)">× K and × Q, ÷ √d</text>
   <text x="126" y="162" font-size="13.0" text-anchor="middle" fill="var(--byhand)">Xᵀ ·</text>
 </svg>
-<figcaption><b>The chain this chapter differentiates.</b> Along the top, the forward pass with the shape of every intermediate; along the bottom, the same route traveled backwards. Read the backward row right to left and you have the six equations in order. Only the middle step does anything a first-year calculus course would not — everything else is a transpose and a matrix multiply. It is worth noticing how short the chain is: five links between a scalar loss and the matrix that decides what position 7 looks at.</figcaption>
+<figcaption><b>The chain that this chapter differentiates.</b> The top row is the forward pass, with the shape of each intermediate value. The bottom row is the same route in the backward direction. Read the backward row from right to left, and you have the six equations in sequence. Only the middle step needs more than first-year calculus. All the other steps are a transpose and a matrix multiplication. Note how short the chain is: five links between a scalar loss and the matrix that decides what position 7 looks at.</figcaption>
 </figure>
 
 <h2>One function, one scalar</h2>
 
 <p>
-It is worth being pedantic about what a trained network is, because the pedantry is what makes
-the rest tractable. A transformer is a single function
+Be exact about what a trained network is, because that exactness makes the rest easy. A
+transformer is one function:
 </p>
 
 $$L = \mathcal{L}\big(\theta;\ \text{data}\big) \in \mathbb{R}$$
 
 <p>
-where $\theta$ stacks <em>every</em> parameter in the model — embeddings, all four projections
-in every attention block, both feed-forward layers, every LayerNorm scale and shift, the
-output head. The loss is one number. Training asks for $\partial L/\partial\theta$, one
-number per parameter, and takes a step against it. That is the whole of it, and it is the
-same statement as <a class="xref" href="#ch01">Chapter 01</a>'s two-layer network; only the
-length of the chain has changed.
+Here $\theta$ contains <em>each</em> parameter in the model: the embeddings, all four
+projections in each attention block, both feed-forward layers, each LayerNorm scale and
+shift, and the output head. The loss is one number. Training asks for
+$\partial L/\partial\theta$, which is one number for each parameter, and takes a step
+against it. That is all. It is the same statement as the two-layer network of
+<a class="xref" href="#ch01">Chapter 01</a>. Only the length of the chain is different.
 </p>
 
 <p>
-The chain for one encoder block, written out, is:
+Here is the chain for one encoder block, written out:
 </p>
 
 <div class="box example">
@@ -131,71 +130,74 @@ The chain for one encoder block, written out, is:
                                                         ▼
                                                  cross-entropy L</div>
   <p style="margin-bottom:0">
-  Nine links. The backward pass walks that list in reverse, and each link contributes one
-  multiplication. Nothing in it is special to attention — it is the same chain rule as
-  everywhere else — but two of the links behave in ways that decide how the model trains,
-  and those two are the softmax and the residual add.
+  There are nine links. The backward pass goes through that list in reverse, and each link
+  gives one multiplication. Nothing in it is special to attention. It is the same chain rule
+  as in all other places. But two of the links behave in ways that decide how the model
+  trains. Those two are the softmax and the residual add. This chapter covers the softmax.
+  <a class="xref" href="#ch08">Chapter 08</a> covers the residual add.
   </p>
 </div>
 
 <h2>The backward pass of scaled dot-product attention</h2>
 
 <p>
-Fix one head and drop the batch axis. The forward pass, in the shapes of
+Use one head, and remove the batch axis. Here is the forward pass, with the shapes from
 <a class="xref" href="#ch06">Chapter 06</a>:
 </p>
 
 $$S = \frac{QK^{\top}}{\sqrt{d_k}}, \qquad P = \operatorname{softmax_{row}}(S), \qquad O = PV$$
 
 <p>
-with $Q, K$ of shape <span class="shape">(L, d_k)</span>, $V$ of shape
-<span class="shape">(L, d_v)</span>, and $S, P$ square at <span class="shape">(L, L)</span>.
-Suppose the rest of the network has already handed us $G = \partial L/\partial O$, the same
-shape as $O$. Everything below follows from the chain rule and nothing else.
+$Q$ and $K$ have shape <span class="shape">(L, d_k)</span>, $V$ has shape
+<span class="shape">(L, d_v)</span>, and $S$ and $P$ are square at
+<span class="shape">(L, L)</span>. Suppose that the rest of the network already gave us
+$G = \partial L/\partial O$, with the same shape as $O$. All the results below come from the
+chain rule and nothing more.
 </p>
 
 <p>
-<strong>Through the value multiply.</strong> $O = PV$ is a plain matrix product, so it
+<strong>Through the value multiplication.</strong> $O = PV$ is a plain matrix product, so it
 transposes in the usual way:
 </p>
 
 $$\frac{\partial L}{\partial V} = P^{\top}G, \qquad\qquad \frac{\partial L}{\partial P} = GV^{\top}$$
 
 <p>
-<strong>Through the softmax.</strong> This is the only interesting step. Softmax acts on each
-row independently, so take one row: $p = \operatorname{softmax}(s)$, both length $L$, and
-write $g = \partial L/\partial p$ for that row. Its <a class="xref" href="#ch00-jacobian">Jacobian</a> — the matrix holding
-every $\partial p_i/\partial s_j$, which is what you multiply by to move the gradient
-back across the softmax — is $J = \operatorname{diag}(p) - pp^{\top}$. Note that it is
-<em>not</em> diagonal: a softmax mixes every input into every output, so unlike ReLU it
-cannot be applied entry by entry. Because $J$ is symmetric,
+<strong>Through the softmax.</strong> This is the only interesting step. The softmax acts on
+each row independently. Thus, take one row: $p = \operatorname{softmax}(s)$, both of length
+$L$. Write $g = \partial L/\partial p$ for that row. Its
+<a class="xref" href="#ch00-jacobian">Jacobian</a> is $J = \operatorname{diag}(p) - pp^{\top}$.
+(The Jacobian is the matrix of all the $\partial p_i/\partial s_j$. You multiply by it to move
+the gradient back across the softmax.) Note that it is <em>not</em> diagonal. A softmax mixes
+each input into each output. Thus, unlike ReLU, you cannot apply it entry by entry. $J$ is
+symmetric, so:
 </p>
 
 $$\frac{\partial L}{\partial s} = Jg = p \odot \big(g - (p \cdot g)\big)$$
 
 <p>
-Do that for every row and you have $\partial L/\partial S$, which we will call $dS$. Note the
-form: an elementwise product with $p$, and a scalar $p \cdot g$ subtracted from every entry
-first. Both halves matter, and the next section is about what they do.
+Do that for each row, and you have $\partial L/\partial S$. We call it $dS$. Note its form.
+First, subtract one scalar, $p \cdot g$, from each entry. Then multiply elementwise by $p$.
+Both halves are important. The next section is about what they do.
 </p>
 
 <p>
-<strong>Through the scaling and the dot products.</strong> $S = QK^\top/\sqrt{d_k}$ is again
-a matrix product, with a constant out front:
+<strong>Through the scale and the dot products.</strong> $S = QK^\top/\sqrt{d_k}$ is again a
+matrix product, with a constant in front:
 </p>
 
 $$\frac{\partial L}{\partial Q} = \frac{dS\,K}{\sqrt{d_k}}, \qquad\qquad
   \frac{\partial L}{\partial K} = \frac{dS^{\top}Q}{\sqrt{d_k}}$$
 
 <p>
-<strong>And finally into the parameters.</strong> $Q = XW^Q$, so
+<strong>Finally, into the parameters.</strong> $Q = XW^Q$, so:
 </p>
 
 $$\frac{\partial L}{\partial W^Q} = X^{\top}\frac{\partial L}{\partial Q}$$
 
 <p>
-with the same shape for $W^K$ and $W^V$. The input $X$ collects all three contributions,
-because it fed all three projections:
+$W^K$ and $W^V$ have the same form. The input $X$ collects all three contributions, because
+it went into all three projections:
 </p>
 
 $$\frac{\partial L}{\partial X}
@@ -204,16 +206,17 @@ $$\frac{\partial L}{\partial X}
   + \frac{\partial L}{\partial V}W^{V\top}$$
 
 <p>
-That is the complete backward pass of an attention head — six lines, no approximations, and
-every one of them is a transpose-and-multiply except the softmax. If you implement those six
-lines you will reproduce <code>autograd</code> to floating-point precision, which is exactly
-what the notebook has you do.
+That is the complete backward pass of an attention head. It has six lines and no
+approximations. Each line is a transpose and a multiplication, except the softmax. If you
+implement those six lines, you get the same values as <code>autograd</code> to
+floating-point precision. The notebook tells you to do exactly that.
 </p>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 07.1</span>
   <p>
-  Continue exercise 06.1. Same three tokens, same $d_k = 2$, same matrices:
+  This continues exercise 06.1. It uses the same three tokens, the same $d_k = 2$ and the
+  same matrices:
   </p>
   <div class="given">Q = K = V = [[1, 0],
              [0, 1],
@@ -225,27 +228,27 @@ and the output of position 1 is  o₁ = [0.802, 0.599].
 Suppose the loss depends only on the first component of o₁,
 so the gradient arriving from above is  g = ∂L/∂o₁ = [1, 0].</div>
   <ol>
-    <li>Compute row 1 of $\partial L/\partial P$. (Each entry is $g \cdot v_j$ — you are
-        asking how much each value vector contributed to the component we care about.)</li>
-    <li>Compute the scalar $p \cdot g$ for that row.</li>
-    <li>Compute row 1 of $dS$ using $p \odot (g - (p\cdot g))$. Then add the three entries
-        up. What do you get, and why must it be that for <em>every</em> row of
-        <em>every</em> softmax anywhere?</li>
-    <li>Compute $\partial L/\partial q_1$. Remember the $1/\sqrt{2}$.</li>
-    <li>Without computing it: which rows of $\partial L/\partial K$ are non-zero, and which
-        rows of $\partial L/\partial V$? Explain the difference in one sentence.</li>
+    <li>Calculate row 1 of $\partial L/\partial P$. (Each entry is $g \cdot v_j$. You ask
+        how much each value vector contributed to the component that you care about.)</li>
+    <li>Calculate the scalar $p \cdot g$ for that row.</li>
+    <li>Calculate row 1 of $dS$ with $p \odot (g - (p\cdot g))$. Then add the three entries.
+        What do you get? Why must you get that for <em>each</em> row of <em>each</em>
+        softmax?</li>
+    <li>Calculate $\partial L/\partial q_1$. Remember the $1/\sqrt{2}$.</li>
+    <li>Do not calculate it. Which rows of $\partial L/\partial K$ are not zero? Which rows of
+        $\partial L/\partial V$? Explain the difference in one sentence.</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> $(\partial L/\partial P)_{1j} = g \cdot v_j$ with $g = [1,0]$, so
-    it picks out the first component of each value vector:</p>
+    <p><strong>1.</strong> $(\partial L/\partial P)_{1j} = g \cdot v_j$ with $g = [1,0]$.
+    Thus it selects the first component of each value vector:</p>
     <div class="given">v₁ = [1,0] → 1     v₂ = [0,1] → 0     v₃ = [1,1] → 1
 
 ∂L/∂P row 1 = [1, 0, 1]</div>
     <p><strong>2.</strong> $p \cdot g = 0.401(1) + 0.198(0) + 0.401(1) = 0.802$. This is the
-    output component itself — which is not a coincidence, since
+    output component itself. That is not a coincidence, because
     $o_{1,0} = \sum_j p_j v_{j,0}$.</p>
-    <p><strong>3.</strong> Subtract 0.802 from each entry, then scale by $p$:</p>
+    <p><strong>3.</strong> Subtract 0.802 from each entry, then multiply by $p$:</p>
     <div class="given">      [1 − 0.802,   0 − 0.802,   1 − 0.802]
     = [0.198,     −0.802,       0.198]
 
@@ -254,23 +257,23 @@ so the gradient arriving from above is  g = ∂L/∂o₁ = [1, 0].</div>
 
 sum = 0.0793 − 0.1587 + 0.0793 = 0.0000</div>
     <p>The row sums to zero, and it always will:
-    $\sum_j p_j(g_j - p\cdot g) = p\cdot g - (p \cdot g)\sum_j p_j = 0$, since the softmax
-    weights sum to 1. This is worth keeping as a debugging check — if you write your own
-    attention backward and a $dS$ row does not sum to zero, the bug is in your softmax
-    gradient and nowhere else.</p>
+    $\sum_j p_j(g_j - p\cdot g) = p\cdot g - (p \cdot g)\sum_j p_j = 0$, because the softmax
+    weights sum to 1. Keep this as a debug check. If you write your own attention backward
+    and a $dS$ row does not sum to zero, the bug is in your softmax gradient and nowhere
+    else.</p>
     <p><strong>4.</strong> $\partial L/\partial q_1 = \frac{1}{\sqrt 2}\sum_j dS_{1j}k_j$:</p>
     <div class="given">0.0793[1,0] + (−0.1587)[0,1] + 0.0793[1,1]
   = [0.1587, −0.0793]
 
 ÷ √2 = [0.1122, −0.0561]</div>
-    <p>Autograd, asked the same question, returns
+    <p>When you ask autograd the same question, it returns
     <code>[0.112190, -0.056095]</code>.</p>
-    <p><strong>5.</strong> All three rows of $\partial L/\partial K$ are non-zero, and all
-    three rows of $\partial L/\partial V$ are non-zero — but for different reasons, and the
-    difference is the subject of the next section. Every value vector was mixed into $o_1$
-    with weight $p_j$, so each gets gradient $p_j g$ directly. Every key was <em>compared
-    against</em> $q_1$, so each gets gradient only through the softmax row, which is why
-    those entries carry the factor $p_j(g_j - p\cdot g)$ and can vanish while the value
+    <p><strong>5.</strong> All three rows of $\partial L/\partial K$ are not zero, and all
+    three rows of $\partial L/\partial V$ are not zero. But the reasons are different, and
+    the next section is about that difference. Each value vector went into $o_1$ with weight
+    $p_j$. Thus each one gets gradient $p_j g$ directly. Each key was <em>compared
+    with</em> $q_1$. Thus each one gets gradient only through the softmax row. That is why
+    those entries carry the factor $p_j(g_j - p\cdot g)$. They can vanish when the value
     gradients do not.</p>
   </details>
 </div>
@@ -278,131 +281,131 @@ sum = 0.0793 − 0.1587 + 0.0793 = 0.0000</div>
 <h3>Why V learns easily and Q and K do not</h3>
 
 <p>
-Look at the two paths side by side. The gradient reaching $V$ is $P^\top G$: a matrix
-product, linear in the incoming gradient, with no Jacobian of any non-linearity in the way.
-Values are on the easy path, and $W^V$ trains about as readily as any ordinary linear layer
-in the network.
+Look at the two paths next to each other. The gradient that gets to $V$ is $P^\top G$. It is
+a matrix product, linear in the gradient that comes in, and no Jacobian of a non-linearity
+is in the way. Values are on the easy path. $W^V$ trains approximately as easily as any
+ordinary linear layer in the network.
 </p>
 
 <p>
-The gradient reaching $Q$ and $K$ has to pass through $p \odot (g - (p\cdot g))$ first, and
-that expression has a failure mode. Suppose a row of $P$ has become confident — one weight
-near 1, the rest near 0. Then for the near-1 entry, $p \cdot g \approx g_j$, so the bracket
-is near zero; and every other entry is multiplied by $p_j \approx 0$. Both terms die at once.
-In the limit the statement is exact rather than approximate: if $p$ is <em>exactly</em>
-one-hot at index $m$, then $p\cdot g = g_m$, so entry $m$ contributes $1 \cdot (g_m - g_m) =
-0$ and every other entry contributes $0 \cdot (\cdot) = 0$. The row returns exactly zero,
-and $W^Q$ and $W^K$ learn nothing from it — at any learning rate, for as long as it stays
-that way.
+The gradient that gets to $Q$ and $K$ must first go through $p \odot (g - (p\cdot g))$, and
+that expression can fail. Suppose that a row of $P$ has become confident: one weight is near
+1, and the others are near 0. For the entry near 1, $p \cdot g \approx g_j$, so the bracket
+is near zero. Each other entry is multiplied by $p_j \approx 0$. Both terms disappear at the
+same time. In the limit, this is exact, not approximate. If $p$ is <em>exactly</em> one-hot
+at index $m$, then $p\cdot g = g_m$. Entry $m$ gives $1 \cdot (g_m - g_m) = 0$, and each
+other entry gives $0 \cdot (\cdot) = 0$. The row returns exactly zero. $W^Q$ and $W^K$ learn
+nothing from it, at any learning rate, for as long as it stays that way.
 </p>
 
 <div class="widget" data-widget="attention-gradient"></div>
 
 <p>
-This is the argument of <a class="xref" href="#ch06-why-the-square-root-scaling">Chapter
-06</a>'s square-root scaling, finally stated in terms of the thing it protects. Dividing by
-$\sqrt{d_k}$ is not about keeping the forward pass tidy. It is about keeping the attention
-rows soft enough that the backward pass still has something to say about them. Untick the
-scaling in the widget and drag $d_k$ up: the row goes one-hot, and the gradient it returns
-goes with it.
+This is the argument for the square-root scale of
+<a class="xref" href="#ch06-why-the-square-root-scaling">Chapter 06</a>, now stated in terms
+of what it protects. Division by $\sqrt{d_k}$ is not about a tidy forward pass. It keeps the
+attention rows soft enough that the backward pass still has a signal for them. Clear the
+scale in the widget and increase $d_k$. The row becomes one-hot, and the gradient that it
+returns disappears.
 </p>
 
 <div class="box warn">
   <span class="box-label">Measured — and not where you would look for it</span>
   <p>
-  The notebook runs this over random heads at $d_k$ from 2 to 256, and the first half of the
-  result is the expected one: with the scaling, mean attention-row entropy is flat in $d_k$;
-  without it, entropy falls monotonically from 2.17 to 0.18 nats. The rows saturate exactly
-  as the algebra says they should.
+  The notebook runs this over random heads at $d_k$ from 2 to 256. The first half of the
+  result is what you expect. With the scale, the mean entropy of the attention rows is flat
+  in $d_k$. Without it, the entropy decreases steadily from 2.17 to 0.18 nats. The rows
+  saturate exactly as the algebra predicts.
   </p>
   <p>
-  The second half is not what this chapter originally claimed. At $d_k = 128$ the
-  <em>total</em> $\|\partial L/\partial S\|$ is barely changed — 4.53 scaled against 3.17
-  unscaled — and $\|\partial L/\partial W^Q\|$ is <strong>larger</strong> without the
-  scaling, 283 against 38. On any aggregate gradient-norm plot, the unscaled model looks
-  healthier.
+  The second half is not what this chapter originally claimed. At $d_k = 128$, the
+  <em>total</em> $\|\partial L/\partial S\|$ almost does not change: 4.53 with the scale and
+  3.17 without it. And $\|\partial L/\partial W^Q\|$ is <strong>larger</strong> without the
+  scale: 283 against 38. On any plot of aggregate gradient norm, the model without the scale
+  looks healthier.
   </p>
   <p style="margin-bottom:0">
-  The collapse is there; it is just per-row. With scaling, the loudest row's gradient is
-  about $9\times$ the quietest. Without, the spread is twelve orders of magnitude and 15% of
-  rows return less than $10^{-4}$ — dead, while their surviving neighbors shout loudly
-  enough to hold the average up. The lesson generalizes past attention: a mean or a global
-  norm cannot see a failure that affects a subset. Plot the distribution.
+  The collapse is there, but it occurs row by row. With the scale, the gradient of the
+  loudest row is approximately $9\times$ the gradient of the quietest row. Without the
+  scale, the spread is twelve orders of magnitude, and 15% of the rows return less than
+  $10^{-4}$. Those rows are dead, but the rows that stay alive are loud enough to keep the
+  average up. This lesson also applies outside attention. A mean or a global norm cannot
+  see a failure that affects only a subset. Plot the distribution.
   </p>
 </div>
 
 <div class="box note">
   <span class="box-label">The same failure, under three names</span>
-  Once you can see this term, a cluster of otherwise-unrelated training folklore turns out to
-  be one phenomenon. <strong>Attention entropy collapse</strong> is this row going one-hot
-  early and never recovering. <strong>Learning-rate warmup</strong> helps because it keeps
-  early updates small enough that no head sharpens before the representation it is attending
-  to is worth attending to. <strong>QK-LayerNorm</strong> — normalizing $Q$ and $K$ before
-  the dot product, now standard in large models — bounds the score magnitudes directly, which
-  is the same intervention as $\sqrt{d_k}$ but robust to the scale the weights drift to
-  during training rather than only at initialization.
+  When you can see this term, three pieces of training folklore become one phenomenon.
+  <strong>Attention entropy collapse</strong> is this row becoming one-hot early and never
+  recovering. <strong>Learning-rate warmup</strong> helps because it keeps the early updates
+  small. Thus no head becomes sharp before the representation that it attends to is worth
+  attention. <strong>QK-LayerNorm</strong> normalizes $Q$ and $K$ before the dot product,
+  and it is now standard in large models. It limits the score magnitudes directly. That is
+  the same fix as $\sqrt{d_k}$. But it also works when the weights change scale during
+  training, not only at initialization.
 </div>
 
 <div class="box concept">
   <span class="box-label">Masking, for free</span>
-  A masked entry has $S_{ij} = -\infty$, so $p_{ij} = 0$, so
+  A masked entry has $S_{ij} = -\infty$. Thus $p_{ij} = 0$, and
   $dS_{ij} = p_{ij}(g_{ij} - p\cdot g) = 0$ exactly. The mask needs no backward
-  implementation at all — a masked position cannot receive gradient, because the same zero
-  that removed it from the forward average removes it from the backward sum. This is why
-  <a class="xref" href="#ch06">Chapter 06</a> insists on masking <em>before</em> the softmax:
-  masking after would leave $p_{ij} \neq 0$, and a future token would quietly teach a past
-  position what to look for.
+  implementation at all. A masked position cannot get gradient, because the same zero that
+  removed it from the forward average removes it from the backward sum. That is why
+  <a class="xref" href="#ch06">Chapter 06</a> says that you must mask <em>before</em> the
+  softmax. If you mask after it, $p_{ij} \neq 0$, and a future token would silently teach a
+  past position what to look for.
 </div>
 
 <h3>Q and K are only ever a product</h3>
 
 <p>
-One more structural fact, easy to miss and useful to know. The scores depend on $W^Q$ and
-$W^K$ only through
+Here is one more structural fact. It is easy to miss, and it is useful. The scores depend
+on $W^Q$ and $W^K$ only through this expression:
 </p>
 
 $$S = \frac{X W^Q (W^K)^{\top} X^{\top}}{\sqrt{d_k}}$$
 
 <p>
-so only the product $M = W^Q(W^K)^\top$ affects the function the model computes. Scale
-$W^Q$ by any $c \neq 0$ and $W^K$ by $1/c$ and the model is <em>identical</em> — same
-outputs, same loss, on every input. The parameterization is redundant, and the loss surface
-therefore has a flat direction through every point.
+Thus only the product $M = W^Q(W^K)^\top$ affects the function that the model calculates.
+Multiply $W^Q$ by any $c \neq 0$ and $W^K$ by $1/c$, and the model is <em>identical</em>: the
+same outputs and the same loss, on each input. The parameterization is redundant. Thus the
+loss surface has a flat direction through each point.
 </p>
 
 <p>
-Differentiating that invariance along $c$ at $c = 1$ gives a relation the gradients must
-satisfy, for any model, any data, at any point in training:
+Differentiate that invariance along $c$ at $c = 1$. This gives a relation that the gradients
+must satisfy, for any model and any data, at any point in training:
 </p>
 
 $$\Big\langle \frac{\partial L}{\partial W^Q},\, W^Q \Big\rangle
 = \Big\langle \frac{\partial L}{\partial W^K},\, W^K \Big\rangle$$
 
 <p>
-Two consequences. It is a genuine test — if you implement attention backward yourself, this
-equality holds to floating-point noise, and the notebook checks it. And it explains a
-practical annoyance: the norms of $W^Q$ and $W^K$ individually are not meaningful quantities
-to monitor or to regularize, because the optimizer is free to slide along the flat direction
-without changing anything. Weight decay applied to both does have an effect — it prefers the
-balanced point on each flat line — which is a small example of a regulariser acting on the
-parameterization rather than on the function.
+This has two results. First, it is a real test. If you implement attention backward
+yourself, this equality is true to floating-point noise, and the notebook checks it.
+Second, it explains a practical problem. The individual norms of $W^Q$ and $W^K$ are not
+useful quantities to monitor or to regularize. The optimizer can move along the flat
+direction without a change to anything. Weight decay on both does have an effect: it
+prefers the balanced point on each flat line. That is a small example of a regularizer that
+acts on the parameterization, not on the function.
 </p>
 
 <h2>Where the gradient is born</h2>
 
 <p>
-Everything above assumed $G = \partial L/\partial O$ arrived from somewhere. It comes,
-ultimately, from one subtraction. For a single position with logits $z$, predicted
-distribution $\hat{y} = \operatorname{softmax}(z)$ and one-hot target $y$, the gradient of
-cross-entropy with respect to the logits is
+All the material above assumed that $G = \partial L/\partial O$ came from somewhere. In the
+end, it comes from one subtraction. Take one position with logits $z$, predicted
+distribution $\hat{y} = \operatorname{softmax}(z)$ and one-hot target $y$. The gradient of
+cross-entropy with respect to the logits is:
 </p>
 
 $$\frac{\partial L}{\partial z} = \hat{y} - y$$
 
 <p>
-— the derivation is in <a class="xref" href="#ch00-cross-entropy">Chapter 00</a>, and it is
-the reason the pairing of softmax with cross-entropy is worth keeping: separately each has an
-awkward Jacobian, and together they collapse to a subtraction.
+The derivation is in <a class="xref" href="#ch00-cross-entropy">Chapter 00</a>. It is the
+reason to keep softmax and cross-entropy together. Separately, each one has a difficult
+Jacobian. Together, they become one subtraction.
 </p>
 
 <figure class="figure wide">
@@ -463,19 +466,18 @@ awkward Jacobian, and together they collapse to a subtraction.
   <rect x="636" y="200" width="84" height="36" rx="5" fill="var(--concept)" fill-opacity="0.3" stroke="var(--concept)" stroke-width="1"/>
   <text x="678.0" y="223" font-size="13.0" text-anchor="middle" fill="var(--ink)">+0.1</text>
 </svg>
-<figcaption><b>$\hat{y}$ on top, $y$ below, and the gradient is what you get by subtracting.</b> Push every wrong token's logit down a little, and pull the correct one up hard. Every single number that will eventually reach $W^Q$ in layer 1 starts life in a row like the bottom one. Note also how small the correct-token term is allowed to get — as $\hat{y}_{\text{thanks}} \to 1$ the gradient goes to zero, which is the model declining to keep learning something it already knows.</figcaption>
+<figcaption><b>$\hat{y}$ on top and $y$ below. The gradient is the difference.</b> It pushes the logit of each wrong token down a little, and it pulls the correct token up hard. Each number that eventually gets to $W^Q$ in layer 1 starts in a row like the bottom one. Also note how small the term for the correct token can become. As $\hat{y}_{\text{thanks}} \to 1$, the gradient goes to zero. That is the model refusing to continue to learn something that it already knows.</figcaption>
 </figure>
 
 <figure class="figure plate">
   <img src="images/transformer-explainer/softmax.png" alt="A table of candidate next tokens with columns for logits, scaled logits, top-k values and softmax probabilities. Tokens outside the top five show minus infinity and 0 percent." loading="lazy" decoding="async">
-  <figcaption><b>The same softmax at inference, which is a different thing.</b> Worth
-  studying precisely because it is <em>not</em> what the backward pass sees. Temperature
-  scaling and the top-$k$ cut are decoding-time choices; during training neither is applied,
-  the loss is taken through the plain softmax, and the gradient is the subtraction above. A
-  common misreading is that temperature is a trained quantity or that top-$k$ affects
-  learning — it does not, and cannot, because no gradient is computed at all during
-  generation. The $-\infty$ entries are the same device as attention masking, doing the same
-  job in a different place.</figcaption>
+  <figcaption><b>The same softmax at inference, which is a different thing.</b> Study it
+  because it is <em>not</em> what the backward pass sees. Temperature scaling and the
+  top-$k$ cut are choices at decoding time. Training applies neither of them. The loss goes
+  through the plain softmax, and the gradient is the subtraction above. People often think
+  that temperature is a trained quantity, or that top-$k$ affects learning. It does not, and
+  it cannot, because generation calculates no gradient at all. The $-\infty$ entries use the
+  same method as attention masking, for the same job in a different place.</figcaption>
   <p class="credit">From <a href="https://poloclub.github.io/transformer-explainer/">Transformer&nbsp;Explainer</a> by the Polo Club of Data Science (Cho et&nbsp;al., CHI&nbsp;2026), MIT&nbsp;license. The tool runs GPT-2 in the browser, so these are real activations, not a schematic.</p>
 </figure>
 
@@ -496,68 +498,70 @@ awkward Jacobian, and together they collapse to a subtraction.
 </div>
 
 <p>
-The last two rows are the ones that catch people. A rare token's embedding is updated on
-the handful of steps where it appears and is otherwise untouched, which is why rare-word
-embeddings stay close to their initialization and why a large vocabulary needs more data
-rather than merely more parameters. And a learned positional table has never seen row 3000 if
-training never ran a sequence that long — the row is still at its initialization, and the
-model will produce confident nonsense there. A fixed formula, having no parameters at all,
-cannot fail that way — which is a trade
-<a class="xref" href="#ch08-positional-encoding">Chapter 08</a> comes back to when it
-introduces the two options, and it is worth noticing now that the choice between them
-shows up first as a property of the backward pass.
+The last two rows surprise people. The embedding of a rare token changes only on the few
+steps where the token occurs. At all other steps, nothing changes it. Thus rare-word
+embeddings stay near their initialization, and a large vocabulary needs more data, not only
+more parameters. Also, a learned positional table has never seen row 3000 if training never
+used a sequence that long. That row is still at its initialization, and the model gives
+confident nonsense there. A fixed formula has no parameters, so it cannot fail that way.
+<a class="xref" href="#ch08-positional-encoding">Chapter 08</a> comes back to this trade when
+it introduces the two options. Note now that the choice between them first shows as a
+property of the backward pass.
 </p>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 07.2</span>
   <p>
-  No arithmetic. A translation model has a 6-layer encoder and a 6-layer decoder. You compute
-  the loss on a single target position — the third word of one sentence — and call
-  <code>backward()</code>. For each of the following, say whether the gradient is non-zero,
-  and why:
+  There is no arithmetic. This exercise uses the encoder–decoder of
+  <a class="xref" href="#ch09">Chapter 09</a>. Its cross-attention takes queries from the
+  decoder, and keys and values from $M$, the output of the encoder. If you have not read
+  Chapter 09, come back to this exercise after it. A translation model has a 6-layer encoder and a 6-layer decoder.
+  You calculate the loss on one target position, the third word of one sentence, and call
+  <code>backward()</code>. For each item below, say whether the gradient is zero or not, and
+  why:
   </p>
   <ol>
-    <li>$W^V$ in decoder layer 6's self-attention.</li>
-    <li>$W^Q$ in decoder layer 2's cross-attention.</li>
+    <li>$W^V$ in the self-attention of decoder layer 6.</li>
+    <li>$W^Q$ in the cross-attention of decoder layer 2.</li>
     <li>$W^Q$ in encoder layer 4.</li>
     <li>The embedding row for the fifth target token.</li>
-    <li>The embedding row for a source word that appears in the sentence.</li>
+    <li>The embedding row for a source word in the sentence.</li>
     <li>$\gamma$ of the final encoder LayerNorm.</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1. Non-zero.</strong> Position 3 attends to positions 1–3 under the causal
-    mask, and their value vectors are mixed into its output.</p>
-    <p><strong>2. Non-zero</strong> — and note it is a <em>decoder</em> parameter despite
-    living in the sub-layer that talks to the encoder. Its gradient is
-    $H_2^\top(\partial L/\partial Q_2)$, formed entirely from decoder hidden states.</p>
-    <p><strong>3. Non-zero.</strong> The route is long — encoder 4 → encoder 5 → encoder 6 →
-    $M$ → every decoder layer's $K$ and $V$ → the loss — but every link exists, so the chain
-    rule delivers something. This is the answer to "how does the encoder know anything": it
-    knows because this path exists, and for no other reason.</p>
-    <p><strong>4. Zero.</strong> The fifth target token is at position 5, which position 3
-    cannot attend to; the causal mask gives it exactly zero weight, and a masked entry
-    returns exactly zero gradient. It is also not the target of the position we scored. Both
-    routes are closed.</p>
-    <p><strong>5. Non-zero.</strong> Every source token is visible to the encoder's
-    bidirectional attention and reaches the decoder through cross-attention, whatever target
-    position you scored.</p>
-    <p><strong>6. Non-zero</strong>, and it will be one of the larger gradients in the model,
-    because $\gamma$ is a single $d_{\text{model}}$-vector accumulating a contribution from
-    every source token rather than from one position.</p>
-    <p>The useful habit here is not the answers but the method: to decide whether a parameter
-    gets gradient, do not reason about what it is <em>for</em>. Look for a path in the graph,
-    and check that no mask or saturated non-linearity zeroes it on the way.</p>
+    <p><strong>1. Not zero.</strong> With the causal mask, position 3 attends to positions
+    1–3, and their value vectors go into its output.</p>
+    <p><strong>2. Not zero.</strong> Note that it is a <em>decoder</em> parameter, but it is
+    in the sub-layer that talks to the encoder. Its gradient is
+    $H_2^\top(\partial L/\partial Q_2)$, made only from decoder hidden states.</p>
+    <p><strong>3. Not zero.</strong> The route is long: encoder 4 → encoder 5 → encoder 6 →
+    $M$ → the $K$ and $V$ of each decoder layer → the loss. But each link exists, so the
+    chain rule gives something. This answers the question "how does the encoder know
+    anything?". It knows because this path exists, and for no other reason.</p>
+    <p><strong>4. Zero.</strong> The fifth target token is at position 5, and position 3
+    cannot attend to it. The causal mask gives it exactly zero weight, and a masked entry
+    returns exactly zero gradient. It is also not the target of the position that we scored.
+    Both routes are closed.</p>
+    <p><strong>5. Not zero.</strong> The bidirectional attention of the encoder can see each
+    source token. Each source token gets to the decoder through cross-attention, whichever
+    target position you scored.</p>
+    <p><strong>6. Not zero</strong>, and it will be one of the larger gradients in the model.
+    $\gamma$ is one $d_{\text{model}}$-vector, and it collects a contribution from each
+    source token, not from one position.</p>
+    <p>The answers are not the useful part. The method is. To decide whether a parameter gets
+    gradient, do not think about what it is <em>for</em>. Look for a path in the graph. Then
+    make sure that no mask or saturated non-linearity sets it to zero on the way.</p>
   </details>
 </div>
 
 <div class="box library">
   <span class="box-label">In the wild</span>
   <p>
-  All six equations above are what <code>loss.backward()</code> runs. PyTorch records the
-  forward operations as a graph, then walks it in reverse calling each operation's registered
-  backward — <code>torch.autograd.Function</code> is the interface, and writing one for
-  attention is the notebook's main exercise.
+  <code>loss.backward()</code> runs all six equations above. PyTorch records the forward
+  operations as a graph. Then it goes through the graph in reverse, and calls the registered
+  backward of each operation. <code>torch.autograd.Function</code> is the interface. The
+  main exercise of the notebook is to write one for attention.
   </p>
 <pre><code class="language-python">loss.backward()
 for name, p in model.named_parameters():
@@ -566,27 +570,27 @@ for name, p in model.named_parameters():
     else:
         print(name, p.grad.norm().item())</code></pre>
   <p>
-  That loop is the single most useful debugging tool in this chapter's subject area. A
-  <code>None</code> gradient means the parameter is not on any path to the loss — a
-  disconnected head, a tensor rebuilt with <code>.detach()</code>, a branch never called.
-  A gradient norm of exactly zero means a path exists but a mask or a saturated softmax
-  closed it.
+  For the subject of this chapter, that loop is the most useful debug tool. A
+  <code>None</code> gradient means that the parameter is not on any path to the loss. For
+  example, a head is disconnected, a tensor was rebuilt with <code>.detach()</code>, or a
+  branch was never called. A gradient norm of exactly zero means that a path exists, but a
+  mask or a saturated softmax closed it.
   </p>
   <p style="margin-bottom:0">
-  <code>torch.autograd.gradcheck</code> compares an analytic backward against finite
-  differences in double precision and is the right way to trust your own
-  <code>Function</code>. Two things it hides worth knowing about: autograd stores the
-  <span class="shape">(B, H, L, L)</span> attention matrix for the backward pass, which is
-  the memory cost of <a class="xref" href="#ch06">Chapter 06</a>'s exercise 06.2, and
-  FlashAttention avoids storing it by <em>recomputing</em> $P$ during the backward pass from
-  $Q$ and $K$ — trading arithmetic for memory, and computing the same six equations either
-  way.
+  <code>torch.autograd.gradcheck</code> compares an analytic backward with finite
+  differences in double precision. It is the correct way to trust your own
+  <code>Function</code>. It hides two things that you should know. First, autograd stores the
+  <span class="shape">(B, H, L, L)</span> attention matrix for the backward pass. That is the
+  memory cost of exercise 06.2 in <a class="xref" href="#ch06">Chapter 06</a>. Second,
+  FlashAttention does not store it. It <em>calculates $P$ again</em> during the backward pass
+  from $Q$ and $K$. It trades arithmetic for memory, and it calculates the same six
+  equations both ways.
   </p>
 </div>
 
 <div class="box feel">
   <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
-  <p style="margin-top:0">Gradients have expected magnitudes and exact invariants, and both are checkable. The invariants especially — a quantity that must be exactly zero is the most useful thing you can have when debugging your own backward pass.</p>
+  <p style="margin-top:0">Gradients have expected magnitudes and exact invariants, and you can check both. The invariants are especially useful. When you debug your own backward pass, a quantity that must be exactly zero is the most useful thing that you can have.</p>
   <div class="table-wrap">
   <table>
     <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
@@ -601,60 +605,66 @@ for name, p in model.named_parameters():
     </tbody>
   </table>
   </div>
-  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
-  the point is knowing <em>which</em> number to reach for.</p>
+  <p>Now do these on paper. Where you can, do them in your head. You can use a calculator
+  for the logarithms. The goal is to know <em>which</em> number to use.</p>
   <ol>
-    <li>A row of $P$ is exactly one-hot. What is the gradient to every score in that row, and is that approximate or exact?</li>
-    <li>You write your own attention backward and one $dS$ row sums to $0.03$. Where is the bug, and where is it definitely not?</li>
-    <li>Every logged gradient norm looks healthy, but one head has clearly stopped learning. Which statistic did you fail to look at?</li>
+    <li>A row of $P$ is exactly one-hot. What is the gradient to each score in that row? Is that approximate or exact?</li>
+    <li>You write your own attention backward, and one $dS$ row sums to $0.03$. Where is the bug? Where is it certainly not?</li>
+    <li>Each logged gradient norm looks healthy, but one head has clearly stopped learning. Which statistic did you not examine?</li>
   </ol>
   <details>
     <summary>Answers</summary>
-    <p><strong>1.</strong> Exactly zero, at every entry. For the hot index,
-    $p \cdot g = g_m$ so the bracket $(g_m - p\cdot g)$ is zero; for every other index
-    $p_j = 0$ multiplies whatever the bracket contains. Both terms vanish, and no learning
-    rate recovers the row.</p>
+    <p><strong>1.</strong> Exactly zero, at each entry. For the hot index,
+    $p \cdot g = g_m$, so the bracket $(g_m - p\cdot g)$ is zero. For each other index,
+    $p_j = 0$ multiplies the bracket. Both terms disappear, and no learning rate recovers
+    the row.</p>
     <p><strong>2.</strong> In the softmax gradient, and nowhere else. The row sum is
-    $\sum_j p_j(g_j - p\cdot g) = p\cdot g - (p\cdot g)\sum_j p_j = 0$ for any $g$
-    whatsoever, so a non-zero sum cannot be caused by a wrong $dP$, a wrong $V$, or a
-    wrong scaling — those would give you a wrong answer that still summed to zero.</p>
-    <p><strong>3.</strong> The <em>distribution</em>. A Frobenius norm is dominated by its
-    largest entries, so a few loud rows hold the average up while others return
-    $10^{-13}$. Plot a histogram of per-row entropy or per-row gradient norm; a mean
-    cannot show you a failure that affects a subset.</p>
+    $\sum_j p_j(g_j - p\cdot g) = p\cdot g - (p\cdot g)\sum_j p_j = 0$ for any $g$. Thus a
+    wrong $dP$, a wrong $V$ or a wrong scale cannot cause a sum that is not zero. Those
+    errors would give a wrong answer that still sums to zero.</p>
+    <p><strong>3.</strong> The <em>distribution</em>. The largest entries control a
+    Frobenius norm. Thus a few loud rows keep the average up while other rows return
+    $10^{-13}$. Plot a histogram of the entropy of each row or the gradient norm of each
+    row. A mean cannot show you a failure that affects only a subset.</p>
   </details>
-  <p style="margin-bottom:0"><b>The habit.</b> Look for quantities that must be exactly zero or exactly equal, and assert them. An approximate expectation catches sloppy code; an exact invariant catches the bug.</p>
+  <p style="margin-bottom:0"><b>The habit.</b> Find quantities that must be exactly zero or exactly equal, and assert them. An approximate expectation finds careless code. An exact invariant finds the bug.</p>
 </div>
 
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favorite LLM, in your own words: <strong>an encoder–decoder's encoder has no loss of its own. So how does it learn anything?</strong>
-  Then ask it to correct you, and to push back wherever you were vague rather than
-  outright wrong — that is where the gaps hide.
+  Explain this to your favorite LLM, in your own words: <strong>an encoder–decoder's encoder has no loss of its own. So how does it learn anything?</strong>
+  (This question uses <a class="xref" href="#ch09">Chapter 09</a>. If you have not read it,
+  come back to this question after it.) Then ask it to correct you. Ask it to question each part where you were vague, not only
+  the parts where you were wrong, because the gaps are in the vague parts.
   </p>
   <details>
     <summary>What a good answer covers — open this afterwards, not before</summary>
     <ol>
-    <li>The loss is computed entirely on decoder outputs; the encoder appears in the graph only through the memory it produces.</li>
-    <li>The memory's only out-edges are the cross-attention key and value projections of each decoder layer.</li>
-    <li>There is no query term, because cross-attention's queries are formed from decoder hidden states — so no gradient returns that way.</li>
-    <li>Every decoder layer contributes, and the contributions are summed into one tensor before reaching the encoder.</li>
-    <li>So the encoder is trained to be useful to look things up in; "end-to-end" means the gradient found a path, not that anything was supervised directly.</li>
+    <li>The loss uses only decoder outputs. The encoder is in the graph only through the memory that it makes.</li>
+    <li>The only edges out of the memory are the cross-attention key and value projections of each decoder layer.</li>
+    <li>There is no query term, because cross-attention makes its queries from decoder hidden states. Thus no gradient comes back that way.</li>
+    <li>Each decoder layer contributes. The contributions add into one tensor before they get to the encoder.</li>
+    <li>Thus the encoder learns to be useful for lookups. "End-to-end" means that the gradient found a path. It does not mean that anything had direct supervision.</li>
     </ol>
-    <p style="margin-bottom:0"><b>Most common miss.</b> Answering "through backpropagation", which restates the question. The content is <em>which edges exist</em>: if you cannot say why there is no $W^Q$ term, you have not traced the graph.</p>
+    <p style="margin-bottom:0"><b>Most common miss.</b> The answer "through backpropagation" only repeats the question. The content is <em>which edges exist</em>. If you cannot say why there is no $W^Q$ term, you have not followed the graph.</p>
   </details>
 </div>
 
 <div class="box nbref">
   <span class="box-label">Notebook</span>
-  Open <code>07_attention_backprop/prompt.ipynb</code>. You will implement the six backward
-  equations by hand and check them against autograd to floating-point agreement; verify the
-  $\langle \partial L/\partial W^Q, W^Q\rangle = \langle \partial L/\partial W^K,
-  W^K\rangle$ invariant; measure how the gradient reaching $W^Q$ decays as the score spread
-  grows, with and without the $\sqrt{d_k}$ scaling; and — the one worth doing carefully —
-  train a two-layer encoder–decoder for a few hundred steps while logging gradient norms per
-  parameter group, to watch the encoder learn entirely through cross-attention.
+  Open <code>07_attention_backprop/prompt.ipynb</code>. You will do these tasks:
+  <ul style="margin-bottom:0">
+    <li>Implement the six backward equations by hand. Check them against autograd to
+        floating-point agreement.</li>
+    <li>Verify the invariant $\langle \partial L/\partial W^Q, W^Q\rangle = \langle
+        \partial L/\partial W^K, W^K\rangle$.</li>
+    <li>Measure how the attention rows saturate as $d_k$ increases, with and without the
+        $\sqrt{d_k}$ scale, and find where the damage to the gradient appears.</li>
+    <li>Build a two-layer encoder–decoder, then cut the edge from the memory to the
+        decoder. Do this one carefully. You will see that the encoder learns only through
+        the cross-attention $K$ and $V$ projections.</li>
+  </ul>
 </div>
 
 <div class="box source">
@@ -662,33 +672,34 @@ for name, p in model.named_parameters():
   <ul>
     <li>
       Andrej Karpathy, <a href="https://karpathy.github.io/2016/05/31/rl/#backprop-as-you-write-it"><i>Yes
-      you should understand backprop</i></a> — the general case of this chapter's argument,
-      that treating autograd as a black box is what makes saturating non-linearities
-      mysterious rather than obvious.
+      you should understand backprop</i></a>. This is the general case of the argument of
+      this chapter. If you treat autograd as a black box, saturating non-linearities seem
+      mysterious, not obvious.
     </li>
     <li>
       Xiong et&nbsp;al., <a href="https://arxiv.org/abs/2002.04745"><i>On Layer
-      Normalization in the Transformer Architecture</i></a> (2020) — the pre-norm versus
-      post-norm gradient analysis in full, including why warmup is needed for one and not the
-      other.
+      Normalization in the Transformer Architecture</i></a> (2020). This gives the full
+      gradient analysis of pre-norm and post-norm. It also explains why one needs warmup
+      and the other does not.
     </li>
     <li>
       Zhai et&nbsp;al., <a href="https://arxiv.org/abs/2303.06296"><i>Stabilizing Transformer
-      Training by Preventing Attention Entropy Collapse</i></a> (2023) — the failure the
-      widget above demonstrates, measured at scale, with the fix that became QK-LayerNorm.
+      Training by Preventing Attention Entropy Collapse</i></a> (2023). This measures the
+      failure that the widget above shows, at scale. It also gives the fix that became
+      QK-LayerNorm.
     </li>
   </ul>
 </div>
 
 <div class="box note">
   <span class="box-label">Where this goes next</span>
-  You can now differentiate an attention head end to end, which is the prerequisite for
-  stacking one. <a class="xref" href="#ch08">Chapter 08</a> does the stacking: positional
-  encoding, residual connections and normalization, and the reason a deep stack of these
-  blocks trains at all — an argument that is entirely about the backward pass you just
-  derived. Much later, <a class="xref" href="#ch11">Chapter 11</a> freezes most of these
-  parameters and trains a low-rank correction instead, which only makes sense once you can
-  say precisely which gradients you are choosing not to compute.
+  You can now differentiate an attention head from end to end. You need that before you can
+  stack heads. <a class="xref" href="#ch08">Chapter 08</a> does the stacking: positional
+  encoding, residual connections and normalization. It also explains why a deep stack of
+  these blocks trains at all, and that argument is only about the backward pass that you
+  just derived. Much later, <a class="xref" href="#ch11">Chapter 11</a> freezes most of these
+  parameters and trains a low-rank correction. That only makes sense when you can say
+  exactly which gradients you decide not to calculate.
 </div>
 
 </section>

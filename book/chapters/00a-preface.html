@@ -4,175 +4,171 @@
 <h1>How to read this book</h1>
 
 <p class="lede">
-This is the companion volume to the <code>pytorch_nn_training</code> notebooks. The notebooks
-are where you type; this is where you understand what you typed. Keep both open.
+This book is the companion to the <code>pytorch_nn_training</code> notebooks. You type code
+in the notebooks. You learn why that code works in this book. Keep both open.
 </p>
 
 <p>
-Most machine-learning tutorials fail in one of two ways. Either they hand you working
-code and leave the mathematics as an unexplained black box — you can run it, you cannot
-reason about it, and when it breaks you are stuck — or they hand you the mathematics and
-leave you unable to write a training loop. This book and its notebooks are built to close
-that gap from both ends: every idea appears three times, in three different registers.
+Most machine-learning tutorials fail in one of two ways. Some give you working code but do
+not explain the mathematics. You can run that code, but you cannot reason about it, and you
+cannot fix it when it breaks. Others give you the mathematics but do not show you how to
+write a training loop. This book and its notebooks close that gap from both sides. Each idea
+appears in four different forms:
 </p>
 
 <ol>
-  <li><strong>As mathematics,</strong> here, derived rather than asserted.</li>
-  <li><strong>As arithmetic you do yourself,</strong> in the <em>By hand</em> exercises — small
-      enough for paper, large enough to be real.</li>
-  <li><strong>As code,</strong> in the notebook for that chapter, which you complete and run.</li>
-  <li><strong>As the library call it becomes,</strong> in the <em>In the wild</em> boxes —
-      what production code writes instead, what it adds, and what it hides.</li>
+  <li><strong>As mathematics,</strong> in this book. We derive each result. We do not just state it.</li>
+  <li><strong>As arithmetic that you do yourself,</strong> in the <em>By hand</em> exercises.
+      Each exercise is small enough for paper and large enough to be real.</li>
+  <li><strong>As code,</strong> in the notebook for that chapter. You complete the code and run it.</li>
+  <li><strong>As a library call,</strong> in the <em>In the wild</em> boxes. These boxes show
+      what production code uses instead, what it adds, and what it hides.</li>
 </ol>
 
 <p>
-That fourth register matters more than it looks. The goal is not to avoid libraries; it
-is to reach the point where you can read a paper, recognize which of its equations is
-the contribution, implement it, and check a library's version against your own. The
-<a class="xref" href="#appendix">Appendix</a> is built for that transition — it maps
-every component here to its production API, explains how to read the literature, and
-surveys what has changed in the field since 2017.
+The fourth form is more important than it looks. The goal is not to avoid libraries. The
+goal is that you can read a paper, find the equation that is new, implement it, and compare
+a library's version with your own. The <a class="xref" href="#appendix">Appendix</a> helps
+with that step. It maps each component in this book to its production API. It also tells you
+how to read research papers, and it describes the main changes in the field since 2017.
 </p>
 
 <p>
-The by-hand step is the one people skip, and it is the one that does the work. A gradient
-you have computed once with a pencil stops being a symbol on a page and becomes a number
-you know how to check. When your loss goes to <code>nan</code> at three in the morning, that
-is the difference between debugging and guessing.
+Many people skip the by-hand step. Do not skip it, because it does most of the work. After you
+calculate a gradient once with a pencil, it is no longer just a symbol. It is a number that you
+know how to check. If your loss becomes <code>nan</code> at three in the morning, that skill is
+the difference between a fix and a guess.
 </p>
 
 <h2>The rhythm</h2>
 
 <p>
-Each chapter of this book pairs with one lesson folder. The intended loop is:
+Each chapter of this book goes with one lesson folder. Use this sequence for each chapter:
 </p>
 
 <ol>
-  <li>Read the chapter here, all the way through, before opening the notebook. It is written
-      to be read linearly and takes twenty to forty minutes.</li>
-  <li>Do the <em>By hand</em> exercises. Do not read a solution first. Getting one wrong and
-      then seeing why is worth more than getting it right by reading.</li>
-  <li>Do the <em>Feel for the numbers</em> box, on paper. It is short, and it is the
-      difference between reading $\mathcal{L} = 2.30$ as a symbol and reading it as
-      <em>this model has learned nothing</em>.</li>
-  <li>Do the <em>Say it back</em> box before you look at anything. Explaining a mechanism
-      from memory finds the gaps that re-reading hides.</li>
-  <li>Open <code>prompt.ipynb</code> in the matching folder and fill in the <code>TODO</code>s.
-      You will recognize every formula, because you just computed one by hand.</li>
-  <li>Compare against <code>solution.ipynb</code> — which has already been executed, so you can
-      read its outputs without running anything.</li>
+  <li>Read the full chapter before you open the notebook. Read it from start to end. One chapter
+      takes twenty to forty minutes.</li>
+  <li>Do the <em>By hand</em> exercises. Do not read a solution first. An error that you
+      find and understand teaches you more than a correct answer that you read.</li>
+  <li>Do the <em>Feel for the numbers</em> box on paper. It is short. After you do it, you read
+      $\mathcal{L} = 2.30$ as <em>this model has learned nothing</em>, not only as a symbol.</li>
+  <li>Do the <em>Say it back</em> box before you look at other material. When you explain a
+      mechanism from memory, you find gaps that you do not see when you read again.</li>
+  <li>Open <code>prompt.ipynb</code> in the matching folder and complete the <code>TODO</code>s.
+      You will know each formula, because you just calculated it by hand.</li>
+  <li>Compare your work with <code>solution.ipynb</code>. Its cells already contain their
+      outputs, so you can read the results without running the notebook.</li>
 </ol>
 
 <p>
-The one exception is <a class="xref" href="#ch12">Chapter 12</a>, the capstone projects, which
-ships a single notebook and no solutions — because there is no single right answer to any of
-its five projects.
+There is one exception. <a class="xref" href="#ch12">Chapter 12</a> contains the capstone
+projects. It has one notebook and no solutions, because each of its five projects has many
+correct answers.
 </p>
 
 <div class="box note">
   <span class="box-label">Where to start, if you already know some of this</span>
-  <a class="xref" href="#ch00">Chapter 00</a> is long and mostly <em>review</em>: linear
-  algebra, calculus, statistics, probability. It is there because the later chapters are
-  far more intuitive when this material is fresh, not because it is new. If you have a
-  technical background, skim it, read the <em>Key concept</em> boxes, and do only the six
-  exercises marked <span class="tag tag-must">Must do</span> — those are the ones chapters
-  01 through 12 actually lean on. Then start at
+  <a class="xref" href="#ch00">Chapter 00</a> is long, and it is mostly <em>review</em> of
+  linear algebra, calculus, statistics and probability. It is not there because the material
+  is new. It is there because the later chapters are much easier when this material is fresh.
+  If you have a technical background, read it quickly and read the <em>Key concept</em> boxes.
+  Then do only the seven exercises with the <span class="tag tag-must">Must do</span> tag.
+  Chapters 01 through 12 use those seven. After that, start at
   <a class="xref" href="#ch01">Chapter 01</a>.
 </div>
 
 <div class="box nbref">
   <span class="box-label">Notebook</span>
-  Boxes like this one point at the lesson folder for the chapter, and name the specific
-  cells the surrounding text explains.
+  A box like this one points to the lesson folder for the chapter. It also names the cells
+  that the text near it explains.
 </div>
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
-  Boxes like this one isolate an idea that the rest of the chapter depends on. If you
-  remember nothing else from a chapter, remember these.
+  A box like this one isolates an idea that the rest of the chapter needs. If you remember
+  only one thing from a chapter, remember these boxes.
 </div>
 
 <div class="box byhand">
   <span class="box-label">By hand</span>
   <p style="margin-top:0">
-  And these are the pencil-and-paper exercises. The numbers are always chosen to be
-  tractable — small integers, halves, the occasional $e$ — so that arithmetic never
-  obscures the idea being drilled. Every one of them has its worked answer folded up
-  underneath, like this:
+  A box like this one contains a pencil-and-paper exercise. The numbers are always easy:
+  small integers, halves, and sometimes $e$. Thus the arithmetic does not hide the idea.
+  Each exercise has a worked answer in a fold below it, like this:
   </p>
   <details>
     <summary>Worked solution</summary>
-    <p style="margin-bottom:0">Answers always live behind a fold, in every exercise box in
-    this book, so that you can check your work the moment you have finished without ever
-    being shown it first. Nothing is gained by reading one early — the value of an exercise
-    is entirely in the attempt.</p>
+    <p style="margin-bottom:0">In every exercise box in this book, the answer is behind a
+    fold. You can check your work when you finish, but you do not see the answer first.
+    Do not read an answer early. The value of an exercise is in the attempt.</p>
   </details>
 </div>
 
 <div class="box feel">
   <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
-  Every chapter has one. It gives the floor, the typical value and the ceiling for the
-  quantities that chapter introduces, then asks you to plug a few numbers in. The goal is
-  narrow and worth stating plainly: to get from <em>I can follow that equation</em> to
-  <em>I know roughly what it should return, and I would notice if it did not</em>. Almost
-  every bug in this book announces itself as a number of the wrong size.
+  Each chapter has one of these boxes. It gives the minimum, the typical value and the
+  maximum for the quantities in that chapter. Then it asks you to put some numbers into the
+  formulas. The goal is specific. You start at <em>I can follow that equation</em>. You
+  finish at <em>I know approximately what it should return, and I would see if it did
+  not</em>. Almost every bug in this book shows itself as a number of the wrong size.
   <details>
     <summary>Answers</summary>
-    <p style="margin-bottom:0">The plug-in questions are answered here, folded, with the
-    arithmetic shown — so a number you could not get to is never a dead end.</p>
+    <p style="margin-bottom:0">The answers are here, in a fold, with all the arithmetic.
+    If you cannot get a number, you can always see how to get it.</p>
   </details>
 </div>
 
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  And every chapter has one of these. It names the chapter's central mechanism and asks you
-  to explain it, in your own words, to whichever language model you already talk to — then
-  to ask that model to correct you and push on anything you were vague about. Explaining
-  something from memory finds gaps that re-reading hides, and a model is a patient thing to
-  be wrong in front of.
+  Each chapter has one of these boxes too. It names the main mechanism of the chapter.
+  Explain that mechanism in your own words to a language model that you use. Then ask the
+  model to correct you, and to question each part that was not clear. An explanation from
+  memory finds gaps that a second reading does not. Also, a model is patient when you are
+  wrong.
   </p>
   <p>
-  Folded underneath is the list of points a good answer covers. Open it
-  <em>afterwards</em>: read it first and the exercise turns from a test into a reminder.
+  The fold below the box lists the points that a good answer includes. Open it
+  <em>after</em> you answer. If you read it first, the exercise is only a reminder, not a test.
   </p>
   <details>
     <summary>What a good answer covers — open this afterwards, not before</summary>
-    <p style="margin-bottom:0">The points, and the mistake most people make on this
-    particular question.</p>
+    <p style="margin-bottom:0">The points, and the most common error on this
+    question.</p>
   </details>
 </div>
 
 <div class="box note">
   <span class="box-label">On the tags</span>
-  <span class="tag tag-must">Must do</span> means the rest of the book leans on it.
-  <span class="tag tag-rec">Recommended</span> means it pays off somewhere specific later.
-  Anything untagged is reps, if you want them.
+  <span class="tag tag-must">Must do</span>: the rest of the book uses it.
+  <span class="tag tag-rec">Recommended</span>: it helps in a specific place later.
+  No tag: extra practice, if you want it.
 </div>
 
 <h2>Interactive figures</h2>
 
 <p>
-Where a picture beats a paragraph, this book has a live one. Every widget is driven by the
-same arithmetic described in the surrounding text — nothing is faked or hand-drawn to look
-convincing. Drag the sliders; the interesting behavior is usually at the extremes.
+Where a picture is better than a paragraph, this book has a live figure. Each widget uses the
+same arithmetic as the text near it. Nothing is fake, and nothing is drawn by hand. Move the
+sliders. The interesting behavior is usually at the two ends of a slider.
 </p>
 
 <div class="widget" data-widget="surprisal"></div>
 
 <p>
-That figure is from <a class="xref" href="#ch00">Mathematical Foundations</a>, and
-it is a fair sample of what the widgets are for: the fact that cross-entropy loss is
-unbounded above is a sentence you can read and forget, or a curve you can drag a point along
-and never forget.
+That figure comes from <a class="xref" href="#ch00">Mathematical Foundations</a>, and it is a
+good example of what the widgets do. Cross-entropy loss has no upper limit. You can read
+that sentence and forget it. Or you can move a point along the curve, and then you will
+remember it.
 </p>
 
 <h2>What you need</h2>
 
 <p>
-A laptop, and that is genuinely all. Nothing here needs a data-center GPU, an API key or a
-multi-gigabyte checkpoint download; no model in these lessons exceeds a few million
-parameters, and the largest single download is an NLTK corpus of a few dozen megabytes.
+You need a laptop and nothing more. You do not need a data-center GPU, an API key or a
+large model download. No model in these lessons has more than a few million parameters.
+The largest single download is an NLTK corpus of a few dozen megabytes.
 </p>
 
 <div class="table-wrap">
@@ -188,26 +184,29 @@ parameters, and the largest single download is an NLTK corpus of a few dozen meg
 </div>
 
 <p>
-That memory figure is measured rather than guessed. The heaviest thing in the book — the
-full GPT training run — peaks at about <strong>860&nbsp;MB</strong> of resident memory, so
-8&nbsp;GB leaves it room alongside a browser, an editor and the rest of your machine. At
-16&nbsp;GB you will never think about it again.
+We measured that memory value. The largest job in the book is the full GPT training run.
+It uses a maximum of about <strong>860&nbsp;MB</strong> of resident memory. Thus 8&nbsp;GB
+gives it sufficient space next to a browser, an editor and your other applications. With
+16&nbsp;GB, memory is never a problem.
 </p>
 
 <p>
-A GPU is a convenience here, not a requirement, and it is worth being clear about what it
-does and does not buy you. Every notebook picks its device automatically —
-Apple&nbsp;Silicon's Metal backend first, then CUDA, then the CPU — so the code is
-identical either way and nothing needs configuring. For the smallest models the CPU is
-actually <em>faster</em>, because moving tensors to a GPU costs more than the arithmetic
-saves; the benefit starts around the convolution lesson and grows from there. A 16&nbsp;GB
-M1 will carry you through the whole book. So will an RTX. So will a several-year-old
-desktop CPU with nothing special in it — you will simply wait a few minutes longer on the
-two or three longest runs, and every one of those is minutes, not hours.
+A GPU makes some runs faster, but you do not need one. Each notebook selects its device
+automatically. It tries Apple&nbsp;Silicon's Metal backend first, then CUDA, then the CPU.
+Thus the code is the same on each machine, and you do not configure anything.
 </p>
 
 <p>
-The notebooks, and this book's source, live in one repository:
+For the smallest models, the CPU is <em>faster</em> than a GPU. The time to move tensors to
+a GPU is more than the time that the GPU saves on the arithmetic. The GPU starts to help at
+approximately Chapter 03, and it helps more after that. A 16&nbsp;GB M1 is
+sufficient for the full book. An RTX card is also sufficient. An older desktop CPU is also
+sufficient. On that CPU, the two or three longest runs take some minutes longer, but no run
+takes hours.
+</p>
+
+<p>
+The notebooks and the source of this book are in one repository:
 </p>
 
 <p style="text-align:center;margin:1.4rem 0">
@@ -217,69 +216,68 @@ The notebooks, and this book's source, live in one repository:
 <div class="box note">
   <span class="box-label">Setup — macOS, Windows and Linux</span>
   <p style="margin-top:0">
-  There is no Docker image and no <code>requirements.txt</code> to fight with. One tool,
-  <a href="https://docs.astral.sh/uv/">uv</a>, handles the virtual environment, the
-  dependencies <em>and</em> the Python version — so you do not need to install or upgrade
-  Python first, even though this project needs 3.13 or newer. If uv cannot find a suitable
-  interpreter it downloads one, into its own directory, without touching your system
-  Python.
+  There is no Docker image and no <code>requirements.txt</code>. One tool,
+  <a href="https://docs.astral.sh/uv/">uv</a>, controls the virtual environment, the
+  dependencies <em>and</em> the Python version. This project needs Python 3.13 or newer, but
+  you do not have to install or upgrade Python first. If uv cannot find a correct
+  interpreter, it downloads one into its own directory. It does not change your system Python.
   </p>
 
-  <p style="margin-bottom:.4rem"><strong>1. Install uv.</strong> macOS or Linux:</p>
+  <p style="margin-bottom:.4rem"><strong>1. Install uv.</strong> On macOS or Linux:</p>
 <pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
-  <p style="margin-bottom:.4rem">Windows, in PowerShell:</p>
+  <p style="margin-bottom:.4rem">On Windows, in PowerShell:</p>
 <pre><code>irm https://astral.sh/uv/install.ps1 | iex</code></pre>
   <p style="margin-bottom:.4rem">
-  If your execution policy blocks that, run it from a normal prompt as
+  If your execution policy blocks that command, run this command from a normal prompt:
   <code>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code>
-  instead.
   </p>
   <p style="margin-bottom:.4rem">
-  Either platform, if you would rather use a package manager:
+  On each platform, you can also use a package manager:
   <code>brew install uv</code>, <code>winget install astral-sh.uv</code>, or
-  <code>pipx install uv</code>. Then close and reopen your terminal so the new
-  <code>uv</code> is on your path.
+  <code>pipx install uv</code>. Then close your terminal and open it again. This puts the
+  new <code>uv</code> on your path.
   </p>
 
-  <p style="margin-bottom:.4rem"><strong>2. Get the notebooks and build the environment.</strong>
-  The same three lines everywhere:</p>
+  <p style="margin-bottom:.4rem"><strong>2. Get the notebooks and make the environment.</strong>
+  Use the same three lines on each platform:</p>
 <pre><code>git clone https://github.com/dcaponi/pytorch-nn-training.git
 cd pytorch-nn-training
 uv sync</code></pre>
   <p style="margin-bottom:.4rem">
-  <code>uv sync</code> creates <code>.venv/</code> with PyTorch, NumPy, Matplotlib, NLTK
-  and Jupyter, fetching a Python 3.13 for you if you have none. Expect a few hundred
-  megabytes and a minute or two, mostly PyTorch. You never need to
-  <code>activate</code> anything — <code>uv run</code> does it per command.
+  <code>uv sync</code> makes <code>.venv/</code> and installs PyTorch, NumPy, Matplotlib,
+  NLTK and Jupyter in it. If you do not have Python 3.13, it also gets one. The download is
+  a few hundred megabytes and takes one or two minutes. Most of it is PyTorch. You do not
+  have to <code>activate</code> the environment, because <code>uv run</code> does that for
+  each command.
   </p>
 
   <p style="margin-bottom:.4rem"><strong>3. Open a notebook.</strong></p>
 <pre><code>uv run jupyter notebook     # then open a lesson folder</code></pre>
   <p style="margin-bottom:0">
-  Corpora download on first use and cache in <code>~/nltk_data/</code>. Chapter&nbsp;11 needs
-  no extra dependencies: quantization and LoRA are both implemented from scratch, because
-  implementing them from scratch is the point.
+  Each corpus downloads the first time you use it, and stays in <code>~/nltk_data/</code>.
+  Chapter&nbsp;11 needs no more dependencies. We implement quantization and LoRA from
+  scratch, because that implementation is the lesson.
   </p>
 </div>
 
 <div class="box warn">
   <span class="box-label">If you are not on a Mac</span>
-  Everything runs, and the code is unchanged — only the device selection differs. Each
-  notebook picks <code>mps</code>, then <code>cuda</code>, then <code>cpu</code>,
-  whichever it finds first. On Windows the wheel <code>uv</code> installs from PyPI is
-  CPU-only; that is genuinely fine here, because every model in this curriculum is small
-  enough to train on a CPU in minutes rather than hours. If you have an NVIDIA card and
-  want CUDA, install <code>torch</code> from PyTorch's own index instead, following the
-  selector at <a href="https://pytorch.org/get-started/locally/">pytorch.org</a> — nothing
-  else in the project changes.
+  All the code runs without changes. Only the device selection is different. Each notebook
+  selects the first device that it finds, in this sequence: <code>mps</code>,
+  <code>cuda</code>, <code>cpu</code>. On Windows, <code>uv</code> installs a CPU-only wheel
+  from PyPI. That is satisfactory here, because each model in this course is small. It
+  trains on a CPU in minutes, not hours. If you have an NVIDIA card and want CUDA, install
+  <code>torch</code> from the PyTorch index instead. Use the selector at
+  <a href="https://pytorch.org/get-started/locally/">pytorch.org</a>. You do not change
+  anything else in the project.
 </div>
 
 <h2>Notation</h2>
 
 <p>
-The book is consistent about symbols, and the notebooks are consistent about tensor shapes.
-Both conventions are collected in the <a class="xref" href="#appendix">Appendix</a>, which
-is worth a glance now and a return visit whenever a formula stops parsing. The short version:
+The book uses each symbol consistently, and the notebooks write tensor shapes consistently.
+The <a class="xref" href="#appendix">Appendix</a> lists both conventions. Look at it now,
+and look at it again when you cannot read a formula. Here is the short version:
 </p>
 
 <div class="table-wrap">
@@ -299,10 +297,9 @@ is worth a glance now and a return visit whenever a formula stops parsing. The s
 </div>
 
 <p>
-Tensor shapes are annotated inline throughout the notebooks and written like
-<span class="shape">(B, T, d_model)</span> here. Shape errors are the single most common
-bug in this material, and tracking shapes by eye as you read is the cheapest habit you can
-build.
+The notebooks show tensor shapes in comments next to the code. This book writes them like
+<span class="shape">(B, T, d_model)</span>. Shape errors are the most common bug in this
+material. Thus, follow the shapes as you read. It is the easiest good habit that you can make.
 </p>
 
 <h2>The path through</h2>
@@ -329,17 +326,19 @@ build.
 </div>
 
 <p>
-Chapters 00 through 07 are a single argument and should be read in order — each one is
-built out of the previous one's vocabulary. From 08 onward they become more independent:
-08 is practical craft you can read at any point once you have trained something, and 11
-stands alone well if you already know what a transformer is.
+Chapters 00 through 10 are one argument. Read them in sequence, because each chapter uses the
+words and ideas of the chapter before it. Chapters 06 through 10 build the transformer one
+part at a time: attention, its gradient, the full block, the translator and GPT. Chapter 11
+is easy to read alone if you already know what a transformer is. Chapter 12 uses
+everything.
 </p>
 
 <p>
-Two navigation conveniences, since this is a long document and you will be jumping backwards
-constantly. Cross-references look <a class="xref" href="#ch00-cross-entropy">like this</a>;
-following one pops up a <em>Back to where you were</em> button in the corner that returns you
-to your place. The sidebar has a filter box for when you remember a word but not a chapter.
+This is a long document, and you will often go back to earlier sections. Two tools help.
+First, cross-references look <a class="xref" href="#ch00-cross-entropy">like this</a>. When
+you click one, a <em>Back to where you were</em> button shows in the corner. That button
+returns you to your position. Second, the sidebar has a filter box. Use it when you
+remember a word but not the chapter.
 </p>
 
 </section>

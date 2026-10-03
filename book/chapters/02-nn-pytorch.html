@@ -4,17 +4,18 @@
 <h1>The Same Network in PyTorch</h1>
 
 <p class="lede">
-Nothing new is learned in this chapter — the network, the loss, and the math are identical
-to <a class="xref" href="#ch01">Chapter 01</a>. What changes is who computes the gradients.
-Understanding precisely what PyTorch automates, and what it deliberately does not, is what
-makes every later chapter readable.
+This chapter teaches no new theory. The network, the loss and the mathematics are the same
+as in <a class="xref" href="#ch01">Chapter 01</a>. The change is who calculates the
+gradients. Learn exactly what PyTorch does automatically, and what it does not do on
+purpose. Then each later chapter is easy to read.
 </p>
 
 <h2>Tensors are arrays that remember</h2>
 
 <p>
-A <code>torch.Tensor</code> is a NumPy array with two additions: it can live on a GPU, and it
-can record the operations performed on it. The second is autograd, and it is the whole point.
+A <code>torch.Tensor</code> is a NumPy array with two additions. It can be on a GPU, and it
+can record the operations done on it. The second addition is autograd, and it is the
+important one.
 </p>
 
 <pre><code class="language-python">x = torch.tensor([[1.0, 2.0]])              # requires_grad=False by default
@@ -22,50 +23,60 @@ w = torch.tensor([[0.5], [0.5]], requires_grad=True)
 z = x @ w                                   # z.grad_fn = &lt;MmBackward0&gt;</code></pre>
 
 <p>
-Setting <code>requires_grad=True</code> tells PyTorch to track everything downstream of that
-tensor. Each resulting tensor carries a <code>grad_fn</code> — a reference to the operation
-that produced it and to its inputs. Those references form a directed graph, built forwards as
-you compute, and traversed backwards when you ask for gradients.
+<code>requires_grad=True</code> tells PyTorch to record each calculation that uses that
+tensor. Each result tensor has a <code>grad_fn</code>. This is a reference to the operation
+that made the tensor, and to its inputs. Those references make a directed graph. PyTorch
+builds the graph forward as you calculate. It goes through the graph backward when you ask
+for gradients.
+</p>
+
+<p>
+Do not think of this graph as a picture of neurons. Each node is one operation on full
+tensors, for example one matrix multiplication or one sigmoid over a full matrix. Thus the
+graph is only the list of matrix operations from
+<a class="xref" href="#ch00-backpropagation-on-xor-every-entry-written-out">the XOR
+section of Chapter 00</a>, in the sequence that they ran. The backward pass goes down that
+list and makes one gradient matrix for each step.
 </p>
 
 <div class="box concept">
   <span class="box-label">Key concept</span>
-  The graph is <strong>dynamic</strong>: it is constructed anew on every forward pass and
-  discarded after every backward pass. This is why <code>if</code> statements, loops of
-  data-dependent length, and ordinary Python control flow all work inside a
-  <code>forward()</code> method — there is no static graph to compile against. The
-  <a class="xref" href="#ch04">RNN in Chapter 04</a> exploits this directly, building a graph
-  whose depth equals the sequence length.
+  The graph is <strong>dynamic</strong>. PyTorch builds a new graph on each forward pass and
+  discards it after each backward pass. That is why <code>if</code> statements, loops whose
+  length depends on the data, and normal Python control flow all work inside a
+  <code>forward()</code> method. There is no static graph to compile. The
+  <a class="xref" href="#ch04">RNN in Chapter 04</a> uses this directly. It builds a graph
+  whose depth is equal to the sequence length.
 </div>
 
 <h3>What <code>backward()</code> actually does</h3>
 
 <p>
-Calling <code>loss.backward()</code> walks that graph from the scalar loss back to every
-leaf tensor with <code>requires_grad=True</code>, applying the chain rule at each node and
-<em>accumulating</em> the result into <code>tensor.grad</code>. Those are the same
-$\delta$ quantities you computed by hand in the last chapter — PyTorch just knows the
-derivative rule for every built-in operation and composes them automatically.
+<code>loss.backward()</code> goes through that graph from the scalar loss back to each leaf
+tensor with <code>requires_grad=True</code>. At each node, it applies the chain rule. It
+<em>adds</em> the result to <code>tensor.grad</code>. These are the same $\delta$ values
+that you calculated by hand in the last chapter. PyTorch knows the derivative rule for each
+built-in operation, and it combines them automatically.
 </p>
 
 <p>
-Two consequences follow immediately, and both bite beginners.
+Two results follow immediately, and both cause problems for beginners.
 </p>
 
 <p>
 <strong>The loss must be a scalar.</strong> "The derivative of a vector with respect to a
-matrix" is a tensor of partial derivatives with no single descent direction. That is why
-every loss function ends in <code>.mean()</code> or <code>.sum()</code>.
+matrix" is a tensor of partial derivatives. It does not give one direction to descend. That
+is why each loss function ends with <code>.mean()</code> or <code>.sum()</code>.
 </p>
 
 <p>
-<strong>Gradients accumulate rather than replace.</strong> A second <code>backward()</code>
-adds to whatever is already in <code>.grad</code>. Forget <code>optimizer.zero_grad()</code>
-and your update uses the sum of every gradient computed since the beginning of training —
-the model will appear to train, badly, in a way that is genuinely hard to diagnose. The
-default seems perverse until you need it: it is exactly what lets you accumulate gradients
-over several small batches to simulate a large one, which is
-<a class="xref" href="#ch11">how you train on limited memory</a>.
+<strong>Gradients add. They do not replace.</strong> A second <code>backward()</code> adds
+to the value that is already in <code>.grad</code>. If you forget
+<code>optimizer.zero_grad()</code>, your update uses the sum of each gradient since training
+started. The model seems to train, but badly, and this is really difficult to diagnose. The
+default seems wrong until you need it. It lets you add the gradients of several small
+batches to get the effect of one large batch. That is
+<a class="xref" href="#ch11">how you train with limited memory</a>.
 </p>
 
 <h2>The five-step loop</h2>
@@ -78,18 +89,19 @@ over several small batches to simulate a large one, which is
     optimizer.step()         # 5. update   — applies them</code></pre>
 
 <p>
-Line for line against <a class="xref" href="#ch01">Chapter 01</a>: step 1 replaces the four
-forward equations, step 4 replaces the six hand-derived backward expressions, and step 5
-replaces the four subtraction lines. The structure is unchanged, which is exactly why it was
-worth doing the hard way first.
+Compare it line by line with <a class="xref" href="#ch01">Chapter 01</a>. Step 1 replaces
+the four forward equations. Step 4 replaces the six backward expressions that you derived
+by hand. Step 5 replaces the four subtraction lines. The structure is the same. That is
+exactly why the difficult way was worth doing first.
 </p>
 
 <div class="box warn">
   <span class="box-label">Ordering</span>
-  <code>zero_grad()</code> may go anywhere before <code>backward()</code>, but
-  <code>backward()</code> must precede <code>step()</code> — the optimizer reads
-  <code>.grad</code>, and if it is empty or stale you silently update with the wrong numbers.
-  A model that trains but plateaus embarrassingly early is very often this bug.
+  <code>zero_grad()</code> can go anywhere before <code>backward()</code>. But
+  <code>backward()</code> must come before <code>step()</code>. The optimizer reads
+  <code>.grad</code>. If <code>.grad</code> is empty or old, the update uses the wrong
+  numbers, and you get no error. When a model trains but stops improving very early, this
+  bug is frequently the cause.
 </div>
 
 <h2><code>nn.Module</code>: parameters that know they are parameters</h2>
@@ -105,115 +117,128 @@ worth doing the hard way first.
         return torch.sigmoid(self.output(x))</code></pre>
 
 <p>
-<code>nn.Linear(2, 4)</code> holds exactly the $W_1$ and $b_1$ of the previous chapter — with
-one wrinkle worth knowing, because it will confuse you when you inspect weights.
+<code>nn.Linear(2, 4)</code> holds exactly the $W_1$ and $b_1$ of the previous chapter. But
+there is one difference that will confuse you when you examine weights.
 <strong>PyTorch stores the weight transposed</strong>, as
-<span class="shape">(out_features, in_features)</span>, and computes $xW^\top + b$. So
-<code>hidden.weight</code> has shape <span class="shape">(4, 2)</span> where our by-hand
-$W_1$ was <span class="shape">(2, 4)</span>. The arithmetic is identical; only the storage
-layout differs.
+<span class="shape">(out_features, in_features)</span>, and calculates $xW^\top + b$. Thus
+<code>hidden.weight</code> has shape <span class="shape">(4, 2)</span>, but our by-hand
+$W_1$ was <span class="shape">(2, 4)</span>. The arithmetic is the same. Only the storage
+layout is different.
 </p>
 
 <p>
-Assigning a submodule to <code>self</code> registers it. That registration is what makes
-<code>model.parameters()</code>, <code>model.to(device)</code>,
-<code>model.state_dict()</code>, and <code>model.train()</code> work — they all walk the
-registered tree. A tensor you create with plain <code>torch.randn(..., requires_grad=True)</code>
-and assign to <code>self</code> is <em>not</em> registered, will not move to the GPU with the
-model, and will not be passed to the optimizer. If you need a raw tensor as a parameter, wrap
-it: <code>nn.Parameter(torch.randn(...))</code>. If you need a tensor that should move with
-the model but <em>not</em> be trained — a positional encoding table, say, as in
-<a class="xref" href="#ch08">Chapter 08</a> — use <code>self.register_buffer(...)</code>.
+This network copies Chapter 01 exactly, so it keeps the sigmoid on the output and trains
+with <code>nn.BCELoss</code>. Later in this chapter you will read that a final activation
+is almost always an error in modern PyTorch. That rule is for production code. Production
+code removes the last sigmoid and uses <code>nn.BCEWithLogitsLoss</code> on the raw logit,
+because it is numerically more stable
+(<a class="xref" href="#ch00-cross-entropy">Chapter 00</a>). From
+<a class="xref" href="#ch03">Chapter 03</a> on, the notebooks do that.
 </p>
 
 <p>
-Call the module, never its <code>forward</code>: <code>model(x)</code>, not
-<code>model.forward(x)</code>. The former runs registered hooks; the latter quietly skips
-them, which breaks anything built on hooks.
+When you assign a submodule to <code>self</code>, PyTorch registers it. Registration makes
+these calls work: <code>model.parameters()</code>, <code>model.to(device)</code>,
+<code>model.state_dict()</code> and <code>model.train()</code>. They all go through the tree
+of registered modules. Now suppose that you make a tensor with
+<code>torch.randn(..., requires_grad=True)</code> and assign it to <code>self</code>. That
+tensor is <em>not</em> registered. It does not move to the GPU with the model, and the
+optimizer does not get it. If you need a raw tensor as a parameter, wrap it:
+<code>nn.Parameter(torch.randn(...))</code>. Sometimes you need a tensor that moves with the
+model but does <em>not</em> train, for example a table of positional encodings in
+<a class="xref" href="#ch08">Chapter 08</a>. For that, use
+<code>self.register_buffer(...)</code>.
+</p>
+
+<p>
+Call the module. Do not call its <code>forward</code> method. Write <code>model(x)</code>,
+not <code>model.forward(x)</code>. The first runs the registered hooks. The second skips
+them without a warning, and that breaks anything that uses hooks.
 </p>
 
 <h3>Initialization, for free</h3>
 
 <p>
 <code>nn.Linear</code> initializes its weights from
-$\mathcal{U}(-1/\sqrt{n_{\text{in}}},\, 1/\sqrt{n_{\text{in}}})$ rather than from a plain
-standard normal. The $1/\sqrt{n_{\text{in}}}$ scaling keeps the variance of activations
-roughly constant as signal passes through a layer: sum $n$ independent terms and the
-variance grows by $n$, so shrinking each weight by $\sqrt{n}$ cancels it. Without this,
-deep stacks either saturate or explode within a few layers. It is the single most
-underappreciated line in the framework.
+$\mathcal{U}(-1/\sqrt{n_{\text{in}}},\, 1/\sqrt{n_{\text{in}}})$, not from a plain standard
+normal. The $1/\sqrt{n_{\text{in}}}$ scale keeps the variance of the activations
+approximately constant through a layer. When you add $n$ independent terms, the variance
+increases by $n$. If you make each weight $\sqrt{n}$ times smaller, you cancel that
+increase. Without this, deep stacks saturate or explode within a few layers. It is the most
+underrated line in the framework.
 </p>
 
 <h2>Optimizers</h2>
 
 <p>
-<code>optim.SGD</code> performs exactly the update from
-<a class="xref" href="#ch01">Chapter 01</a>. <code>optim.Adam</code> does more, and is the
-default choice for everything in this book.
+<code>optim.SGD</code> does exactly the update from
+<a class="xref" href="#ch01">Chapter 01</a>. <code>optim.Adam</code> does more, and it is
+the default choice for all the models in this book.
 </p>
 
 $$m_t = \beta_1 m_{t-1} + (1-\beta_1)g_t \qquad v_t = \beta_2 v_{t-1} + (1-\beta_2)g_t^2$$
 $$\theta_t = \theta_{t-1} - \eta\,\frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}$$
 
-<p>
-$m$ is a running average of the gradient (momentum: keep going in a consistent direction,
-damp oscillation across a narrow valley). $v$ is a running average of the gradient
-<em>squared</em>, and dividing by $\sqrt{v}$ gives each parameter its own effective learning
-rate — parameters with consistently large gradients get small steps, rarely-updated
-parameters get large ones. The hats denote bias correction, which compensates for both
-averages starting at zero.
-</p>
+<ul>
+  <li>$m$ is a running average of the gradient. This is momentum: it continues in a
+      consistent direction, and it decreases oscillation across a narrow valley.</li>
+  <li>$v$ is a running average of the gradient <em>squared</em>. Division by $\sqrt{v}$
+      gives each parameter its own effective learning rate. Parameters with consistently
+      large gradients get small steps. Parameters with few updates get large steps.</li>
+  <li>The hats show bias correction. Both averages start at zero, and the correction
+      compensates for that.</li>
+</ul>
 
 <p>
-The practical upshot: Adam converges far faster on the XOR problem (hundreds of epochs
-rather than ten thousand) and is much less sensitive to the learning rate. It costs two
-extra tensors per parameter in memory, which is a detail here and a
-<a class="xref" href="#ch11">hard constraint</a> when models get large.
+In practice, Adam converges much faster on the XOR problem: in hundreds of epochs, not ten
+thousand. It is also much less sensitive to the learning rate. It costs two extra tensors
+of memory for each parameter. Here that is a detail. When models become large, it is a
+<a class="xref" href="#ch11">hard limit</a>.
 </p>
 
 <div class="box note">
   <span class="box-label">Defaults worth memorizing</span>
-  Adam at <code>lr=1e-3</code> is a sound starting point for small models; transformers
-  usually want <code>1e-4</code> to <code>3e-4</code> with warmup
-  (<a class="xref" href="#ch03">Chapter 03</a>). If training diverges, halve the learning
-  rate before changing anything else. If it plateaus immediately, you have probably
-  forgotten <code>zero_grad()</code>.
+  For small models, Adam at <code>lr=1e-3</code> is a good start. Transformers usually need
+  <code>1e-4</code> to <code>3e-4</code> with warmup
+  (<a class="xref" href="#ch10">Chapter 10</a>). If training diverges, halve the learning
+  rate before you change anything else. If the loss stops improving immediately, you
+  probably forgot <code>zero_grad()</code>.
 </div>
 
 <h2 id="ch02-spec-to-code">From a problem statement to code</h2>
 
 <p>
-Every notebook in this book hands you an architecture. Real work does not. It hands you
-a sentence — from a colleague, a paper, a ticket — and you have to turn it into a model,
-a loss, and a tensor of the right shape. That translation is its own skill, it is
-mechanical once you see the structure, and it is worth drilling deliberately.
+Each notebook in this book gives you an architecture. Real work does not. It gives you a
+sentence from a colleague, a paper or a ticket. You must change that sentence into a model,
+a loss and a tensor of the correct shape. That translation is its own skill. When you see
+its structure, it is mechanical. Practice it on purpose.
 </p>
 
 <div class="box concept">
   <span class="box-label">Key concept — five questions, in order</span>
   <p>
-  Any supervised problem statement answers five questions. Extract them in this order
-  and the code writes itself:
+  Each supervised problem statement answers five questions. Get the answers in this
+  sequence, and the code is easy to write:
   </p>
   <ol style="margin-bottom:0">
     <li><strong>What is one example?</strong> → the input shape after the batch
         dimension.</li>
     <li><strong>What is one answer?</strong> → the output dimension. One number? One
         probability? $K$ scores?</li>
-    <li><strong>What kind of answer is it?</strong> → real value, one label out of $K$,
-        several independent yes/no labels. This picks the loss
+    <li><strong>What type of answer is it?</strong> → a real value, one label from $K$, or
+        several independent yes/no labels. This selects the loss
         (<a class="xref" href="#ch00-cross-entropy">Chapter 00</a>).</li>
     <li><strong>What does the target tensor look like?</strong> → its shape <em>and its
-        dtype</em>. This is where most bugs live.</li>
-    <li><strong>What shape is everything in between?</strong> → the hidden sizes, which
-        are the only genuinely free choice.</li>
+        dtype</em>. Most bugs are here.</li>
+    <li><strong>What shape is everything in between?</strong> → the hidden sizes. These are
+        the only free choice.</li>
   </ol>
 </div>
 
 <p>
-Notice that only question 5 is a design decision. Questions 1–4 are <em>determined</em>
-by the problem, which is why disagreements about them are usually misunderstandings
-rather than opinions.
+Note that only question 5 is a design decision. The problem <em>sets</em> the answers to
+questions 1–4. Thus, when people disagree about them, it is usually a misunderstanding, not
+a difference of opinion.
 </p>
 
 <h3>A worked example</h3>
@@ -224,7 +249,7 @@ rather than opinions.
     "Create a simple neural net with two connected layers that takes a random input we
     will create and classifies it, imagining a 3-class prediction problem."
   </p>
-  <p>Answer the five questions before writing anything.</p>
+  <p>Answer the five questions before you write anything.</p>
   <div class="table-wrap">
   <table>
     <thead><tr><th>Question</th><th>The statement says</th><th>So</th></tr></thead>
@@ -238,12 +263,11 @@ rather than opinions.
   </table>
   </div>
   <p>
-  "Two connected layers" is the one genuinely ambiguous phrase, and it is worth being
-  explicit rather than guessing: it almost always means two <code>nn.Linear</code>
-  modules — input → hidden → output — with a non-linearity between them. Two layers
-  <em>without</em> a non-linearity would collapse to one
-  (<a class="xref" href="#ch01">Chapter 01</a>), so the activation is implied by the
-  word "layers" even when nobody says it.
+  "Two connected layers" is the one ambiguous phrase. Do not guess; make it explicit. It
+  almost always means two <code>nn.Linear</code> modules (input → hidden → output) with a
+  non-linearity between them. Two layers <em>without</em> a non-linearity become one layer
+  (<a class="xref" href="#ch01">Chapter 01</a>). Thus the word "layers" includes the
+  activation, even when nobody says it.
   </p>
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -265,14 +289,17 @@ loss = nn.CrossEntropyLoss()(logits, y)              # scalar
 print(logits.shape, y.shape, y.dtype, loss.item())
 # torch.Size([16, 3]) torch.Size([16]) torch.int64 1.1147</code></pre>
   <p style="margin-bottom:0">
-  Three things in that snippet are the ones people get wrong, and all three follow from
-  questions 2–4 rather than from taste. The final layer emits <strong>3 logits, not
-  1</strong>. There is <strong>no softmax</strong>, because
-  <code>CrossEntropyLoss</code> applies it internally and doing it twice is a silent bug
-  (<a class="xref" href="#ch00-cross-entropy">Chapter 00</a>). And the target is
-  <span class="shape">(B,)</span> <code>int64</code> — <em>not</em> one-hot, not
-  <span class="shape">(B, 1)</span>, not float.
+  People get three things in that snippet wrong. All three come from questions 2–4, not from
+  preference:
   </p>
+  <ul style="margin-bottom:0">
+    <li>The final layer gives <strong>3 logits, not 1</strong>.</li>
+    <li>There is <strong>no softmax</strong>. <code>CrossEntropyLoss</code> applies it
+        internally, and a second softmax is a silent bug
+        (<a class="xref" href="#ch00-cross-entropy">Chapter 00</a>).</li>
+    <li>The target is <span class="shape">(B,)</span> <code>int64</code>. It is
+        <em>not</em> one-hot, not <span class="shape">(B, 1)</span>, and not float.</li>
+  </ul>
 </div>
 
 <div class="box warn">
@@ -288,16 +315,16 @@ print(logits.shape, y.shape, y.dtype, loss.item())
   </table>
   </div>
   <p style="margin-bottom:0">
-  The first two are loud and cost a minute. The third is the dangerous one, and no error
-  message will ever tell you about it — you have to know the rule.
+  The first two errors are loud, and they cost a minute. The third is the dangerous one. No
+  error message will ever tell you about it. You must know the rule.
   </p>
 </div>
 
 <h3>The lookup table</h3>
 
 <p>
-Question 3 is the one that determines everything downstream, so it is worth having
-memorized in the forward direction — <em>from the words in the statement</em> to the code:
+Question 3 sets everything after it. Thus memorize it in the forward direction: <em>from
+the words in the statement</em> to the code.
 </p>
 
 <div class="table-wrap">
@@ -315,18 +342,18 @@ memorized in the forward direction — <em>from the words in the statement</em> 
 </div>
 
 <p>
-The tell for row 3 versus row 4 is the word <em>any</em>. "Classify into one of 20
-topics" is categorical and the classes compete for one probability budget; "tag with any
-of 20 topics" is 20 independent yes/no questions. Same 20 output units, different loss,
-different target shape — and picking the wrong one produces a model that trains to a
-plausible-looking loss and is quietly solving a different problem.
+The word <em>any</em> tells row 3 from row 4. "Classify into one of 20 topics" is
+categorical: the classes share one total probability. "Tag with any of 20 topics" is 20
+independent yes/no questions. Both use 20 output units, but the loss and the target shape
+are different. If you select the wrong one, the model trains to a loss that looks correct.
+But it solves a different problem, and nothing tells you.
 </p>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 02.3 · four statements, no code</span>
+  <span class="box-label">By hand — exercise 02.1 · four statements, no code</span>
   <p>
-  For each, answer the five questions: input shape, output dimension, loss, target shape
-  and dtype, and whether a final activation belongs in the model.
+  For each statement, answer the five questions: the input shape, the output dimension, the
+  loss, the target shape and dtype, and whether the model needs a final activation.
   </p>
   <ol>
     <li>"Given 50 sensor readings, predict tomorrow's temperature."</li>
@@ -341,27 +368,27 @@ plausible-looking loss and is quietly solving a different problem.
 2.  in (B, 128)  out 10   CrossEntropyLoss     target (B,)   int64     no activation
 3.  in (B, 256)  out 18   BCEWithLogitsLoss    target (B, 18) float    no activation
 4.  in (B, 20)   out 1    BCEWithLogitsLoss    target (B, 1) float     no activation</div>
-    <p><strong>Every one says "no activation"</strong>, and that is the point of the
-    exercise. The <code>WithLogits</code> and <code>CrossEntropy</code> losses apply
-    sigmoid and softmax internally; regression needs no squashing at all. A final
-    activation in the model is almost always a mistake in modern PyTorch — the exception
-    being when you need probabilities at <em>inference</em>, which you apply after the
-    fact and outside the training loop.</p>
-    <p>Note 2 versus 3: both are "pick from a set", but 2 says "which of 10" (exactly
-    one) and 3 says "any of 18" (independent). That single word changes the loss and the
-    target's shape and dtype.</p>
-    <p>And 4 could equally be <code>Linear(h, 2)</code> with
-    <code>CrossEntropyLoss</code> — binary classification is the two-class special case
-    of categorical. One logit with BCE is the more common choice and has one fewer
-    parameter; either is defensible, which makes it the only genuine judgement call in
-    the four.</p>
+    <p><strong>Each answer says "no activation"</strong>, and that is the point of the
+    exercise. The <code>WithLogits</code> and <code>CrossEntropy</code> losses apply the
+    sigmoid and the softmax internally. Regression needs no squashing at all. In modern
+    PyTorch, a final activation in the model is almost always an error. The exception is
+    when you need probabilities at <em>inference</em>. Then apply the activation after the
+    model, outside the training loop.</p>
+    <p>Compare 2 and 3. Both are "select from a set". But 2 says "which of 10" (exactly
+    one), and 3 says "any of 18" (independent). That one word changes the loss, and the
+    shape and dtype of the target.</p>
+    <p>Answer 4 can also be <code>Linear(h, 2)</code> with <code>CrossEntropyLoss</code>.
+    Binary classification is the two-class special case of categorical. One logit with BCE
+    is the more common choice, and it has one fewer parameter. Both are correct. Thus it is
+    the only real judgment call of the four.</p>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 02.4 · debug by shape</span>
+  <span class="box-label">By hand — exercise 02.2 · debug by shape</span>
   <p>
-  Each snippet raises or misbehaves. Name the fault and the fix, without running it.
+  Each snippet gives an error or behaves badly. Name the fault and the fix. Do not run the
+  code.
   </p>
   <div class="given">A)  model = nn.Sequential(nn.Linear(10, 32), nn.ReLU(),
                           nn.Linear(32, 3), nn.Softmax(dim=1))
@@ -378,39 +405,39 @@ D)  model = nn.Sequential(nn.Linear(10, 32), nn.Linear(32, 3))
   <details>
     <summary>Worked solution</summary>
     <p><strong>A — double softmax.</strong> <code>CrossEntropyLoss</code> already applies
-    log-softmax, so this normalizes twice. It <em>runs</em>, the loss decreases, and the
-    model is worse than it should be with no diagnostic anywhere. Remove the
-    <code>nn.Softmax</code>. This is the one to actually memorize.</p>
-    <p><strong>B — target shape.</strong> <code>(16, 1)</code> where
-    <code>(16,)</code> is required. Raises <code>Expected target size [16, 3], got
-    [16, 1]</code>. Fix with <code>y.squeeze(1)</code>, or build it as
-    <code>(16,)</code>.</p>
-    <p><strong>C — target dtype.</strong> <code>CrossEntropyLoss</code> wants int64 class
-    indices; <code>.float()</code> makes it real-valued. Raises
-    <code>expected scalar type Long but found Float</code>. Drop the
-    <code>.float()</code>. (Confusingly, <code>BCEWithLogitsLoss</code> wants exactly the
-    opposite — float targets — which is why the dtype is worth naming explicitly in
-    question 4.)</p>
+    log-softmax, so this normalizes two times. It <em>runs</em>, and the loss decreases. But
+    the model is worse than it should be, and nothing tells you. Remove the
+    <code>nn.Softmax</code>. Memorize this one.</p>
+    <p><strong>B — target shape.</strong> The shape is <code>(16, 1)</code>, but
+    <code>(16,)</code> is necessary. You get <code>Expected target size [16, 3], got
+    [16, 1]</code>. To fix it, use <code>y.squeeze(1)</code>, or make the target with
+    shape <code>(16,)</code>.</p>
+    <p><strong>C — target dtype.</strong> <code>CrossEntropyLoss</code> needs int64 class
+    indices. <code>.float()</code> changes them to real values. You get
+    <code>expected scalar type Long but found Float</code>. Remove the
+    <code>.float()</code>. (<code>BCEWithLogitsLoss</code> needs exactly the opposite: float
+    targets. This is confusing, and it is why question 4 names the dtype explicitly.)</p>
     <p><strong>D — no non-linearity.</strong> Two <code>Linear</code> layers with nothing
-    between them compose to a single linear map (one matrix multiply, <a class="xref" href="#ch00-linear-map">chapter 00</a>)
-    (<a class="xref" href="#ch01">Chapter 01</a>), so despite appearances this is a
-    one-layer model and cannot learn anything a linear classifier cannot. Insert
-    <code>nn.ReLU()</code>. Nothing errors; it just quietly underfits, which is the
-    hardest class of bug to notice.</p>
+    between them become one linear map, which is one matrix multiplication (see
+    <a class="xref" href="#ch00-linear-map">chapter 00</a> and
+    <a class="xref" href="#ch01">Chapter 01</a>). Thus this is really a one-layer model. It
+    cannot learn anything that a linear classifier cannot learn. Add
+    <code>nn.ReLU()</code>. You get no error. The model only underfits, and that is the most
+    difficult type of bug to see.</p>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 02.5 · reproduce PyTorch's answer on paper</span>
+  <span class="box-label">By hand — exercise 02.3 · reproduce PyTorch's answer on paper</span>
   <p>
-  The most useful direction to run this in is <em>backwards</em>: let the framework compute
-  the answer, then reproduce it yourself and confirm the two agree. When they do, you have
-  verified your understanding against a reference implementation. When they do not, you
-  have found either a gap in your understanding or a bug — and both are worth knowing.
+  The most useful direction for this exercise is <em>backward</em>. Let the framework
+  calculate the answer. Then calculate it yourself, and make sure that the two agree. If
+  they agree, you checked your understanding against a reference implementation. If they do
+  not agree, you found a gap in your understanding or a bug. Both are useful to know.
   </p>
   <p>
-  Here is a real run. One linear layer, one example, three classes; the weights were
-  rounded to one decimal place so every step is pencil-friendly.
+  Here is a real run: one linear layer, one example and three classes. We rounded the
+  weights to one decimal place, so you can do each step with a pencil.
   </p>
   <div class="given">x = [ 1.0,  0.0, -1.0,  2.0 ]        true class c = 1
 
@@ -422,20 +449,22 @@ D)  model = nn.Sequential(nn.Linear(10, 32), nn.Linear(32, 3))
 useful values:  e^0 = 1.0000   e^-0.1 = 0.9048   e^-0.4 = 0.6703
                 ln(0.3514) = -1.0459</div>
   <ol>
-    <li><strong>Logits.</strong> PyTorch computes $xW^\top + b$. Work out all three.</li>
-    <li><strong>Probabilities.</strong> Apply softmax. (The three exponentials are given;
-        you need their sum.)</li>
-    <li><strong>Loss.</strong> Compute the cross-entropy for true class 1.</li>
-    <li><strong>Gradient on the logits.</strong> Use $\hat{y} - y$. Check they sum to zero.</li>
-    <li><strong>Gradient on the parameters.</strong> Using the rule from
-        <a class="xref" href="#ch00">exercise 00.4</a>, $\partial\mathcal{L}/\partial W =
-        \delta^\top x$ and $\partial\mathcal{L}/\partial b = \delta$. Write out the first
-        row of $\partial\mathcal{L}/\partial W$.</li>
-    <li><strong>Check.</strong> Compare against what PyTorch actually printed, below.</li>
+    <li><strong>Logits.</strong> PyTorch calculates $xW^\top + b$. Calculate all three.</li>
+    <li><strong>Probabilities.</strong> Apply softmax. (You have the three exponentials.
+        You need their sum.)</li>
+    <li><strong>Loss.</strong> Calculate the cross-entropy for true class 1.</li>
+    <li><strong>Gradient on the logits.</strong> Use $\hat{y} - y$. Make sure that their
+        sum is zero.</li>
+    <li><strong>Gradient on the parameters.</strong> Use the rule from
+        <a class="xref" href="#ch00">exercise 00.4</a>: $\partial\mathcal{L}/\partial W =
+        \delta^\top x$ and $\partial\mathcal{L}/\partial b = \delta$. Write the first row
+        of $\partial\mathcal{L}/\partial W$.</li>
+    <li><strong>Check.</strong> Compare your answers with the PyTorch output below.</li>
   </ol>
   <details>
     <summary>Worked solution, and PyTorch's output</summary>
-    <p><strong>1. Logits.</strong> Each is a row of $W$ dotted with $x$, plus its bias:</p>
+    <p><strong>1. Logits.</strong> Each logit is the dot product of a row of $W$ with $x$,
+    plus its bias:</p>
     <div class="given">z₀ = (0.0)(1) + (−0.3)(0) + (0.2)(−1) + (0.2)(2) + (−0.2)
    = 0 + 0 − 0.2 + 0.4 − 0.2 =  0.0
 z₁ = (−0.3)(1) + (−0.1)(0) + (−0.3)(−1) + (0.1)(2) + (−0.3)
@@ -444,22 +473,22 @@ z₂ = (−0.1)(1) + (0.4)(0) + (0.4)(−1) + (0.1)(2) + (−0.1)
    = −0.1 + 0 − 0.4 + 0.2 − 0.1 = −0.4
 
 z = [0.0, −0.1, −0.4]</div>
-    <p><strong>2. Probabilities.</strong> Sum of exponentials
-    $= 1.0000 + 0.9048 + 0.6703 = 2.5751$:</p>
+    <p><strong>2. Probabilities.</strong> The sum of the exponentials is
+    $1.0000 + 0.9048 + 0.6703 = 2.5751$:</p>
     <div class="given">ŷ₀ = 1.0000 / 2.5751 = 0.3883
 ŷ₁ = 0.9048 / 2.5751 = 0.3514
 ŷ₂ = 0.6703 / 2.5751 = 0.2603      (sums to 1.0000 ✓)</div>
     <p><strong>3. Loss.</strong> $\mathcal{L} = -\ln \hat{y}_1 = -\ln(0.3514) =
-    \mathbf{1.0459}$ nats. Sanity check: a uniform guess over three classes costs
-    $\ln 3 = 1.0986$, so this barely-initialized model is a hair better than chance —
-    exactly what you would expect before any training.</p>
+    \mathbf{1.0459}$ nats. Check: a uniform guess over three classes costs
+    $\ln 3 = 1.0986$. Thus this new model is very slightly better than chance. That is
+    exactly what you expect before training.</p>
     <p><strong>4. Gradient on the logits.</strong> With $y = [0, 1, 0]$:</p>
     <div class="given">∂L/∂z = ŷ − y = [0.3883 − 0,  0.3514 − 1,  0.2603 − 0]
               = [ 0.3883, −0.6486,  0.2603 ]
 
 sum = 0.3883 − 0.6486 + 0.2603 = 0.0000 ✓</div>
     <p><strong>5. Gradient on the parameters.</strong> $\partial\mathcal{L}/\partial b$ is
-    just $\delta$. For $W$, row $i$ is $\delta_i \cdot x$:</p>
+    $\delta$. For $W$, row $i$ is $\delta_i \cdot x$:</p>
     <div class="given">row 0 = 0.3883 × [1.0, 0.0, −1.0, 2.0]
       = [ 0.3883,  0.0000, −0.3883,  0.7767 ]
 
@@ -474,15 +503,15 @@ dL/db      = tensor([  0.3883, -0.6486,  0.2603])
 dL/dW      = tensor([[ 0.3883,  0.0000, -0.3883,  0.7767],
                      [-0.6486,  0.0000,  0.6486, -1.2973],
                      [ 0.2603,  0.0000, -0.2603,  0.5206]])</div>
-    <p>Every figure matches. Two things are worth noticing beyond the agreement.</p>
-    <p>The <strong>second column of $\partial\mathcal{L}/\partial W$ is entirely
-    zero</strong>, because $x_1 = 0$. An input feature that contributed nothing to the
-    forward pass receives no gradient — the same fact you met in
-    <a class="xref" href="#ch01">exercise 01.1</a>, now visible in a real framework's
-    output.</p>
+    <p>Each value agrees. Also note two more things.</p>
+    <p>The <strong>second column of $\partial\mathcal{L}/\partial W$ is all
+    zero</strong>, because $x_1 = 0$. An input feature that added nothing to the forward
+    pass gets no gradient. You saw the same fact in
+    <a class="xref" href="#ch01">exercise 01.1</a>. Now you see it in the output of a real
+    framework.</p>
     <p>And $\partial\mathcal{L}/\partial b$ is <em>exactly</em> $\delta$, because
-    $\partial z/\partial b = 1$. If you ever need to inspect the error signal at a layer
-    and cannot reach it directly, the bias gradient is it.</p>
+    $\partial z/\partial b = 1$. If you need to examine the error signal at a layer and you
+    cannot get to it directly, use the bias gradient.</p>
   </details>
 </div>
 
@@ -495,45 +524,54 @@ model = model.to(device)
 X, y = X.to(device), y.to(device)</code></pre>
 
 <p>
-On an M-series Mac, <code>mps</code> is the Metal Performance Shaders backend and gives real
-GPU acceleration. Every tensor in an operation must be on the same device or PyTorch raises
-an error — a good error, since a silent CPU fallback would just make everything mysteriously
-slow. Note that <code>model.to(device)</code> mutates in place and returns self, while
-<code>tensor.to(device)</code> returns a <em>copy</em>: <code>X.to(device)</code> alone does
-nothing, you must reassign.
+On an M-series Mac, <code>mps</code> is the Metal Performance Shaders backend. It gives
+real GPU acceleration. All the tensors in an operation must be on the same device. If they
+are not, PyTorch gives an error. That is a good error, because a silent fallback to the CPU
+would make everything slow for no clear reason. Note one difference.
+<code>model.to(device)</code> changes the model in place and returns it. But
+<code>tensor.to(device)</code> returns a <em>copy</em>. Thus <code>X.to(device)</code>
+alone does nothing. You must assign the result.
 </p>
 
 <div class="box warn">
   <span class="box-label">MPS specifics</span>
-  Apple's backend defaults to float32 and does not support float64 — a stray
-  <code>torch.tensor([1.0], dtype=torch.float64)</code> will fail on transfer. Coverage is
-  good but not total; a rarely-used op may raise <code>NotImplementedError</code>, in which
-  case setting <code>PYTORCH_ENABLE_MPS_FALLBACK=1</code> routes just that operation to the
-  CPU. For the tiny models in this chapter, MPS is often <em>slower</em> than CPU: kernel
-  launch overhead dominates when there are only four examples. The benefit shows up from
-  <a class="xref" href="#ch03">Chapter 03</a> onward.
+  The Apple backend uses float32 by default, and it does not support float64. Thus a
+  <code>torch.tensor([1.0], dtype=torch.float64)</code> will fail when you move it. Most
+  operations work, but not all. A rare operation can give
+  <code>NotImplementedError</code>. If it does, set
+  <code>PYTORCH_ENABLE_MPS_FALLBACK=1</code>. This sends only that operation to the CPU. For
+  the very small models in this chapter, MPS is frequently <em>slower</em> than the CPU.
+  With only four examples, the time to launch each kernel is larger than the time to do the
+  work. The benefit starts at <a class="xref" href="#ch03">Chapter 03</a>.
 </div>
 
 <h2><code>train()</code>, <code>eval()</code>, and <code>no_grad()</code></h2>
 
 <p>
-Three separate switches that beginners routinely conflate.
+These are three separate switches, and beginners often confuse them.
 </p>
 
 <p>
-<code>model.train()</code> and <code>model.eval()</code> set a flag that changes the
-behavior of exactly two kinds of layer: dropout (active in train, identity in eval) and
-batch norm (batch statistics in train, running averages in eval). This network contains
-neither, so the calls do nothing here — but forget <code>model.eval()</code> in
-<a class="xref" href="#ch03">Chapter 03</a> and your reported accuracy will be wrong,
-because dropout will be randomly deleting activations at test time.
+<code>model.train()</code> and <code>model.eval()</code> set a flag. That flag changes the
+behavior of exactly two types of layer:
+</p>
+
+<ul>
+  <li>Dropout is active in train mode. In eval mode, it does nothing.</li>
+  <li>Batch norm uses batch statistics in train mode, and running averages in eval mode.</li>
+</ul>
+
+<p>
+This network contains neither layer, so the calls do nothing here. But in
+<a class="xref" href="#ch03">Chapter 03</a>, if you forget <code>model.eval()</code>, your
+reported accuracy will be wrong. Dropout will randomly remove activations at test time.
 </p>
 
 <p>
-<code>torch.no_grad()</code> is unrelated: it stops the graph from being built at all. Use it
-for every evaluation and inference pass. It cuts memory substantially — no intermediate
-activations need to be retained for a backward pass that will never happen — and speeds
-things up. The two belong together:
+<code>torch.no_grad()</code> is a different thing. It stops PyTorch from building the graph.
+Use it for each evaluation and inference pass. It decreases memory a lot, because PyTorch
+does not keep intermediate activations for a backward pass that will not occur. It also
+makes the code faster. Use the two together:
 </p>
 
 <pre><code class="language-python">model.eval()
@@ -541,9 +579,9 @@ with torch.no_grad():
     preds = model(X_test)</code></pre>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 02.1</span>
+  <span class="box-label">By hand — exercise 02.4</span>
   <p>
-  Predict what autograd will produce, then check yourself. Given
+  Predict what autograd will calculate, then check your answer. Use this:
   </p>
   <div class="given">w = tensor(3.0, requires_grad=True)
 x = tensor(2.0)
@@ -552,81 +590,82 @@ a = w * x           # = 6
 b = a + w           # = 9
 L = b ** 2          # = 81</div>
   <ol>
-    <li>Draw the computational graph: nodes for $w$, $x$, $a$, $b$, $L$, edges for the
-        operations.</li>
-    <li>Compute $\partial L/\partial b$, then $\partial b/\partial a$ and
-        $\partial b/\partial w$ (note that $w$ reaches $b$ by <em>two</em> paths).</li>
+    <li>Draw the computational graph. Use nodes for $w$, $x$, $a$, $b$ and $L$, and edges
+        for the operations.</li>
+    <li>Calculate $\partial L/\partial b$, then $\partial b/\partial a$ and
+        $\partial b/\partial w$. (Note that $w$ goes to $b$ by <em>two</em> paths.)</li>
     <li>Apply the multivariable chain rule to get $\partial L/\partial w$.</li>
     <li>After <code>L.backward()</code>, what is <code>w.grad</code>? What is
         <code>x.grad</code>?</li>
-    <li>If you now ran <code>L2 = (w * x) ** 2</code> and <code>L2.backward()</code> without
-        zeroing, what would <code>w.grad</code> hold?</li>
+    <li>Now you run <code>L2 = (w * x) ** 2</code> and <code>L2.backward()</code>, and you
+        do not zero the gradients. What does <code>w.grad</code> hold?</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> $w$ and $x$ feed a multiply producing $a$; $a$ and $w$ feed an add
-    producing $b$; $b$ feeds a square producing $L$. The important feature is that $w$ has
-    <em>two</em> outgoing edges — one into the multiply, one into the add.</p>
-    <p><strong>2.</strong> $\partial L/\partial b = 2b = 18$. Through the multiply,
-    $\partial a/\partial w = x = 2$. Through the add, $b = a + w$ gives
+    <p><strong>1.</strong> $w$ and $x$ go into a multiplication that gives $a$. $a$ and $w$
+    go into an addition that gives $b$. $b$ goes into a square that gives $L$. The important
+    feature is that $w$ has <em>two</em> edges out: one into the multiplication and one into
+    the addition.</p>
+    <p><strong>2.</strong> $\partial L/\partial b = 2b = 18$. Through the multiplication,
+    $\partial a/\partial w = x = 2$. Through the addition, $b = a + w$ gives
     $\partial b/\partial a = 1$ and a direct $\partial b/\partial w = 1$.</p>
-    <p><strong>3.</strong> The multivariable chain rule says: sum over all paths from $w$ to
-    $L$.</p>
+    <p><strong>3.</strong> The multivariable chain rule says: add over all the paths from
+    $w$ to $L$.</p>
     <div class="given">path 1 (w → a → b → L):  2 × 1 × 18 = 36
 path 2 (w → b → L):      1 × 18      = 18
                           total  ∂L/∂w = 54</div>
-    <p><strong>4.</strong> <code>w.grad</code> is <code>tensor(54.)</code>. <code>x.grad</code>
-    is <code>None</code> — <code>x</code> was created without <code>requires_grad</code>, so
-    no gradient is computed or stored for it. This is exactly how input data behaves in a real
-    training loop: gradients flow <em>through</em> the batch to the weights, never <em>into</em>
-    the batch.</p>
+    <p><strong>4.</strong> <code>w.grad</code> is <code>tensor(54.)</code>.
+    <code>x.grad</code> is <code>None</code>. We made <code>x</code> without
+    <code>requires_grad</code>, so PyTorch does not calculate or keep a gradient for it.
+    Input data behaves exactly like this in a real training loop. Gradients go
+    <em>through</em> the batch to the weights. They never go <em>into</em> the batch.</p>
     <p><strong>5.</strong> $L_2 = (wx)^2 = 4w^2$, so $\partial L_2/\partial w = 8w = 24$.
-    Because gradients accumulate, <code>w.grad</code> would hold $54 + 24 = \mathbf{78}$ —
-    a number that is the derivative of nothing in particular. This is the missing
-    <code>zero_grad()</code> bug, and note how plausible 78 looks. Nothing crashes; the model
-    just learns the wrong thing.</p>
+    Gradients add, so <code>w.grad</code> would hold $54 + 24 = \mathbf{78}$. That number
+    is not the derivative of anything. This is the missing <code>zero_grad()</code> bug.
+    Note that 78 looks correct. Nothing stops, and the model learns the wrong thing.</p>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 02.2</span>
+  <span class="box-label">By hand — exercise 02.5</span>
   <p>
-  Count the parameters in <code>XORNet</code>, then generalize.
+  Count the parameters in <code>XORNet</code>. Then make the result general.
   </p>
   <ol>
     <li>How many numbers are in <code>hidden.weight</code>, <code>hidden.bias</code>,
-        <code>output.weight</code>, <code>output.bias</code>? Total?</li>
+        <code>output.weight</code> and <code>output.bias</code>? What is the total?</li>
     <li>Write the general formula for an <code>nn.Linear(n_in, n_out)</code>.</li>
-    <li>A transformer feed-forward block is <code>Linear(512, 2048)</code> then
-        <code>Linear(2048, 512)</code>. How many parameters? At 4 bytes each, how much
-        memory for the weights alone — and how much once Adam's two state tensors and the
-        gradients are included?</li>
+    <li>A transformer feed-forward block is <code>Linear(512, 2048)</code> and then
+        <code>Linear(2048, 512)</code>. How many parameters does it have? At 4 bytes each,
+        how much memory do the weights alone use? How much do you need when you include
+        the gradients and the two state tensors of Adam?</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
     <p><strong>1.</strong> <code>hidden.weight</code> is
-    <span class="shape">(4, 2)</span> = 8; <code>hidden.bias</code> = 4;
-    <code>output.weight</code> is <span class="shape">(1, 4)</span> = 4;
-    <code>output.bias</code> = 1. Total <strong>17</strong> parameters — the entire model.</p>
+    <span class="shape">(4, 2)</span> = 8. <code>hidden.bias</code> = 4.
+    <code>output.weight</code> is <span class="shape">(1, 4)</span> = 4.
+    <code>output.bias</code> = 1. The total is <strong>17</strong> parameters. That is the
+    full model.</p>
     <p><strong>2.</strong> $n_{\text{in}} \times n_{\text{out}} + n_{\text{out}}$.</p>
     <p><strong>3.</strong> $512 \times 2048 + 2048 = 1{,}050{,}624$, and
-    $2048 \times 512 + 512 = 1{,}049{,}088$. Total <strong>2,099,712</strong> ≈ 2.1M
-    parameters — in one feed-forward block, of one layer.</p>
-    <p>Weights alone: 8.4 MB. But training needs the gradient (another 8.4 MB) and Adam's
-    $m$ and $v$ (8.4 MB each), giving <strong>~33.6 MB</strong>, or 16 bytes per parameter.
-    That 16× multiplier is the number that decides what you can train on whatever machine
-    you have,
-    and <a class="xref" href="#ch11">Chapter 11</a> is largely about attacking it.</p>
+    $2048 \times 512 + 512 = 1{,}049{,}088$. The total is <strong>2,099,712</strong>, which
+    is approximately 2.1M parameters. That is for one feed-forward block in one layer.</p>
+    <p>The weights alone use 8.4 MB. But training also needs the gradient (8.4 MB more)
+    and the $m$ and $v$ of Adam (8.4 MB each). That gives <strong>~33.6 MB</strong>, or 16
+    bytes for each parameter. That multiplier of 16 decides what you can train on your
+    machine. <a class="xref" href="#ch11">Chapter 11</a> is mostly about how to decrease
+    it.</p>
   </details>
 </div>
 
 <h2>When it does not train</h2>
 
 <p>
-Every loop above works. Most loops you write will not, and the failures are
-disappointingly repetitive — there are perhaps seven of them, they announce themselves in
-the first few printed losses, and each has a different fix. It is worth learning them as a
-list now rather than rediscovering them one at a time.
+Each loop above works. Most loops that you write will not work at first. The failures
+repeat frequently. There are approximately seven of them. Each one shows itself in the
+first few printed losses, and each one has a different fix. Learn them now as a list. Do
+not find them again one at a time.
 </p>
 
 
@@ -647,58 +686,64 @@ list now rather than rediscovering them one at a time.
 
 <div class="box concept">
   <span class="box-label">Key concept — the single best debugging move</span>
-  Before training on the full dataset, take <strong>eight examples and overfit them
-  completely</strong>. Turn off dropout and regularization and train until the loss is
-  essentially zero. If you cannot drive the loss to zero on eight examples, the bug is in your
-  model, loss, or data pipeline — not in your hyperparameters — and no amount of tuning on the
-  full dataset will find it. This takes two minutes and saves entire afternoons.
+  Before you train on the full dataset, take <strong>eight examples and overfit them
+  completely</strong>. Turn off dropout and regularization. Train until the loss is almost
+  zero. If you cannot get the loss to zero on eight examples, the bug is in your model, your
+  loss or your data pipeline. It is not in your hyperparameters, and no tuning on the full
+  dataset will find it. This takes two minutes, and it saves full afternoons.
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 02.7</span>
-  <p>Memory arithmetic for a training run — the calculation you should do <em>before</em>
-  starting one.</p>
+  <span class="box-label">By hand — exercise 02.6</span>
+  <p>Do the memory arithmetic for a training run. Do this calculation <em>before</em> you
+  start a run.</p>
   <div class="given">model: 12M parameters, fp32, trained with Adam
 batch: 64 sequences × 512 tokens
 activations: measured at ~1.2 KB per token per layer, 6 layers</div>
   <ol>
-    <li>Memory for weights, gradients, and Adam's two state tensors.</li>
-    <li>Memory for activations retained for the backward pass.</li>
-    <li>Total, and how it compares to your own machine's memory (assume about 70% of it is
-        actually usable once the operating system has taken its share).</li>
-    <li>You need to double the batch size and cannot. Give three ways to get the effect, and
-        state what each one costs.</li>
+    <li>Calculate the memory for the weights, the gradients and the two state tensors of
+        Adam.</li>
+    <li>Calculate the memory for the activations that the backward pass needs.</li>
+    <li>Calculate the total. Compare it with the memory of your own machine. (Assume that
+        approximately 70% of it is usable after the operating system takes its part.)</li>
+    <li>You must double the batch size, but you cannot. Give three ways to get the same
+        effect, and state the cost of each one.</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> 12M parameters × 4 bytes = 48 MB each for weights, gradients,
-    Adam $m$, and Adam $v$ = <strong>192 MB</strong>, i.e. 16 bytes per parameter.</p>
+    <p><strong>1.</strong> 12M parameters × 4 bytes = 48 MB each for the weights, the
+    gradients, Adam $m$ and Adam $v$. That is <strong>192 MB</strong>, or 16 bytes for each
+    parameter.</p>
     <p><strong>2.</strong> $64 \times 512 \times 1.2\text{ KB} \times 6 =
     \mathbf{236\text{ MB}}$.</p>
-    <p><strong>3.</strong> About <strong>428 MB</strong> plus framework overhead — comfortably
-    inside 17 GB. Worth noticing which term dominates: activations exceed the entire model,
-    and they scale with batch size and sequence length while the model does not. On small
-    models, activations are the thing that actually runs you out of memory.</p>
+    <p><strong>3.</strong> Approximately <strong>428 MB</strong> plus framework overhead.
+    That is much less than the usable part of even 8 GB. Note which term is largest. The
+    activations are larger than the full model. They increase with batch size and sequence
+    length, but the model does not. On small models, the activations are what really use
+    all your memory.</p>
     <p><strong>4.</strong></p>
     <ul>
-      <li><strong>Gradient accumulation</strong> — run two batches of 64, calling
-      <code>backward()</code> on each and <code>step()</code> only after the second. Gradients
-      accumulate by default (<a class="xref" href="#ch02">Chapter 02</a>), so this is
-      mathematically identical to batch 128. Costs: two forward/backward passes of wall-clock
-      time, and you must scale the loss by 1/2 to keep the gradient magnitude right.</li>
-      <li><strong>Gradient checkpointing</strong> — store only some activations and recompute
-      the rest during the backward pass. Cuts activation memory by roughly $\sqrt{N}$ for $N$
-      layers. Costs about 30% extra compute.</li>
-      <li><strong>Shorter sequences</strong> — halve the sequence length. Costs the model any
-      dependency longer than the new window, and for attention it is a
-      <em>quadratic</em> saving, so it is the most effective of the three per unit of harm.</li>
+      <li><strong>Gradient accumulation.</strong> Run two batches of 64. Call
+      <code>backward()</code> on each batch, and call <code>step()</code> only after the
+      second batch. Gradients add by default (see the section on
+      <a class="xref" href="#ch02">backward()</a> above), so this is mathematically the same
+      as batch 128. Costs: it takes the time of two forward/backward passes. Also, you must
+      multiply the loss by 1/2 to keep the gradient magnitude correct.</li>
+      <li><strong>Gradient checkpointing.</strong> Keep only some activations, and calculate
+      the rest again during the backward pass. For $N$ layers, this decreases activation
+      memory by approximately $\sqrt{N}$. Cost: approximately 30% more compute.</li>
+      <li><strong>Shorter sequences.</strong> Halve the sequence length. Cost: the model
+      cannot learn any dependency longer than the new window. For attention, the saving is
+      <em>quadratic</em>. Thus, for each unit of harm, this is the most effective of the
+      three.</li>
     </ul>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 02.8</span>
-  <p>Reading a training log. Diagnose each, and name the first thing you would change.</p>
+  <span class="box-label">By hand — exercise 02.7</span>
+  <p>Read a training log. Diagnose each run, and name the first thing that you would
+  change.</p>
   <div class="given">Run A          Run B          Run C          Run D
 ep  tr    val    tr    val    tr    val    tr    val
  1  2.31  2.30   2.30  2.29   2.31  2.28   4.02  3.81
@@ -707,33 +752,35 @@ ep  tr    val    tr    val    tr    val    tr    val
 15  2.30  2.30   0.71  1.14   0.09  2.55    -     -</div>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>Run A — not learning at all.</strong> The loss sits at 2.30, which for a
-    10-class problem is exactly $\ln 10 = 2.303$: the model is outputting a uniform
-    distribution and never moving. Nothing is reaching the weights. Check for a missing
-    <code>zero_grad()</code>, a learning rate of zero, parameters not passed to the
-    optimizer, or a <code>requires_grad=False</code> left somewhere. <em>First move:</em>
-    print <code>p.grad.norm()</code> after <code>backward()</code> — if it is zero or
-    <code>None</code>, you have found it.</p>
-    <p><strong>Run B — healthy.</strong> Both losses fall, with a modest and stable gap
-    (0.71 vs 1.14) that is normal generalization error. Validation is still improving at
-    epoch 15. <em>First move:</em> keep training, and consider a larger model.</p>
-    <p><strong>Run C — textbook overfitting.</strong> Validation bottoms out around epoch 5
-    at 1.61 and then climbs steadily while training loss drives towards zero. The model is
-    memorizing. <em>First move:</em> restore the epoch-5 weights, then add regularization —
-    dropout, weight decay, more data, or less capacity. Note that without best-checkpoint
-    restore you would have shipped the epoch-15 model at val 2.55, which is worse than the
-    model was after five epochs.</p>
-    <p><strong>Run D — divergence.</strong> Starting loss of 4.02 is already high and it
-    reaches <code>nan</code> within five epochs. Almost always too large a learning rate;
-    occasionally a $\log 0$ or an all-masked attention row. <em>First move:</em> cut the
-    learning rate by 10× and add <code>clip_grad_norm_</code>. If it still diverges, print
-    the loss every batch rather than every epoch to find the exact step where it breaks.</p>
+    <p><strong>Run A — not learning at all.</strong> The loss stays at 2.30. For a
+    10-class problem, that is exactly $\ln 10 = 2.303$. The model gives a uniform
+    distribution and never changes. Nothing gets to the weights. Look for a missing
+    <code>zero_grad()</code>, a learning rate of zero, parameters that you did not give to
+    the optimizer, or a <code>requires_grad=False</code>. <em>First action:</em> print
+    <code>p.grad.norm()</code> after <code>backward()</code>. If it is zero or
+    <code>None</code>, you found the problem.</p>
+    <p><strong>Run B — healthy.</strong> Both losses decrease. The gap between them is
+    small and stable (0.71 against 1.14). That is normal generalization error. Validation
+    still improves at epoch 15. <em>First action:</em> continue to train, and think about a
+    larger model.</p>
+    <p><strong>Run C — classic overfitting.</strong> Validation is lowest at approximately
+    epoch 5, at 1.61. After that it increases steadily, and training loss goes toward zero.
+    The model memorizes the data. <em>First action:</em> restore the weights from epoch 5.
+    Then add regularization: dropout, weight decay, more data or less capacity. Note this:
+    without best-checkpoint restore, you would ship the epoch-15 model at val 2.55. That
+    model is worse than the model after five epochs.</p>
+    <p><strong>Run D — divergence.</strong> The start loss of 4.02 is already high, and the
+    loss becomes <code>nan</code> within five epochs. The cause is almost always a learning
+    rate that is too large. Sometimes it is a $\log 0$ or an attention row with all
+    positions masked. <em>First action:</em> make the learning rate 10 times smaller, and
+    add <code>clip_grad_norm_</code>. If it still diverges, print the loss after each batch,
+    not after each epoch. Then you can find the exact step where it breaks.</p>
   </details>
 </div>
 
 <div class="box feel">
   <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
-  <p style="margin-top:0">The same numbers as the last chapter, now produced by a library that will not tell you when they are wrong. PyTorch raises no error for a loss that is silently the wrong shape, a learning rate two orders of magnitude off, or an accuracy that beats nothing.</p>
+  <p style="margin-top:0">These are the same numbers as in the last chapter. Now a library makes them, and it will not tell you when they are wrong. PyTorch gives no error for a loss with the wrong shape, a learning rate that is wrong by a factor of 100, or an accuracy that is no better than nothing.</p>
   <div class="table-wrap">
   <table>
     <thead><tr><th>Quantity</th><th>Floor</th><th>Typical</th><th>Ceiling</th><th>Read it as</th></tr></thead>
@@ -749,89 +796,88 @@ ep  tr    val    tr    val    tr    val    tr    val
     </tbody>
   </table>
   </div>
-  <p>Now do these on paper, in your head where you can. A calculator for the logs is fine;
-  the point is knowing <em>which</em> number to reach for.</p>
+  <p>Now do these on paper. Where you can, do them in your head. You can use a calculator
+  for the logarithms. The goal is to know <em>which</em> number to use.</p>
   <ol>
-    <li>Your binary task is 95% negatives and the model reports 95% accuracy. What has it learned?</li>
-    <li>You pass probabilities to <code>CrossEntropyLoss</code> instead of logits. What happens — an error, or something worse?</li>
-    <li>Adam at $\text{lr} = 0.1$. What symptom do you expect, and how do you tell it apart from a bad initialization?</li>
+    <li>Your binary task is 95% negatives, and the model reports 95% accuracy. What has it learned?</li>
+    <li>You give probabilities to <code>CrossEntropyLoss</code>, not logits. What happens: an error, or something worse?</li>
+    <li>You use Adam at $\text{lr} = 0.1$. What symptom do you expect? How do you tell it from a bad initialization?</li>
   </ol>
   <details>
     <summary>Answers</summary>
-    <p><strong>1.</strong> Possibly nothing at all. Predicting "negative" every time
-    scores 95%. Always quote accuracy against the majority-class rate, or use a metric
-    that cannot be gamed this way.</p>
-    <p><strong>2.</strong> Something worse: it runs. <code>CrossEntropyLoss</code>
-    applies its own softmax, so you get a softmax of a softmax — a flatter distribution,
-    a smaller gradient, and a model that trains slowly for no visible reason. No
-    exception, no warning. This is the most common silent bug in PyTorch.</p>
-    <p><strong>3.</strong> Loss goes to <code>nan</code>, or plateaus <em>above</em>
-    $\ln K$. To tell it from bad initialization, look at step 0: a bad init is already
-    wrong on the first printed loss, while too high a learning rate starts at
-    $\ln K$ and then leaves.</p>
+    <p><strong>1.</strong> Possibly nothing. "Negative" each time gets 95%. Always compare
+    accuracy with the majority-class rate, or use a metric that this trick cannot
+    fool.</p>
+    <p><strong>2.</strong> Something worse: it runs. <code>CrossEntropyLoss</code> applies
+    its own softmax, so you get a softmax of a softmax. The distribution is flatter, the
+    gradient is smaller, and the model trains slowly for no visible reason. You get no
+    exception and no warning. This is the most common silent bug in PyTorch.</p>
+    <p><strong>3.</strong> The loss goes to <code>nan</code>, or it stops improving
+    <em>above</em> $\ln K$. To tell it from a bad initialization, look at step 0. With a bad
+    initialization, the first printed loss is already wrong. With a learning rate that is
+    too high, the loss starts at $\ln K$ and then moves away.</p>
   </details>
-  <p style="margin-bottom:0"><b>The habit.</b> Read the first three logged losses, not the last three. Almost every failure in this chapter is visible in them.</p>
+  <p style="margin-bottom:0"><b>The habit.</b> Read the first three logged losses, not the last three. Almost each failure in this chapter shows in them.</p>
 </div>
 
 <div class="box sayback">
   <span class="box-label">Say it back<span class="tag tag-rec">Recommended</span></span>
   <p style="margin-top:0">
-  Try explaining to your favorite LLM, in your own words: <strong>what does <code>loss.backward()</code> actually do, and why must you call <code>optimizer.zero_grad()</code>?</strong>
-  Then ask it to correct you, and to push back wherever you were vague rather than
-  outright wrong — that is where the gaps hide.
+  Explain this to your favorite LLM, in your own words: <strong>what does <code>loss.backward()</code> actually do, and why must you call <code>optimizer.zero_grad()</code>?</strong>
+  Then ask it to correct you. Ask it to question each part where you were vague, not only
+  the parts where you were wrong, because the gaps are in the vague parts.
   </p>
   <details>
     <summary>What a good answer covers — open this afterwards, not before</summary>
     <ol>
-    <li><code>backward()</code> walks the graph recorded during the forward pass and writes into each parameter's <code>.grad</code>.</li>
-    <li>It <em>accumulates</em> — it adds to whatever is already there rather than replacing it.</li>
-    <li>That accumulation is deliberate: it is what makes gradient accumulation over micro-batches possible.</li>
-    <li>So without <code>zero_grad()</code> you step against the sum of every batch seen so far, which grows without bound.</li>
-    <li><code>step()</code> only reads <code>.grad</code> and updates the parameters — the optimizer never computes a derivative itself.</li>
+    <li><code>backward()</code> goes through the graph that the forward pass recorded. It writes into the <code>.grad</code> of each parameter.</li>
+    <li>It <em>adds</em>. It adds to the value that is already there. It does not replace it.</li>
+    <li>That addition is deliberate. It makes gradient accumulation over micro-batches possible.</li>
+    <li>Thus, without <code>zero_grad()</code>, each step uses the sum of all the batches so far, and that sum increases with no limit.</li>
+    <li><code>step()</code> only reads <code>.grad</code> and updates the parameters. The optimizer never calculates a derivative itself.</li>
     </ol>
-    <p style="margin-bottom:0"><b>Most common miss.</b> Saying it "clears the old gradients" without saying why they would otherwise still be there. The accumulation is a feature; if you cannot name the use case it serves, you have memorized a ritual.</p>
+    <p style="margin-bottom:0"><b>Most common miss.</b> An answer says that it "clears the old gradients", but it does not say why they would still be there. The addition is a feature. If you cannot name the use case for it, you only memorized a ritual.</p>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 02.6 · a debugging order<span class="tag tag-must">Must do</span></span>
+  <span class="box-label">By hand — exercise 02.8 · a debugging order<span class="tag tag-must">Must do</span></span>
   <p>
-  No code. Someone shows you a model that will not learn. Write down what you check, in
-  what order — and, for each step, what a failure at that step rules out. The order is the
-  content here; a list of things to try is what you had before reading this chapter.
+  There is no code. Someone shows you a model that will not learn. Write what you check, and
+  in what sequence. For each step, write what a failure at that step rules out. The sequence
+  is the important part. Before this chapter, you had only a list of things to try.
   </p>
   <details>
     <summary>Worked solution</summary>
     <ol>
-      <li>First that the loss at step 0 is $\ln K$ — it separates initialization and wiring bugs from optimization problems, and costs nothing.</li>
-      <li>Then overfit a handful of examples, which separates "the model cannot represent this" from "the training loop is broken".</li>
-      <li>Then gradient norms per parameter group, distinguishing <code>None</code> (disconnected) from tiny (saturated).</li>
-      <li>Only then the learning rate and schedule, because tuning an optimiser that is stepping on wrong gradients is wasted effort.</li>
-      <li>The order is cheapest-and-most-decisive first: each step rules out a whole class of cause rather than adjusting a knob.</li>
+      <li>First, check that the loss at step 0 is $\ln K$. This separates initialization and wiring bugs from optimization problems, and it costs nothing.</li>
+      <li>Then overfit a few examples. This separates "the model cannot represent this" from "the training loop is broken".</li>
+      <li>Then check the gradient norms for each parameter group. This tells <code>None</code> (disconnected) from very small (saturated).</li>
+      <li>Only then examine the learning rate and the schedule. If the optimizer steps on wrong gradients, it is a waste of effort to tune it.</li>
+      <li>The sequence is cheapest and most decisive first. Each step rules out a full class of causes. It does not only adjust one setting.</li>
     </ol>
-    <p style="margin-bottom:0">The principle is cheapest-and-most-decisive first. Each step
-    eliminates an entire class of cause rather than adjusting a knob, so by the time you
-    reach the learning rate you know the gradients it is stepping on are correct. Tuning an
-    optimiser that is stepping on wrong gradients is the most common way to waste an
-    afternoon.</p>
+    <p style="margin-bottom:0">The principle is cheapest and most decisive first. Each step
+    removes a full class of causes. It does not only adjust one setting. Thus, when you get
+    to the learning rate, you know that its gradients are correct. To tune an optimizer that
+    steps on wrong gradients is the most common way to waste an afternoon.</p>
   </details>
 </div>
 
 <div class="box nbref">
   <span class="box-label">Notebook</span>
   Open <code>02_nn_pytorch/prompt.ipynb</code>. You will build <code>XORNet</code>, run the
-  five-step loop, inspect <code>state_dict()</code>, and — the exercise most worth your time —
-  swap SGD for Adam and compare epochs-to-convergence. Try also deliberately deleting
-  <code>zero_grad()</code> to see the failure mode from exercise 02.1 in the wild.
+  five-step loop and examine <code>state_dict()</code>. The most useful exercise is to
+  replace SGD with Adam and compare the number of epochs to convergence. Also, remove
+  <code>zero_grad()</code> on purpose. Then you see the failure from exercise 02.4 in real
+  code.
 </div>
 
 <div class="box note">
   <span class="box-label">Where this goes next</span>
-  From here on, the framework is assumed. Before adding any more architecture,
-  <a class="xref" href="#ch03">Chapter 03</a> covers the craft of actually training these
-  things — the loop, schedules, checkpoints, and the failure modes you will hit within an
-  hour of leaving toy data behind. Every chapter after it uses that machinery rather than
-  re-explaining it.
+  From here on, the book assumes the framework.
+  <a class="xref" href="#ch03">Chapter 03</a> leaves toy data. It uses two thousand real
+  film reviews, changes text into integers and embeddings, and trains the simplest
+  classifier that works. That accuracy is the baseline for each later chapter.
 </div>
 
 </section>

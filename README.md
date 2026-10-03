@@ -53,7 +53,7 @@ needed and deep links survive a refresh.
 
 Every chapter carries **By hand** exercises — small calculations you do on paper
 before writing code, with fully worked solutions folded up underneath. Chapter 00
-alone has twenty-six. That step is the one people skip and the one that does the work:
+alone has twenty-seven. That step is the one people skip and the one that does the work:
 a gradient you have computed once with a pencil stops being a symbol and becomes a
 number you know how to check.
 
@@ -234,7 +234,7 @@ Both techniques implemented from scratch — no `bitsandbytes`, no `peft`.
 - Symmetric and per-channel quantization, and the outlier problem measured
 - A bit-width sweep showing exactly where quality breaks
 - LoRA, including why `B` starts at zero and `A` does not
-- Adapting a Carroll-trained model to Shakespeare with under 2% of its parameters
+- Adapting a Carroll-trained model to Shakespeare with under 3% of its parameters
 - A rank sweep testing LoRA's low-rank claim empirically
 - QLoRA, and why sequence length rather than parameter count exhausts your memory
 - `torch.ao.quantization` measured against your fake quantization on real serialized
@@ -341,12 +341,12 @@ notebook.
 | 12 | `12_capstone_projects/prompt.ipynb` | Capstone Projects | open-ended |
 
 Chapters 00–10 are a single argument and should be read in order. Chapter 03 sits where
-it does on purpose: every chapter after it trains something, and it is the one that
-explains how, so reading it late means re-learning the training loop five times. Chapter
-07 answers the "but where do the weights come from?" question that 07 deliberately
-defers, which is why it interrupts the architecture sequence rather than waiting until
-the end. From 11 onward the chapters are more independent — 12 stands alone if you
-already know what a transformer is, and 13 is open-ended project work.
+it does on purpose: it is the first chapter with real data, and every later chapter
+reuses its batching, padding and train/test discipline. Chapter 07 answers the "but where
+do Q, K and V come from?" question that Chapter 06 deliberately defers, which is why it
+interrupts the architecture sequence rather than waiting until the end. From 11 onward
+the chapters are more independent — 11 stands alone if you already know what a
+transformer is, and 12 is open-ended project work.
 
 ---
 
@@ -355,14 +355,14 @@ already know what a transformer is, and 13 is open-ended project work.
 - Every lesson picks its device automatically — Apple Silicon's Metal backend, then
   CUDA, then CPU — so the code is identical on any of them. For the smallest models the
   CPU is actually *faster* than a GPU, because the transfer costs more than the
-  arithmetic saves; the benefit starts around the convolution lesson.
+  arithmetic saves; the benefit starts around Chapter 03.
 - Solution notebooks have already been executed. Lesson 12 has no solution notebook,
   because its projects have no single right answer.
 - The book vendors KaTeX (`book/vendor/`, ~600 KB, woff2 only) so mathematics renders
   with no network connection.
 - The largest training run in the curriculum is the GPT lesson, and it peaks at about
-  860 MB of memory and finishes in minutes on a laptop CPU. Nothing here needs to run
-  overnight, and nothing needs a GPU to finish in reasonable time.
+  860 MB of memory and trains in about 4 minutes on an M4 MacBook Air (MPS). Nothing
+  here needs to run overnight.
 - Apple-silicon gotchas — including MPS silently returning zeros for out-of-range
   embedding indices where CPU raises `IndexError` — are collected in the book's
   Appendix.
