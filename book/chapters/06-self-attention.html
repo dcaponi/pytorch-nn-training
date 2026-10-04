@@ -785,7 +785,9 @@ after W^O          (32, 128, 256)</div>
   <code>scaled_dot_product_attention</code>, then <code>MultiHeadAttention</code>. Then you
   will build a classifier that applies them to the movie reviews from
   <a class="xref" href="#ch03">Chapter 03</a>. Thus you get a direct comparison of accuracy
-  with the bag-of-embeddings baseline on the same data. Only the method that combines the
+  on the same data: with the bag-of-embeddings baseline of Chapter 03, and with the RNN and
+  the LSTM of <a class="xref" href="#ch04-reviews">Chapter 04</a> and
+  <a class="xref" href="#ch05-limit">Chapter 05</a>. Only the method that combines the
   token vectors changed, so the comparison isolates exactly what attention gives. The final
   section shows the learned attention weights. Study them: several heads will have found
   something that you can interpret.

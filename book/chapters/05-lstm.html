@@ -8,7 +8,9 @@ The vanishing gradient of <a class="xref" href="#ch04">Chapter 04</a> came from 
 multiplication by the same matrix. The LSTM solves this with a second state. The network
 mostly <em>adds to</em> this state and does not transform it. Thus gradients can move along
 it without becoming smaller. The network also learns when to write to it, when to forget,
-and when to read.
+and when to read. This chapter tests the LSTM on the task of
+<a class="xref" href="#ch04-reviews">Chapter 04, Part 1</a>: the same reviews, and the same
+word vectors from Chapter 03. Only the recurrent layer changes.
 </p>
 
 <h2>Two states, not one</h2>
@@ -208,7 +210,12 @@ to 1.0, and the gradient stays flat forever. The forget gate can select that reg
   $\sigma(b_f) \approx 0.73$ at step zero. The cell then <em>remembers</em> by default, and
   it must learn to forget. A start near zero gives the opposite default. Memory decays
   before the network has learned that anything is worth keeping, and early training becomes
-  much slower. PyTorch does not do this for you.
+  much slower. PyTorch does not do this for you. Its <code>nn.LSTM</code> also has two
+  biases, <code>b_ih</code> and <code>b_hh</code>, that add, so set the forget-gate part of
+  each one to 0.5. The notebook measures it on the reviews of
+  this chapter. With the trick, the LSTM gets 77% on average over eleven runs, against 75%
+  without it. The section on reach below shows why: the trained LSTM keeps its memory path
+  open over approximately twice as many words.
 </div>
 
 <h2>Reading the gates as behavior</h2>
@@ -271,7 +278,7 @@ sequence.
 <p>
 <strong><code>out</code> or <code>h_n</code>.</strong> Use <code>out</code> when you need a
 prediction at each timestep (language modeling). Use <code>h_n[-1]</code> when you need one
-summary of the full sequence (classification, or the regression in this notebook). Note
+summary of the full sequence (classification, as in this chapter). Note
 that <code>out[:, -1, :]</code> is equal to <code>h_n[-1]</code> for a unidirectional LSTM.
 It is the same tensor, reached in two ways.
 </p>
@@ -287,10 +294,11 @@ also never applies to the output of the final layer. If you want dropout there, 
   <span class="box-label">On Apple MPS, <code>nn.LSTM</code> dropout is broken</span>
   In PyTorch 2.12 on the MPS backend, the <code>dropout</code> argument of
   <code>nn.LSTM</code> does not work. It is not applied as random dropout, and a stacked
-  LSTM with <code>dropout&gt;0</code> fails to train. On the sine task of this chapter, the
-  test MSE stays near 0.4, against approximately 0.0002 on the CPU. <code>nn.RNN</code> and
-  <code>nn.GRU</code> are not affected. On a Mac, train a stacked LSTM with dropout on the
-  CPU, or set <code>dropout=0</code>. The notebook does the first.
+  LSTM with <code>dropout&gt;0</code> fails to train. On a small regression task (a sine
+  wave), the test MSE stayed near 0.4, against approximately 0.0002 on the CPU.
+  <code>nn.RNN</code> and <code>nn.GRU</code> are not affected. On a Mac, train a stacked
+  LSTM with dropout on the CPU, or set <code>dropout=0</code>. The notebook uses one layer,
+  so the argument does not apply.
 </div>
 
 <h3>Bidirectionality</h3>
@@ -304,48 +312,30 @@ against causal context, comes back in <a class="xref" href="#ch09">Chapter 09</a
 is the main architectural split between the encoder and the decoder.
 </p>
 
-<h2>The task: sine wave prediction</h2>
+<h2 id="ch05-reviews">The same reviews, with an LSTM</h2>
 
 <p>
-The notebook changes from text to a regression problem. Given 20 samples of a sine wave,
-predict the 21st. The target is a continuous number. Thus, by the reasoning of
-<a class="xref" href="#ch00">Chapter 00</a>, the loss is MSE, which is the Gaussian negative
-log-likelihood.
+<a class="xref" href="#ch04-reviews">Part 1 of Chapter 04</a> gave an RNN the vectors of
+Chapter 03. It stayed below Chapter 03's average, because the gradient from the label
+reached only approximately the last 50 to 100 words of a review. This chapter keeps everything
+from Part 1: the reviews, the vectors, the readout of the last state and the training. It
+changes one line:
 </p>
 
-<p>
-This looks like a toy, but it is a good choice. Here are four reasons:
-</p>
-
-<ul>
-  <li>A sine wave has a real long-range dependency: the phase, which continues across the
-      full window.</li>
-  <li>The correct answer is exactly known, so you can see exactly how wrong the model
-      is.</li>
-  <li>It needs no corpus.</li>
-  <li>It separates two tests that text makes difficult to separate. The normal test gives
-      the model 20 true values for each prediction. A harder test makes the model use its
-      own predictions as inputs. The notebook runs both (below).</li>
-</ul>
-
-<h3 id="ch05-one-prediction">One prediction for each window</h3>
-
-<p>
-This task is different from the task of <a class="xref" href="#ch04">Chapter 04</a>. There,
-every step had a target, and one window of 100 characters gave 100 losses. Here, one window
-of 20 values has <em>one</em> target: the next value after the window.
-</p>
+<pre><code class="language-python">self.rnn = nn.RNN(64, 64, batch_first=True)    # Chapter 04
+self.rnn = nn.LSTM(64, 64, batch_first=True)   # this chapter
+out = self.rnn(e)[0]                           # (B, 600, 64) for both</code></pre>
 
 <figure class="figure wide">
 <svg viewBox="0 0 760 332" role="img" aria-labelledby="lstm-m1-t lstm-m1-d" style="font-family:var(--sans)">
-  <title id="lstm-m1-t">The sine task: twenty values in, one prediction out</title>
-  <desc id="lstm-m1-d">The LSTM is unrolled over 20 steps. Each step reads one true value of the sine wave. The cell state c and the hidden state h go from each step to the next. The hidden states of steps 1 to 19 are calculated but not used. Only the hidden state of step 20 goes through a linear layer, which gives one prediction, y-hat 21. That prediction is compared with the true value y 21 by the mean squared error, which gives one loss for the window.</desc>
+  <title id="lstm-m1-t">The LSTM reads a review and gives one label</title>
+  <desc id="lstm-m1-d">The LSTM is unrolled over the words of a review. Each step reads the Chapter 03 vector of one word. The cell state c and the hidden state h go from each step to the next. The hidden states of the earlier steps are calculated but not used. Only the hidden state after the last real word goes through a linear layer and a sigmoid, which give the probability that the review is positive. Binary cross-entropy compares it with the label, which gives one loss for the review.</desc>
   <defs>
     <marker id="lm-arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
     <marker id="lm-arw-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
   </defs>
 
-  <text x="300" y="30" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--ink)">20 true values in, 1 prediction out, 1 loss for each window</text>
+  <text x="300" y="30" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--ink)">one review in, one label out, one loss for each review</text>
 
   <!-- states between the steps -->
   <g fill="none" stroke="var(--concept)" stroke-width="3">
@@ -378,7 +368,7 @@ of 20 values has <em>one</em> target: the next value after the window.
     <text x="120" y="176">LSTM</text><text x="250" y="176">LSTM</text><text x="380" y="176">LSTM</text><text x="590" y="176">LSTM</text>
   </g>
   <g font-size="10.5" text-anchor="middle" fill="var(--ink-faint)">
-    <text x="120" y="194">step 1</text><text x="250" y="194">step 2</text><text x="380" y="194">step 3</text><text x="590" y="194">step 20</text>
+    <text x="120" y="194">step 1</text><text x="250" y="194">step 2</text><text x="380" y="194">step 3</text><text x="590" y="194">last word</text>
   </g>
 
   <!-- inputs -->
@@ -387,15 +377,15 @@ of 20 values has <em>one</em> target: the next value after the window.
     <path d="M380,250 V211" marker-end="url(#lm-arw)"/><path d="M590,250 V211" marker-end="url(#lm-arw)"/>
   </g>
   <g fill="none" stroke="var(--notebook)" stroke-width="1.5">
-    <rect x="88" y="250" width="64" height="26" rx="6"/><rect x="218" y="250" width="64" height="26" rx="6"/>
-    <rect x="348" y="250" width="64" height="26" rx="6"/><rect x="558" y="250" width="64" height="26" rx="6"/>
+    <rect x="80" y="250" width="80" height="26" rx="6"/><rect x="210" y="250" width="80" height="26" rx="6"/>
+    <rect x="340" y="250" width="80" height="26" rx="6"/><rect x="550" y="250" width="80" height="26" rx="6"/>
   </g>
   <g font-size="13" font-weight="600" text-anchor="middle" fill="var(--notebook)">
-    <text x="120" y="268">x<tspan font-size="10" dy="3">1</tspan></text><text x="250" y="268">x<tspan font-size="10" dy="3">2</tspan></text>
-    <text x="380" y="268">x<tspan font-size="10" dy="3">3</tspan></text><text x="590" y="268">x<tspan font-size="10" dy="3">20</tspan></text>
+    <text x="120" y="268">the</text><text x="250" y="268">acting</text>
+    <text x="380" y="268">was</text><text x="590" y="268">terrible</text>
   </g>
-  <path d="M88,290 V298 H622 V290" fill="none" stroke="var(--notebook)" stroke-width="1.3"/>
-  <text x="355" y="318" font-size="12" text-anchor="middle" fill="var(--notebook)">20 consecutive true values of the wave: one window</text>
+  <path d="M80,290 V298 H630 V290" fill="none" stroke="var(--accent)" stroke-width="1.3"/>
+  <text x="355" y="318" font-size="12" text-anchor="middle" fill="var(--accent)">each word becomes its Chapter 03 vector (64 numbers, kept fixed)</text>
 
   <!-- outputs of steps 1-19: calculated, not used -->
   <g fill="none" stroke="var(--ink-soft)" stroke-width="1.3" opacity="0.45" stroke-dasharray="3 3">
@@ -409,10 +399,10 @@ of 20 values has <em>one</em> target: the next value after the window.
 
   <!-- the one output -->
   <path d="M590,148 V118" fill="none" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#lm-arw)"/>
-  <rect x="540" y="84" width="100" height="32" rx="6" fill="var(--accent)" fill-opacity="0.13" stroke="var(--accent)" stroke-width="1.5"/>
-  <text x="590" y="105" font-size="12.5" font-weight="600" text-anchor="middle" fill="var(--accent)">Linear 32 → 1</text>
+  <rect x="530" y="84" width="120" height="32" rx="6" fill="var(--accent)" fill-opacity="0.13" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="590" y="105" font-size="12.5" font-weight="600" text-anchor="middle" fill="var(--accent)">Linear 64 → 1, σ</text>
   <path d="M590,84 V66" fill="none" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#lm-arw)"/>
-  <text x="590" y="58" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--byhand)">ŷ<tspan font-size="10" dy="3">21</tspan><tspan dy="-3">  vs  true y</tspan><tspan font-size="10" dy="3">21</tspan><tspan dy="-3">  →  MSE</tspan></text>
+  <text x="590" y="58" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--byhand)">p(positive)  vs  label  →  BCE</text>
 
   <!-- legend -->
   <g font-size="11" fill="var(--ink-soft)">
@@ -422,47 +412,198 @@ of 20 values has <em>one</em> target: the next value after the window.
     <text x="686" y="198">hidden state h</text>
   </g>
 </svg>
-<figcaption><b>The sine task: one prediction for each window.</b> The LSTM reads 20 true
-values, one for each step. The cell state $c$ and the hidden state $h$ carry the past to the
-right. Every step calculates a hidden state, but only $h_{20}$ is used: a linear layer
-changes it into one prediction, $\hat{y}_{21}$, and the mean squared error compares it with
-the true value. Compare <a class="xref" href="#ch04-every-step">Chapter 04</a>, where every
-step had a target and a loss. The notebook stacks two LSTM layers. The figure shows one
-layer.</figcaption>
+<figcaption><b>The LSTM on a review: one label for each review.</b> This is the setup of
+<a class="xref" href="#ch04-reviews">Chapter 04, Part 1</a>, with an LSTM in place of the
+RNN. Each step reads the Chapter 03 vector of one word. The cell state $c$ and the hidden
+state $h$ carry the past to the right. Every step calculates a hidden state, but the
+classifier uses only $h$ after the last real word. The new part is the thick line: the cell
+state, which the network mostly adds to, so a gradient can travel along it.</figcaption>
 </figure>
 
 <p>
-The training data and the test data are windows of the same wave. The first 144 windows are
-for training, and the last 36 are for the test. The split keeps the order of time, so every
-test window comes after every training window. For each window, the model reads 20 true
-values and predicts one. Training changes the weights. The test only measures the error. In
-the notebook runs, the test MSE was between $1\times10^{-6}$ and $7\times10^{-6}$, which is
-a typical error of 0.001 to 0.003 for each prediction.
+<strong>The measurement.</strong> Five to twelve runs of each model, with different seeds.
+Each run also trains Chapter 03's model again, to make the vectors:
+</p>
+
+<div class="given">all read Chapter 03's vectors, kept fixed   test accuracy
+RNN, last state (Chapter 04)                68–73%  (mean 70)
+RNN, 150 units (≈ the LSTM's size)          65–70%  (mean 68)
+LSTM, last state                            73–79%  (mean 75)
+LSTM, last state, forget-gate bias 1        75–81%  (mean 77)
+Chapter 03's average                        80%     (79.5 to 80.5)</div>
+
+<p>
+The LSTM beats the RNN in every run with the same seed, by approximately 5 points on
+average. The bigger RNN shows that the gain does not come from size. With approximately the
+parameters of the LSTM, the RNN does not improve. (Exercise 05.2 explains why that test is
+necessary.) Thus the gain comes from the cell state. The forget-gate bias trick from the box above
+adds approximately 2 more points on average. But the spread is large, and on average no LSTM
+reaches Chapter 03's average. (In one run of eleven, the LSTM with the bias trick passed it,
+by less than a point.)
+</p>
+
+<h3 id="ch05-reach">Why: the LSTM learns to keep its memory open</h3>
+
+<p>
+Chapter 04 measured how far back the label reaches: the gradient of the loss with respect
+to the vector of each word, relative to the last word. Here is the same measurement for the
+LSTM, before and after training, with and without the forget-gate bias trick. A single run
+can differ from the median by a factor of 100, so the table gives the median of five runs.
+Read the orders of magnitude, not the digits.
+</p>
+
+<div class="given">            RNN       LSTM, default bias    LSTM, forget bias 1
+words      trained   untrained  trained    untrained  trained
+from end
+   11       0.2       0.005      0.5        0.08       0.5
+   51       0.01      10⁻¹¹      0.2        10⁻⁵       0.4
+  101       10⁻⁶      0          0.08       10⁻⁹       0.5
+  201       10⁻¹³     0          0.004      0          0.08
+  401       0         0          10⁻⁶       0          0.01</div>
+
+<p>
+Read the two "untrained" columns first. Before training, the default LSTM forgets
+<em>faster</em> than the trained RNN. With all its biases at zero, each forget gate starts
+near $\sigma(0) = 0.5$, and $0.5^{50} \approx 10^{-15}$. The cell state is a path that the
+network <em>can</em> keep open. It is not open by default. Training opens it: the forget
+gates learn values near 1 for the slots that matter. Then the label reaches approximately 100
+to 200 words back, where the RNN reaches 50 to 100. With the bias trick, each gate starts
+at $\sigma(1) = 0.73$. The path starts more open, and after training the label reaches
+approximately 400 words back. That is why the trick adds accuracy.
 </p>
 
 <p>
-That test is easy in one way: every input is a true value. A forecast of many steps cannot
-have true inputs. The model must use its own predictions. Start with the first test window.
-Predict the next value, add the prediction to the end of the window, remove the first value,
-and predict again:
+Even the trained LSTM does not reach every word. At 401 words from the end, the gradient is
+approximately $10^{-6}$ of its value at the last word, or $0.01$ with the bias trick. The
+cell state makes long memory <em>possible</em>. It does not make it free.
 </p>
 
-<div class="given">window 1:  x₁₄₅ … x₁₆₄          (20 true values)   ->  ŷ₁₆₅
-window 2:  x₁₄₆ … x₁₆₄, ŷ₁₆₅     (19 true, 1 own)    ->  ŷ₁₆₆
-window 3:  x₁₄₇ … x₁₆₄, ŷ₁₆₅, ŷ₁₆₆                   ->  ŷ₁₆₇
-...
-after 20 steps, every value in the window is a prediction of the model</div>
+<h2 id="ch05-limit">The limit: one state, one step at a time</h2>
 
 <p>
-Now an error at one step goes into the input of every later step. The errors grow, but on
-this clean wave they grow slowly. In three runs, the error after 50 steps on its own outputs
-was 0.004 to 0.016, and after 200 steps (two full periods past the end of the data) it was
-0.03 to 0.10. The lowest points of the wave become shallower first. Thus a test with true
-inputs, which reports an error of approximately 0.002, does not tell you how well the model forecasts 200
-steps. That is the same exposure bias as in
-<a class="xref" href="#ch04-train-eval-generate">Chapter 04</a>: the model trained only on
-true inputs, and the forecast gives it its own.
+The LSTM is a real improvement on the RNN. But on average, neither model beats Chapter 03's
+average, although the average discards the order of the words. The last state must carry everything
+about a review of 600 words in 64 numbers, and it must collect that information one word
+after the other.
 </p>
+
+<p>
+The notebook tries one more readout. It does not use only the last state. It takes the
+hidden state at <em>every</em> real word and averages them, with the same masked mean as
+Chapter 03:
+</p>
+
+<div class="given">LSTM, last state                       73–79%   (mean 75)
+LSTM, last state, forget-gate bias 1   75–81%   (mean 77)
+LSTM, mean of all its states           76–79%   (mean 78)
+Chapter 03's average                   80%      (79.5 to 80.5)</div>
+
+<p>
+Reading every state is better than the default LSTM's last state, and about the same as
+the last state with the forget-gate bias. The gap to Chapter 03's average stays
+approximately 2 points. The readout of all the states stayed below the average in every
+run. Each state $h_t$ summarizes the review up to word $t$. Thus the mean
+also uses the start and the middle of the review, and the last state uses mostly the end.
+</p>
+
+<figure class="figure wide">
+<svg viewBox="0 0 760 312" role="img" aria-labelledby="rd-t rd-d" style="font-family:var(--sans)">
+  <title id="rd-t">Three ways to make one summary of a review</title>
+  <desc id="rd-d">Three rows of bars over the nine words of the review "the acting was good but the plot was terrible". Each bar is the weight that a position gets in the summary. Top row, the last state only: weight 1 at the last word and 0 elsewhere. Middle row, the mean of all states: one ninth at every word. Bottom row, learned weights as in attention, example values: 0.40 at "terrible", 0.25 at "good", 0.10 at "acting", and small weights elsewhere. Each row adds to 1.</desc>
+  <line x1="214" y1="96" x2="740" y2="96" stroke="var(--rule)" stroke-width="1"/>
+  <text x="14" y="72" font-size="12.5" font-weight="600" fill="var(--ink-soft)">last state only</text>
+  <text x="14" y="88" font-size="10.5" fill="var(--ink-faint)">this chapter's LSTM</text>
+  <text x="240" y="92.0" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">0</text>
+  <text x="297" y="92.0" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">0</text>
+  <text x="354" y="92.0" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">0</text>
+  <text x="411" y="92.0" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">0</text>
+  <text x="468" y="92.0" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">0</text>
+  <text x="525" y="92.0" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">0</text>
+  <text x="582" y="92.0" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">0</text>
+  <text x="639" y="92.0" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">0</text>
+  <rect x="681" y="36.0" width="30" height="60.0" rx="2" fill="var(--ink-soft)" fill-opacity="0.7"/>
+  <text x="696" y="32.0" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">1</text>
+  <line x1="214" y1="180" x2="740" y2="180" stroke="var(--rule)" stroke-width="1"/>
+  <text x="14" y="156" font-size="12.5" font-weight="600" fill="var(--concept)">mean of all states</text>
+  <text x="14" y="172" font-size="10.5" fill="var(--ink-faint)">equal weights: 1/9 each</text>
+  <rect x="225" y="173.3" width="30" height="6.7" rx="2" fill="var(--concept)" fill-opacity="0.7"/>
+  <text x="240" y="169.3" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">1/9</text>
+  <rect x="282" y="173.3" width="30" height="6.7" rx="2" fill="var(--concept)" fill-opacity="0.7"/>
+  <text x="297" y="169.3" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">1/9</text>
+  <rect x="339" y="173.3" width="30" height="6.7" rx="2" fill="var(--concept)" fill-opacity="0.7"/>
+  <text x="354" y="169.3" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">1/9</text>
+  <rect x="396" y="173.3" width="30" height="6.7" rx="2" fill="var(--concept)" fill-opacity="0.7"/>
+  <text x="411" y="169.3" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">1/9</text>
+  <rect x="453" y="173.3" width="30" height="6.7" rx="2" fill="var(--concept)" fill-opacity="0.7"/>
+  <text x="468" y="169.3" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">1/9</text>
+  <rect x="510" y="173.3" width="30" height="6.7" rx="2" fill="var(--concept)" fill-opacity="0.7"/>
+  <text x="525" y="169.3" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">1/9</text>
+  <rect x="567" y="173.3" width="30" height="6.7" rx="2" fill="var(--concept)" fill-opacity="0.7"/>
+  <text x="582" y="169.3" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">1/9</text>
+  <rect x="624" y="173.3" width="30" height="6.7" rx="2" fill="var(--concept)" fill-opacity="0.7"/>
+  <text x="639" y="169.3" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">1/9</text>
+  <rect x="681" y="173.3" width="30" height="6.7" rx="2" fill="var(--concept)" fill-opacity="0.7"/>
+  <text x="696" y="169.3" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">1/9</text>
+  <line x1="214" y1="264" x2="740" y2="264" stroke="var(--rule)" stroke-width="1"/>
+  <text x="14" y="240" font-size="12.5" font-weight="600" fill="var(--accent)">learned weights</text>
+  <text x="14" y="256" font-size="10.5" fill="var(--ink-faint)">Chapter 06, example values</text>
+  <rect x="225" y="262.8" width="30" height="1.2" rx="2" fill="var(--accent)" fill-opacity="0.7"/>
+  <text x="240" y="258.8" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">.02</text>
+  <rect x="282" y="258.0" width="30" height="6.0" rx="2" fill="var(--accent)" fill-opacity="0.7"/>
+  <text x="297" y="254.0" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">.10</text>
+  <rect x="339" y="262.8" width="30" height="1.2" rx="2" fill="var(--accent)" fill-opacity="0.7"/>
+  <text x="354" y="258.8" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">.02</text>
+  <rect x="396" y="249.0" width="30" height="15.0" rx="2" fill="var(--accent)" fill-opacity="0.7"/>
+  <text x="411" y="245.0" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">.25</text>
+  <rect x="453" y="259.2" width="30" height="4.8" rx="2" fill="var(--accent)" fill-opacity="0.7"/>
+  <text x="468" y="255.2" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">.08</text>
+  <rect x="510" y="262.8" width="30" height="1.2" rx="2" fill="var(--accent)" fill-opacity="0.7"/>
+  <text x="525" y="258.8" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">.02</text>
+  <rect x="567" y="259.2" width="30" height="4.8" rx="2" fill="var(--accent)" fill-opacity="0.7"/>
+  <text x="582" y="255.2" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">.08</text>
+  <rect x="624" y="262.2" width="30" height="1.8" rx="2" fill="var(--accent)" fill-opacity="0.7"/>
+  <text x="639" y="258.2" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">.03</text>
+  <rect x="681" y="240.0" width="30" height="24.0" rx="2" fill="var(--accent)" fill-opacity="0.7"/>
+  <text x="696" y="236.0" font-size="10.5" text-anchor="middle" fill="var(--ink-soft)">.40</text>
+  <text x="240" y="292" font-size="12" text-anchor="middle" fill="var(--notebook)" font-weight="600">the</text>
+  <text x="297" y="292" font-size="12" text-anchor="middle" fill="var(--notebook)" font-weight="600">acting</text>
+  <text x="354" y="292" font-size="12" text-anchor="middle" fill="var(--notebook)" font-weight="600">was</text>
+  <text x="411" y="292" font-size="12" text-anchor="middle" fill="var(--notebook)" font-weight="600">good</text>
+  <text x="468" y="292" font-size="12" text-anchor="middle" fill="var(--notebook)" font-weight="600">but</text>
+  <text x="525" y="292" font-size="12" text-anchor="middle" fill="var(--notebook)" font-weight="600">the</text>
+  <text x="582" y="292" font-size="12" text-anchor="middle" fill="var(--notebook)" font-weight="600">plot</text>
+  <text x="639" y="292" font-size="12" text-anchor="middle" fill="var(--notebook)" font-weight="600">was</text>
+  <text x="696" y="292" font-size="12" text-anchor="middle" fill="var(--notebook)" font-weight="600">terrible</text>
+</svg>
+<figcaption><b>Three ways to make one summary of a review.</b> Each bar is the weight that
+one position gets in the summary, and each row adds to 1. The last-state readout puts all
+the weight on the end. That state must carry the whole review, through every step before it.
+The mean gives every position the same weight, so "the" counts as much as "terrible". The
+bottom row is the idea of <a class="xref" href="#ch06">Chapter 06</a>: the model calculates
+a weight for each position from its content, and reads each position directly. Its values
+here are examples, not a measurement.</figcaption>
+</figure>
+
+<p>
+Look at what that mean does. It gives every position the same weight: $1/600$ for a full
+review. "The" gets the same weight as "terrible". A better model would give each position
+its own weight, calculated from the content at that position, and it would read each
+position directly, not through 600 steps of a state. That model is
+<strong>attention</strong>, and <a class="xref" href="#ch06">Chapter 06</a> builds it.
+Chapter 06 uses the same reviews, so you can compare its result directly with the numbers
+above.
+</p>
+
+<div class="box note">
+  <span class="box-label">What these numbers can and cannot tell you</span>
+  The test set has 400 reviews. Thus one run can move by two or three points from the seed
+  alone, and the table gives the range of five runs. With 1,600 training reviews, the task
+  is mostly a question of which words occur, and the average reads that directly. These
+  results tell you what happens with 1,600 reviews of up to 600 words. They do not tell you
+  what happens with much more data, and this book does not measure that. Thus do not read
+  them as "an LSTM is worse than an average". Read them as: here, the order of the words is
+  not yet worth the cost of reading it through one state, one step at a time.
+</div>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 05.1</span>
@@ -523,7 +664,7 @@ tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
     <li>An LSTM cell calculates four pre-activations. Each one comes from the concatenation
         $[h_{t-1}, x_t]$. For input size $n$ and hidden size $m$, how many parameters is
         that in total (weights and biases)?</li>
-    <li>Calculate it for $n = 1$ and $m = 64$, as in the notebook.</li>
+    <li>Calculate it for $n = 64$ and $m = 64$, as in the notebook.</li>
     <li>How many parameters does a plain RNN with the same sizes have? What is the ratio,
         and where does it come from?</li>
     <li>The LSTM has 4 times the parameters for each unit. Give one argument why a
@@ -535,12 +676,12 @@ tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
     <p><strong>1.</strong> Each of the four gates has a weight matrix over the concatenated
     input of width $n + m$. It gives $m$ outputs, and it has $m$ biases:</p>
     $$4\big[m(n + m) + m\big] = 4m(n + m + 1)$$
-    <p><strong>2.</strong> $4 \times 64 \times (1 + 64 + 1) = 256 \times 66 =
-    \mathbf{16{,}896}$. (PyTorch reports 17,152. <code>nn.LSTM</code> stores two bias
+    <p><strong>2.</strong> $4 \times 64 \times (64 + 64 + 1) = 256 \times 129 =
+    \mathbf{33{,}024}$. (PyTorch reports 33,280. <code>nn.LSTM</code> stores two bias
     vectors, <code>b_ih</code> and <code>b_hh</code>, so its count is $4m(n + m + 2)$. The
     second bias is redundant, because the two biases always add.)</p>
     <p><strong>3.</strong> A plain RNN has one of these blocks, not four:
-    $64 \times 66 = 4{,}224$ (PyTorch: 4,288, for the same reason). The ratio is exactly <strong>4×</strong>. It comes from the
+    $64 \times 129 = 8{,}256$ (PyTorch: 8,320, for the same reason). The ratio is exactly <strong>4×</strong>. It comes from the
     three gates: the single transformation of the RNN, plus $f$, $i$ and $o$.</p>
     <p><strong>4.</strong> At equal hidden size, the LSTM has four times the capacity. Thus,
     if it beats the RNN, that proves little. Some of the gain can come from parameters, not
@@ -548,7 +689,9 @@ tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
     you give the RNN approximately two times the hidden units
     ($m_{\text{RNN}} \approx 2m_{\text{LSTM}}$, because parameters increase as $m^2$). The
     LSTM usually still wins on long sequences, but by less. The gap that stays is the part
-    that really comes from gated memory, not from size. Apply this generally: almost each
+    that really comes from gated memory, not from size. The notebook does this test: an RNN
+    with 150 hidden units has approximately the parameters of the LSTM with 64 (32,551
+    against 33,345 trainable numbers). Apply this generally: almost each
     architecture comparison in the literature is confounded by parameter count, unless it
     explicitly says otherwise.</p>
   </details>
@@ -615,12 +758,11 @@ tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
 
 <div class="box nbref">
   <span class="box-label">Notebook</span>
-  Open <code>05_lstm_pytorch/prompt.ipynb</code>. You will make the sine data, build
-  sliding-window sequences, define the LSTM regressor, train it, and plot predictions
-  against the true values. Step 9 then feeds the model its own predictions for 200 steps,
-  and compares that forecast with the one-step test. The final section compares directly with the RNN from
-  <a class="xref" href="#ch04">Chapter 04</a>. Remember exercise 05.2 when you read that
-  comparison.
+  Open <code>05_lstm_pytorch/prompt.ipynb</code>. You will rebuild the reviews and the
+  vectors of Chapter 03, write one classifier that can use an RNN or an LSTM and read the
+  last state or the mean of all states, and train it. Then you will measure how far back the
+  label reaches, before and after training, and compare the readouts. Remember exercise 05.2
+  when you read the comparison.
 </div>
 
 <div class="box source">
@@ -644,11 +786,12 @@ tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
 
 <div class="box note">
   <span class="box-label">Where this goes next</span>
-  LSTMs solved the gradient problem, but they kept the sequential bottleneck. The model
+  The LSTM made long memory possible, but it kept the sequential bottleneck. The model
   cannot calculate step $t$ until step $t-1$ is done. Thus training cannot run in parallel
-  across time, and all the information must still go through one fixed-width state.
+  across time, and all the information must still go through one fixed-width state. The best
+  readout in this chapter read every state with equal weights.
   <a class="xref" href="#ch06">Chapter 06</a> removes recurrence completely. It lets each
-  position look directly at each other position.
+  position look directly at each other position, with weights that the model calculates.
 </div>
 
 </section>

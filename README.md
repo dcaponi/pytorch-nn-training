@@ -164,21 +164,31 @@ The first real data: the NLTK movie_reviews corpus, 2,000 actual film reviews.
   for this model but unrepresentable. Every later architecture is measured against this
   number.
 
-### 04 — RNN for Character-Level Text Generation
-Train a recurrent network on *Alice's Adventures in Wonderland*.
+### 04 — RNN: Reading Reviews, Then Writing Alice
+Part 1 gives an RNN the word vectors of lesson 03 and classifies the same reviews. Part 2
+trains a character-level language model on *Alice's Adventures in Wonderland*.
 
 - Hidden state, weight sharing, backpropagation through time
-- The vanishing gradient, derived and then measured
+- The vectors matter most: from about 54% with fresh vectors to about 70% with lesson 03's,
+  still below lesson 03's average (about 80%)
+- The vanishing gradient, derived and then measured: the label reaches only about the last
+  50 words of a review
+- A target at every step: what one window trains on, teacher forcing, held-out evaluation,
+  and generation with temperature
 - Gradient clipping, and why it fixes explosion but not vanishing
-- Temperature sampling
 
-### 05 — LSTM for Time-Series Prediction
-Predict a sine wave from sliding windows, then compare against the RNN.
+### 05 — LSTM: the Same Reviews, a Longer Memory
+Change one line of lesson 04 (`nn.RNN` becomes `nn.LSTM`) on the same reviews and vectors.
 
 - Cell state vs hidden state, and the additive gradient path
 - Forget, input, and output gates read as behavior
+- About 76% against the RNN's 70%, and an RNN with matched parameters does not close the
+  gap: the gain comes from the cell state, not from size
+- How far back the label reaches, before and after training: the LSTM *learns* to keep its
+  memory open
+- The limit: reading every hidden state (about 78%) still stays below lesson 03's average,
+  which leads into attention
 - `nn.LSTM` API details: `batch_first`, `out` vs `h_n`, inter-layer dropout
-- Comparing architectures fairly at matched parameter counts
 
 ### 06 — Self-Attention from Scratch
 Implement scaled dot-product and multi-head attention, applied to the movie reviews

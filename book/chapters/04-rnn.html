@@ -11,6 +11,12 @@ it fails, and you must understand the reason in detail. The fix for that failure
 the chapters after it.
 </p>
 
+<p>
+The chapter has two parts. In Part 1, an RNN reads the word vectors of Chapter 03 and
+classifies the same reviews: one label for each review. In Part 2, the same kind of RNN
+learns to predict the next character of a book: a target at every step.
+</p>
+
 <h2>The recurrence</h2>
 
 <p>
@@ -29,8 +35,8 @@ two times as long costs two times the compute, not two times the weights.
 
 <figure class="figure wide">
 <svg viewBox="0 0 760 362" role="img" aria-labelledby="rnn-step-t rnn-step-d" style="font-family:var(--sans)">
-  <title id="rnn-step-t">One step of a character RNN, with each part named</title>
-  <desc id="rnn-step-d">A character id enters at the bottom and goes through the embedding table E to a 64-number vector. Inside the step, W_xh multiplies that vector and W_hh multiplies the previous hidden state, which enters from the left. The two results and the bias b_h are added, and tanh gives the new hidden state h_t. h_t leaves to the right, to the next step. h_t also goes up through W_hy to 72 logits and a softmax, which gives the probability of each possible next character.</desc>
+  <title id="rnn-step-t">One step of the review RNN, with each part named</title>
+  <desc id="rnn-step-d">A word id enters at the bottom and goes through the embedding table E of Chapter 03 to a 64-number vector. Inside the step, W_xh multiplies that vector and W_hh multiplies the previous hidden state, which enters from the left. The two results and the bias b_h are added, and tanh gives the new hidden state h_t. h_t leaves to the right, to the next step. After the last word only, h_t also goes up through W_hy to one logit and a sigmoid, which gives the probability that the review is positive.</desc>
   <defs>
     <marker id="rs-arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
     <marker id="rs-arw-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
@@ -49,7 +55,7 @@ two times as long costs two times the compute, not two times the weights.
     <text x="530" y="190">h<tspan font-size="11" dy="3">t</tspan></text>
   </g>
   <g font-size="11" fill="var(--ink-faint)">
-    <text x="30" y="220">the past, 256 numbers</text>
+    <text x="30" y="220">the past, 64 numbers</text>
     <text x="742" y="220" text-anchor="end">to step t+1</text>
   </g>
 
@@ -75,7 +81,7 @@ two times as long costs two times the compute, not two times the weights.
   <rect x="420" y="186" width="64" height="28" rx="6" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.4"/>
   <text x="452" y="205" font-size="13" text-anchor="middle" fill="var(--ink)">tanh</text>
   <rect x="560" y="40" width="80" height="28" rx="6" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.4"/>
-  <text x="600" y="59" font-size="13" text-anchor="middle" fill="var(--ink)">softmax</text>
+  <text x="600" y="59" font-size="13" text-anchor="middle" fill="var(--ink)">sigmoid</text>
 
   <g font-size="13" font-weight="600" text-anchor="middle" fill="var(--accent)">
     <text x="283" y="198">× W<tspan font-size="10" dy="3">hh</tspan></text>
@@ -84,21 +90,21 @@ two times as long costs two times the compute, not two times the weights.
     <text x="600" y="119">× W<tspan font-size="10" dy="3">hy</tspan><tspan dy="-3"> + b</tspan><tspan font-size="10" dy="3">y</tspan></text>
   </g>
   <g font-size="10.5" text-anchor="middle" fill="var(--ink-faint)">
-    <text x="283" y="212">256 × 256</text>
-    <text x="380" y="256">64 × 256</text>
-    <text x="380" y="318">72 × 64, one row per char</text>
-    <text x="600" y="133">256 × 72</text>
+    <text x="283" y="212">64 × 64</text>
+    <text x="380" y="256">64 × 64</text>
+    <text x="380" y="318">10,000 × 64, from Chapter 03</text>
+    <text x="600" y="133">64 × 1</text>
   </g>
   <text x="380" y="180" font-size="11.5" text-anchor="middle" fill="var(--accent)">+ b<tspan font-size="9.5" dy="3">h</tspan></text>
   <g font-size="11" fill="var(--ink-faint)">
     <text x="390" y="284">e<tspan font-size="9" dy="3">t</tspan><tspan dy="-3">: 64 numbers</tspan></text>
-    <text x="610" y="90">72 logits</text>
+    <text x="610" y="90">1 logit (last word only)</text>
   </g>
 
   <!-- data in and out -->
   <g font-size="13" font-weight="600" text-anchor="middle" fill="var(--notebook)">
-    <text x="380" y="354">x<tspan font-size="10" dy="3">t</tspan><tspan dy="-3"> = 'q'   (one character id)</tspan></text>
-    <text x="600" y="24">p(next character)</text>
+    <text x="380" y="354">x<tspan font-size="10" dy="3">t</tspan><tspan dy="-3"> = 'great'   (one word id)</tspan></text>
+    <text x="600" y="24">p(positive review)</text>
   </g>
 
   <!-- legend -->
@@ -111,15 +117,16 @@ two times as long costs two times the compute, not two times the weights.
     <text x="46" y="343">data in and out</text>
   </g>
 </svg>
-<figcaption><b>One step of the RNN, with each part named.</b> A character goes in at the
-bottom. The embedding $E$ changes its id into 64 numbers. $W_{xh}$ brings those numbers into
-the step, and $W_{hh}$ brings in the previous hidden state from the left. The step adds the
-two results and the bias, and $\tanh$ gives the new hidden state $h_t$. Then $h_t$ does two
-jobs. It goes right, to the next step. It also goes up, where $W_{hy}$ changes it into 72
-logits, one for each character, and the softmax changes the logits into probabilities. The
-colored boxes are the learned tensors. The step uses the <em>same</em> tensors at every
-position. The shapes are those of the notebook, which stacks two of these layers: the $h_t$
-of layer 1 is the input of layer 2.</figcaption>
+<figcaption><b>One step of the RNN, with each part named.</b> A word goes in at the
+bottom. The embedding $E$ changes its id into 64 numbers: its vector from Chapter 03.
+$W_{xh}$ brings those numbers into the step, and $W_{hh}$ brings in the previous hidden state
+from the left. The step adds the two results and the bias, and $\tanh$ gives the new hidden
+state $h_t$. Then $h_t$ goes right, to the next step. After the last word of the review,
+$h_t$ also goes up: $W_{hy}$ changes it into one logit, and the sigmoid changes the logit
+into the probability that the review is positive. The colored boxes are the parameters. The
+step uses the <em>same</em> tensors at every position. These are the shapes of Part 1. Part
+2 uses the same step with 256 numbers, and it has an output at <em>every</em> step: 72
+logits, one for each character, and a softmax.</figcaption>
 </figure>
 
 <div class="box concept">
@@ -155,7 +162,264 @@ A 256-unit hidden state must therefore hold, simultaneously:
   </p>
 </div>
 
-<h3>Character-level language modeling</h3>
+<h2 id="ch04-reviews">Part 1 · An RNN reads the vectors of Chapter 03</h2>
+
+<p>
+<a class="xref" href="#ch03">Chapter 03</a> changed each review into vectors, one for each
+word, and then averaged them. The average discards the order of the words. Part 1 changes
+one thing: the average becomes an RNN. The reviews, the split, the vocabulary, the 600-word
+limit and the vectors stay the same. Here is the full change:
+</p>
+
+<pre><code class="language-python">e = self.embedding(ids)              # (B, 600, 64): Chapter 03's vectors, kept fixed
+out, _ = self.rnn(e)                 # (B, 600, 64): h_t at every position
+last = (ids != PAD).sum(1) - 1       # where each review really ends
+h = out[torch.arange(B), last]       # (B, 64): the state after the last word
+return self.fc(h)                    # one logit for each review</code></pre>
+
+<figure class="figure wide">
+<svg viewBox="0 0 760 332" role="img" aria-labelledby="rnn-rev-t rnn-rev-d" style="font-family:var(--sans)">
+  <title id="rnn-rev-t">Part 1: the RNN reads a review and gives one label</title>
+  <desc id="rnn-rev-d">The RNN is unrolled over the words of a review. Each step reads the Chapter 03 vector of one word. The hidden state goes from each step to the next. The hidden states of the earlier steps are calculated but not used. Only the hidden state after the last real word goes through a linear layer and a sigmoid, which give the probability that the review is positive. That probability is compared with the label, which gives one loss for the review.</desc>
+  <defs>
+    <marker id="rr-arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
+    <marker id="rr-arw-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
+  </defs>
+
+  <text x="330" y="30" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--ink)">one review in, one label out, one loss for each review</text>
+
+  <!-- hidden state -->
+  <g fill="none" stroke="var(--concept)" stroke-width="2.6">
+    <path d="M44,180 H76" marker-end="url(#rr-arw-h)"/>
+    <path d="M162,180 H206" marker-end="url(#rr-arw-h)"/>
+    <path d="M292,180 H336" marker-end="url(#rr-arw-h)"/>
+    <path d="M422,180 H448"/><path d="M520,180 H546" marker-end="url(#rr-arw-h)"/>
+  </g>
+  <path d="M452,180 H516" fill="none" stroke="var(--rule-strong)" stroke-width="1.6" stroke-dasharray="3 4"/>
+  <text x="484" y="172" font-size="15" text-anchor="middle" fill="var(--ink-faint)">…</text>
+  <text x="14" y="176" font-size="11" fill="var(--concept)">h<tspan font-size="9" dy="3">0</tspan><tspan dy="-3">=0</tspan></text>
+
+  <!-- the steps -->
+  <g fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.4">
+    <rect x="78" y="156" width="84" height="48" rx="8"/><rect x="208" y="156" width="84" height="48" rx="8"/>
+    <rect x="338" y="156" width="84" height="48" rx="8"/><rect x="548" y="156" width="84" height="48" rx="8"/>
+  </g>
+  <g font-size="12.5" text-anchor="middle" fill="var(--ink)">
+    <text x="120" y="178">RNN</text><text x="250" y="178">RNN</text><text x="380" y="178">RNN</text><text x="590" y="178">RNN</text>
+  </g>
+  <g font-size="10.5" text-anchor="middle" fill="var(--ink-faint)">
+    <text x="120" y="195">step 1</text><text x="250" y="195">step 2</text><text x="380" y="195">step 3</text><text x="590" y="195">last word</text>
+  </g>
+
+  <!-- inputs: words, then their Chapter 03 vectors -->
+  <g fill="none" stroke="var(--ink-soft)" stroke-width="1.4">
+    <path d="M120,244 V207" marker-end="url(#rr-arw)"/><path d="M250,244 V207" marker-end="url(#rr-arw)"/>
+    <path d="M380,244 V207" marker-end="url(#rr-arw)"/><path d="M590,244 V207" marker-end="url(#rr-arw)"/>
+  </g>
+  <g fill="none" stroke="var(--notebook)" stroke-width="1.5">
+    <rect x="80" y="244" width="80" height="26" rx="6"/><rect x="210" y="244" width="80" height="26" rx="6"/>
+    <rect x="340" y="244" width="80" height="26" rx="6"/><rect x="550" y="244" width="80" height="26" rx="6"/>
+  </g>
+  <g font-size="13" font-weight="600" text-anchor="middle" fill="var(--notebook)">
+    <text x="120" y="262">the</text><text x="250" y="262">acting</text>
+    <text x="380" y="262">was</text><text x="590" y="262">terrible</text>
+  </g>
+  <path d="M80,284 V292 H630 V284" fill="none" stroke="var(--accent)" stroke-width="1.3"/>
+  <text x="355" y="312" font-size="12" text-anchor="middle" fill="var(--accent)">each word becomes its Chapter 03 vector (64 numbers, kept fixed)</text>
+
+  <!-- outputs of the earlier steps: calculated, not used -->
+  <g fill="none" stroke="var(--ink-soft)" stroke-width="1.3" opacity="0.45" stroke-dasharray="3 3">
+    <path d="M120,154 V122"/><path d="M250,154 V122"/><path d="M380,154 V122"/>
+  </g>
+  <g font-size="11" text-anchor="middle" fill="var(--ink-faint)" opacity="0.8">
+    <text x="120" y="112">h<tspan font-size="9" dy="3">1</tspan><tspan dy="-3">: not used</tspan></text>
+    <text x="250" y="112">h<tspan font-size="9" dy="3">2</tspan><tspan dy="-3">: not used</tspan></text>
+    <text x="380" y="112">h<tspan font-size="9" dy="3">3</tspan><tspan dy="-3">: not used</tspan></text>
+  </g>
+
+  <!-- the one output -->
+  <path d="M590,154 V122" fill="none" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#rr-arw)"/>
+  <rect x="530" y="88" width="120" height="32" rx="6" fill="var(--accent)" fill-opacity="0.13" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="590" y="109" font-size="12.5" font-weight="600" text-anchor="middle" fill="var(--accent)">Linear 64 → 1, σ</text>
+  <path d="M590,88 V70" fill="none" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#rr-arw)"/>
+  <text x="590" y="62" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--byhand)">p(positive)  vs  label  →  BCE</text>
+
+  <!-- legend -->
+  <g font-size="11" fill="var(--ink-soft)">
+    <line x1="664" y1="180" x2="684" y2="180" stroke="var(--concept)" stroke-width="2.6"/>
+    <text x="690" y="184">hidden state</text>
+  </g>
+</svg>
+<figcaption><b>Part 1: one review in, one label out.</b> The RNN reads the Chapter 03 vector
+of each word, in order. Every step calculates a hidden state, but the classifier uses only
+the state after the last real word. One linear layer and a sigmoid change that state into
+the probability that the review is positive, and binary cross-entropy compares it with the
+label. Thus a review gives one loss, not one for each word. Everything about the early words
+must reach the end through the hidden state.</figcaption>
+</figure>
+
+<p>
+The embedding table comes from the trained Chapter 03 model, and it stays fixed. Thus each
+word arrives with what Chapter 03 learned about it. Chapter 03's vectors learned mainly one
+thing: which side of the verdict a word is on. In the notebook, the nearest neighbors of
+"boring" are "mess", "awful", "worst" and "bad". The RNN does not have to learn the meaning
+of 10,000 words again. It must learn only how to combine the vectors, in order.
+</p>
+
+<div class="box warn">
+  <span class="box-label">Use the state at the last real word</span>
+  The reviews are padded at the <em>end</em>, and 30% of them are shorter than 600 words.
+  After its last real word, a short review continues with <code>&lt;PAD&gt;</code> vectors,
+  which are zeros. The RNN still runs at each of those steps, and each step multiplies the
+  state by $W_{hh}$. Thus the information about the review fades, and the state at position
+  600 depends mostly on how much padding there was. Take the state at the last real word.
+  (<code>nn.utils.rnn.pack_padded_sequence</code> is the library's way to stop each sequence
+  at its real length.)
+</div>
+
+<p>
+<strong>The measurement.</strong> The notebook trains the RNN two ways and compares it with
+Chapter 03:
+</p>
+
+<div class="given">model                                   test accuracy
+RNN, vectors learned from zero          53–55%  (2 runs)
+RNN, Chapter 03's vectors, kept fixed   68–73%  (mean 70)
+Chapter 03: the average of the vectors  80%     (79.5 to 80.5)
+
+The test set has 400 reviews, so one run moves by a point or two from the
+seed alone. Each line gives the range over several runs with different seeds.</div>
+
+<p>
+Two results are important. First, the vectors matter more than anything else here. From
+zero, the RNN is almost perfect on its training reviews and close to a coin flip on new
+ones. It must learn 640,000 embedding numbers and the use of word order from only 1,600
+labels, and it memorizes. With Chapter 03's vectors, the same RNN gains approximately 15
+points.
+</p>
+
+<p>
+Second, the RNN is still <em>below</em> the average, although it has the word order and the
+average does not. Something stops the RNN from using the words that it reads. The notebook
+measures what. It calculates the gradient of the loss with respect to the vector of each
+word: how much the label can change the use of that word. Relative to the last word:
+</p>
+
+<div class="given">words from the end     relative gradient, trained RNN
+                       median of 5 runs    range of the 5 runs
+          1            1                   1
+         11            0.2                 0.2 to 0.25
+         51            0.01                0.0003 to 0.08
+        101            3 × 10⁻⁶            6 × 10⁻⁷ to 0.003
+        201            5 × 10⁻¹⁴           2 × 10⁻¹⁵ to 4 × 10⁻⁹</div>
+
+<p>
+The values change a lot from run to run, so read the orders of magnitude. The trained RNN
+learns from approximately the last 50 to 100 words of each review, and from almost nothing
+before them. A review of 600 words often states its verdict early, or in the middle.
+The average reads all 600 words with the same weight, and the RNN effectively reads the
+last 50 to 100. The
+next two sections explain why the gradient fades, and
+<a class="xref" href="#ch05">Chapter 05</a> changes the architecture so that it does not.
+</p>
+
+<h2>Backpropagation through time</h2>
+
+<p>
+To train, unroll the recurrence into a feed-forward graph: $T$ copies of the same cell, one
+after the other. This is not a metaphor. The dynamic graph of PyTorch
+(<a class="xref" href="#ch02">Chapter 02</a>) really builds it as the loop runs. Then
+backpropagate through the full graph.
+</p>
+
+<p>
+The weights are shared. Thus the gradients from all timesteps add into the same tensors.
+Write $W_{hh}^{(t)}$ for the copy that step $t$ uses. Then, by the
+<a class="xref" href="#ch00-partial-derivatives-gradients-and-paths">sum over paths</a>:
+</p>
+
+$$\frac{\partial \mathcal{L}}{\partial W_{hh}} = \sum_{t=1}^{T} \frac{\partial \mathcal{L}}{\partial W_{hh}^{(t)}}$$
+
+<p>
+This is true for both parts of this chapter. In Part 1, there is one loss, after the last
+word, and it reaches each copy through the steps after it. In Part 2, there is a loss at
+every step, and each copy also gets the losses after it.
+</p>
+
+<p>
+This is the gradient accumulation of <a class="xref" href="#ch02">Chapter 02</a>, used on
+purpose and not by accident. It also means that the memory cost of training increases with
+sequence length. The backward pass needs each intermediate activation at each timestep. For
+the optimizer, a sequence of 1,000 steps is a network of 1,000 layers.
+</p>
+
+<h2>Why gradients vanish</h2>
+
+<p>
+Here is the failure. It comes from arithmetic, not from bad luck. To send a gradient from
+step $t$ back to step $k$, you must go through each cell between them. Each crossing
+multiplies by the same two factors:
+</p>
+
+$$\frac{\partial h_t}{\partial h_k} = \prod_{i=k+1}^{t} \frac{\partial h_i}{\partial h_{i-1}}
+= \prod_{i=k+1}^{t} W_{hh}^{\top} \operatorname{diag}\big(\tanh'(z_i)\big)$$
+
+<p>
+This is a product of $t - k$ terms that are almost the same. If the typical magnitude of
+that term is $\lambda$, the gradient changes as $\lambda^{t-k}$. That is exponential in the
+distance. Also, $\tanh' \le 1$ always, and it is equal to 1 only at zero. Thus, if
+$W_{hh}$ is not large enough to compensate, $\lambda < 1$.
+</p>
+
+<div class="widget" data-widget="vanishing"></div>
+
+<p>
+Set the multiplier to 0.85, and look at 30 steps back. The gradient is $10^{-2}$ of its
+original size. At 40 steps, the right edge of the plot, it is approximately $10^{-3}$. The information from early tokens is not
+distorted or noisy. It is <em>absent</em>, and you cannot tell it from zero. More training
+does not fix this, because there is no signal to train on.
+</p>
+
+<p>
+Part 1 measured this on real reviews. In the trained RNN, the gradient from the label is
+approximately $0.01$ at 50 words from the end, and approximately $10^{-6}$ at 100 (the
+medians of five runs). Thus the
+RNN cannot learn to use the start of a long review, and it uses mostly the end.
+</p>
+
+<p>
+Push the multiplier above 1, and the opposite occurs. The product explodes. It gives
+gradients of $10^{6}$ and an immediate <code>nan</code>. Exploding gradients are the easier
+problem, because clipping solves them completely:
+</p>
+
+<pre><code class="language-python">torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)</code></pre>
+
+<p>
+If the norm of the full gradient vector is more than the threshold, this scales the vector
+down. It keeps the direction and limits the magnitude. Put it after
+<code>backward()</code> and before <code>step()</code>. It is standard in each sequence
+model in this book. <a class="xref" href="#ch09">Chapter 09</a> and
+<a class="xref" href="#ch10">Chapter 10</a> both use it.
+</p>
+
+<div class="box warn">
+  <span class="box-label">Asymmetry</span>
+  Clipping fixes explosion, but nothing like it fixes vanishing. You cannot multiply a
+  gradient that is really zero back up to something useful. Vanishing gradients need a fix
+  in the architecture. <a class="xref" href="#ch05">Chapter 05</a> gives that fix.
+</div>
+
+<h2 id="ch04-part2">Part 2 · A target at every step: a character language model</h2>
+
+<p>
+Part 1 gave the RNN one label for each review. Part 2 gives it a target at
+<em>every</em> position: the next character of a book. The step is the same as in the figure
+at the top of this chapter, with 256 numbers in the hidden state. Only the output and the
+loss change: an output at every step, and one loss for each step.
+<a class="xref" href="#ch10">Chapter 10</a> trains a transformer on the same text, and
+compares the two.
+</p>
 
 <p>
 The notebook trains on <em>Alice's Adventures in Wonderland</em> at the character level. At
@@ -176,7 +440,7 @@ can say but that do not exist. Then they are real words without grammar. That pr
 is the most useful part of the exercise.
 </p>
 
-<h2 id="ch04-every-step">One training example: a prediction at every step</h2>
+<h3 id="ch04-every-step">One training example: a prediction at every step</h3>
 
 <p>
 This is the part of an RNN that most readers misunderstand. Then they memorize the diagram
@@ -363,16 +627,15 @@ not on 15,980.
 </p>
 
 <div class="box note">
-  <span class="box-label">Compare: one label for each sequence</span>
-  Some tasks have one target for the full sequence. Examples are the sentiment of a review
-  (<a class="xref" href="#ch03">Chapter 03</a>) and the next value of a sine wave
-  (<a class="xref" href="#ch05">Chapter 05</a>). Then the model uses only the last hidden
-  state, $h_T$, and the outputs of the earlier steps are calculated but not used. The RNN is
-  the same in both setups. Only the loss is different: one loss for each step, or one loss
-  for each sequence.
+  <span class="box-label">Compare Part 1: one label for each sequence</span>
+  In <a class="xref" href="#ch04-reviews">Part 1</a>, a review had one target, its label.
+  The model used only the last hidden state, $h_T$, and the outputs of the earlier steps
+  were calculated but not used. A review gave one loss. Here, a window of 100 characters
+  gives 100. The RNN is the same in both setups. Only the loss is different: one loss for
+  each step, or one loss for each sequence.
 </div>
 
-<h2 id="ch04-train-eval-generate">Training, evaluation and generation</h2>
+<h3 id="ch04-train-eval-generate">Training, evaluation and generation</h3>
 
 <p>
 You use the trained model in three different ways. They use the same weights and the same
@@ -429,79 +692,7 @@ model at epoch 30, although its training loss is two times larger.
   held-out loss next to it. If only the training loss decreases, the model is memorizing.
 </div>
 
-<h2>Backpropagation through time</h2>
-
-<p>
-To train, unroll the recurrence into a feed-forward graph: $T$ copies of the same cell, one
-after the other. This is not a metaphor. The dynamic graph of PyTorch
-(<a class="xref" href="#ch02">Chapter 02</a>) really builds it as the loop runs. Then
-backpropagate through the full graph.
-</p>
-
-<p>
-The weights are shared. Thus the gradients from all timesteps add into the same tensors:
-</p>
-
-$$\frac{\partial \mathcal{L}}{\partial W_{hh}} = \sum_{t=1}^{T} \frac{\partial \mathcal{L}_t}{\partial W_{hh}}$$
-
-<p>
-This is the gradient accumulation of <a class="xref" href="#ch02">Chapter 02</a>, used on
-purpose and not by accident. It also means that the memory cost of training increases with
-sequence length. The backward pass needs each intermediate activation at each timestep. For
-the optimizer, a sequence of 1,000 steps is a network of 1,000 layers.
-</p>
-
-<h2>Why gradients vanish</h2>
-
-<p>
-Here is the failure. It comes from arithmetic, not from bad luck. To send a gradient from
-step $t$ back to step $k$, you must go through each cell between them. Each crossing
-multiplies by the same two factors:
-</p>
-
-$$\frac{\partial h_t}{\partial h_k} = \prod_{i=k+1}^{t} \frac{\partial h_i}{\partial h_{i-1}}
-= \prod_{i=k+1}^{t} W_{hh}^{\top} \operatorname{diag}\big(\tanh'(z_i)\big)$$
-
-<p>
-This is a product of $t - k$ terms that are almost the same. If the typical magnitude of
-that term is $\lambda$, the gradient changes as $\lambda^{t-k}$. That is exponential in the
-distance. Also, $\tanh' \le 1$ always, and it is equal to 1 only at zero. Thus, if
-$W_{hh}$ is not large enough to compensate, $\lambda < 1$.
-</p>
-
-<div class="widget" data-widget="vanishing"></div>
-
-<p>
-Set the multiplier to 0.85, and look at 30 steps back. The gradient is $10^{-2}$ of its
-original size. At 40 steps, the right edge of the plot, it is approximately $10^{-3}$. The information from early tokens is not
-distorted or noisy. It is <em>absent</em>, and you cannot tell it from zero. More training
-does not fix this, because there is no signal to train on.
-</p>
-
-<p>
-Push the multiplier above 1, and the opposite occurs. The product explodes. It gives
-gradients of $10^{6}$ and an immediate <code>nan</code>. Exploding gradients are the easier
-problem, because clipping solves them completely:
-</p>
-
-<pre><code class="language-python">torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)</code></pre>
-
-<p>
-If the norm of the full gradient vector is more than the threshold, this scales the vector
-down. It keeps the direction and limits the magnitude. Put it after
-<code>backward()</code> and before <code>step()</code>. It is standard in each sequence
-model in this book. <a class="xref" href="#ch09">Chapter 09</a> and
-<a class="xref" href="#ch10">Chapter 10</a> both use it.
-</p>
-
-<div class="box warn">
-  <span class="box-label">Asymmetry</span>
-  Clipping fixes explosion, but nothing like it fixes vanishing. You cannot multiply a
-  gradient that is really zero back up to something useful. Vanishing gradients need a fix
-  in the architecture. <a class="xref" href="#ch05">Chapter 05</a> gives that fix.
-</div>
-
-<h2>Generating text, and the sampling question</h2>
+<h3>Generating text, and the sampling question</h3>
 
 <p>
 After training, generation is a loop. Give the model a seed character, and get a
@@ -834,10 +1025,12 @@ target   cat   sat   on    the   mat</div>
 
 <div class="box nbref">
   <span class="box-label">Notebook</span>
-  Open <code>04_rnn_pytorch/prompt.ipynb</code>. You will build character sequences with a
-  sliding window, define the RNN, train with gradient clipping, and generate text at
-  several temperatures. Between training and generation, three steps show what this chapter
-  describes. Step 7 prints the 100 predictions of one window and checks that the full pass
+  Open <code>04_rnn_pytorch/prompt.ipynb</code>. Part 1 (Steps R1 to R5) rebuilds the
+  reviews of Chapter 03, trains Chapter 03's model again to get its vectors, and trains the
+  RNN on them. It then measures how far back the label reaches. Part 2 builds character
+  sequences with a sliding window, defines the RNN, trains with gradient clipping, and
+  generates text at several temperatures. Between training and generation, three steps show
+  what Part 2 describes. Step 7 prints the 100 predictions of one window and checks that the full pass
   equals each prefix alone. Step 8 measures the loss on held-out text. Step 9 trains again,
   watches the held-out loss after each epoch, and keeps the best epoch. Sample at intervals during training, not only at the end. The
   progression from noise to spelling to grammar is the clearest picture of learning in the
@@ -847,9 +1040,9 @@ target   cat   sat   on    the   mat</div>
 <div class="box note">
   <span class="box-label">Where this goes next</span>
   The vanishing gradient is not a tuning problem. Thus <a class="xref" href="#ch05">Chapter
-  05</a> changes the architecture. It gives the cell a memory that the network <em>adds
-  to</em>, not multiplies through. It also puts learned gates in control of what goes into
-  and out of that memory.
+  05</a> changes the architecture, on the same reviews and the same vectors as Part 1. It
+  gives the cell a memory that the network <em>adds to</em>, not multiplies through. It also
+  puts learned gates in control of what goes into and out of that memory.
 </div>
 
 </section>
