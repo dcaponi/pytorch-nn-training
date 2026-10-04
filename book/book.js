@@ -1181,6 +1181,147 @@
   };
 
   /* ----------------------------------------------------------------------
+     Widget: broadcasting, stored cells vs stretched copies   (chapter 00)
+     ---------------------------------------------------------------------- */
+
+  REGISTRY['broadcast'] = function (el) {
+    var M = [[10, 20, 30], [40, 50, 60], [70, 80, 90], [0, 0, 0]];
+    var CASES = {
+      row:   { a: M, as: [4, 3], b: [1, 2, 3], bs: [3], op: '+', an: 'M', bn: 'b',
+               entry: 'out[n,k] = M[n,k] + b[k]',
+               note: 'One row, added to every row. This is how a bias is added to a batch.' },
+      col:   { a: M, as: [4, 3], b: [[1], [2], [3], [4]], bs: [4, 1], op: '+', an: 'M', bn: 'c',
+               entry: 'out[n,k] = M[n,k] + c[n,0]',
+               note: 'One number per row, added across that row.' },
+      err:   { a: M, as: [4, 3], b: [1, 2, 3, 4], bs: [4], op: '+', an: 'M', bn: 'v',
+               entry: '(none)',
+               note: 'Alignment is always from the right, so the length-4 vector meets the length-3 axis. ' +
+                     'Fix: v[:, None] or v.unsqueeze(1) gives (4, 1).' },
+      outer: { a: [[10], [20], [30], [40]], as: [4, 1], b: [[1, 2, 3]], bs: [1, 3], op: '+', an: 'a', bn: 'b',
+               entry: 'out[i,j] = a[i,0] + b[0,j]',
+               note: 'BOTH arrays stretch. The result is a table of every pair: correct only when you want every pair.' },
+      trap:  { a: [[0.9], [0.2], [0.7], [0.4]], as: [4, 1], b: [1, 0, 1, 0], bs: [4], op: '−', an: 'pred', bn: 'y',
+               entry: 'out[i,j] = pred[i,0] − y[j]      you wanted pred[i,0] − y[i]',
+               note: 'No error, no warning: 16 numbers where you wanted 4. Only the diagonal compares a prediction ' +
+                     'with its own label. Fix: y[:, None] or pred.squeeze(1).' }
+    };
+
+    function pad2(s) { return s.length === 2 ? s.slice() : [1, s[0]]; }
+    function as2(arr, s) { return s.length === 2 ? arr : [arr]; }
+    function shapeStr(s) { return '(' + s.join(', ') + (s.length === 1 ? ',)' : ')'); }
+    function num(x) { return Math.abs(x - Math.round(x)) < 1e-9 ? String(Math.round(x)) : x.toFixed(1); }
+    function plan(c) {
+      var pa = pad2(c.as), pb = pad2(c.bs), out = [], steps = [], bad = -1;
+      for (var d = 0; d < 2; d++) {
+        if (pa[d] === pb[d]) { out.push(pa[d]); steps.push(pa[d] + ' vs ' + pb[d] + ' → equal'); }
+        else if (pb[d] === 1) { out.push(pa[d]); steps.push(pa[d] + ' vs 1 → stretch ' + c.bn); }
+        else if (pa[d] === 1) { out.push(pb[d]); steps.push('1 vs ' + pb[d] + ' → stretch ' + c.an); }
+        else { out.push(null); steps.push(pa[d] + ' vs ' + pb[d] + ' → ERROR'); if (bad < 0) bad = d; }
+      }
+      return { pa: pa, pb: pb, out: out, steps: steps, bad: bad };
+    }
+    function read(arr2, s2, i, j) { return arr2[s2[0] === 1 ? 0 : i][s2[1] === 1 ? 0 : j]; }
+
+    build(el, {
+      title: 'Broadcasting: what each array really stores, and what the library reads',
+      height: 212,
+      controls: [
+        { name: 'c', label: 'case', type: 'select', value: 'row', options: [
+          ['row', '(4,3) + (3,)'], ['col', '(4,3) + (4,1)'], ['err', '(4,3) + (4,)'],
+          ['outer', '(4,1) + (1,3)'], ['trap', '(4,1) − (4,)  the trap']] }
+      ],
+      draw: function (g, v, canvas) {
+        var dpr = window.devicePixelRatio || 1;
+        var W = canvas.clientWidth || 600, H = 212;
+        canvas.width = W * dpr; canvas.height = H * dpr;
+        canvas.style.height = H + 'px';
+        var ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, W, H);
+        var p = palette();
+        var c = CASES[v.c], pl = plan(c);
+        var A2 = as2(c.a, c.as), B2 = as2(c.b, c.bs);
+        var err = pl.bad >= 0;
+
+        // in the error case, show each array as stored; otherwise as read, in the result shape
+        var Ra = err ? pl.pa : pl.out, Rb = err ? pl.pb : pl.out;
+        var cols = Ra[1] + Rb[1] + (err ? 3 : pl.out[1]);
+        var gap = 3, sym = 30;
+        var cell = Math.max(16, Math.min(34, Math.floor((W - 28 - 2 * sym) / cols) - gap));
+        var fs = cell < 24 ? 9 : 11;
+
+        function grid(x0, y0, rows, ncol, val, stored, title, sub, hot) {
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          for (var r = 0; r < rows; r++) {
+            for (var k = 0; k < ncol; k++) {
+              var x = x0 + k * (cell + gap), y = y0 + r * (cell + gap);
+              var own = stored(r, k), h = hot && hot(r, k);
+              ctx.globalAlpha = own ? 1 : 0.35;
+              ctx.fillStyle = h ? p.warn : (own ? p.sunken : p.bg);
+              if (h) ctx.globalAlpha = own ? 0.3 : 0.15;
+              ctx.fillRect(x, y, cell, cell);
+              ctx.globalAlpha = own ? 1 : 0.55;
+              ctx.strokeStyle = h ? p.warn : (own ? p.ruleStrong : p.rule);
+              ctx.lineWidth = own ? 1.4 : 1;
+              ctx.setLineDash(own ? [] : [3, 2]);
+              ctx.strokeRect(x, y, cell, cell);
+              ctx.setLineDash([]);
+              ctx.fillStyle = own ? p.ink : p.faint;
+              ctx.font = fs + 'px ui-monospace, monospace';
+              ctx.fillText(num(val(r, k)), x + cell / 2, y + cell / 2);
+              ctx.globalAlpha = 1;
+            }
+          }
+          var cx = x0 + (ncol * (cell + gap) - gap) / 2;
+          ctx.fillStyle = p.soft; ctx.font = '600 11px ui-sans-serif, sans-serif';
+          ctx.fillText(title, cx, y0 - 26);
+          ctx.fillStyle = p.faint; ctx.font = '10px ui-sans-serif, sans-serif';
+          ctx.fillText(sub, cx, y0 - 12);
+          return x0 + ncol * (cell + gap) - gap;
+        }
+
+        var y0 = 48, x = 14;
+        var stA = function (r, k) { return (c.as.length === 2 ? (c.as[0] > 1 || r === 0) && (c.as[1] > 1 || k === 0) : r === 0); };
+        var stB = function (r, k) { var s = pl.pb; return (s[0] > 1 || r === 0) && (s[1] > 1 || k === 0); };
+        var diag = v.c === 'trap' ? function (r, k) { return r === k; } : null;
+
+        x = grid(x, y0, Ra[0], Ra[1], function (r, k) { return read(A2, pl.pa, r, k); }, stA,
+                 c.an + '  stored ' + shapeStr(c.as), err ? 'as stored' : 'read as ' + shapeStr(pl.out), null);
+        ctx.fillStyle = p.faint; ctx.font = '16px ui-sans-serif, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(c.op, x + sym / 2, y0 + 2 * (cell + gap) - gap / 2);
+        x += sym;
+        x = grid(x, y0, Rb[0], Rb[1], function (r, k) { return read(B2, pl.pb, r, k); }, stB,
+                 c.bn + '  stored ' + shapeStr(c.bs), err ? 'padded to ' + shapeStr(pl.pb) : 'read as ' + shapeStr(pl.out), null);
+        ctx.fillStyle = p.faint; ctx.font = '16px ui-sans-serif, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(err ? '≠' : '=', x + sym / 2, y0 + 2 * (cell + gap) - gap / 2);
+        x += sym;
+
+        if (err) {
+          ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = p.warn; ctx.font = '600 13px ui-sans-serif, sans-serif';
+          ctx.fillText('ERROR', x + 4, y0 + 20);
+          ctx.fillStyle = p.soft; ctx.font = '11px ui-sans-serif, sans-serif';
+          ctx.fillText('last axis: ' + pl.pa[1] + ' vs ' + pl.pb[1], x + 4, y0 + 42);
+          ctx.fillText('not equal, neither is 1', x + 4, y0 + 60);
+        } else {
+          var sign = c.op === '+' ? 1 : -1;
+          grid(x, y0, pl.out[0], pl.out[1], function (r, k) {
+            return read(A2, pl.pa, r, k) + sign * read(B2, pl.pb, r, k);
+          }, function () { return true; }, 'result ' + shapeStr(pl.out),
+          v.c === 'trap' ? 'diagonal = what you wanted' : 'a real, new array', diag);
+        }
+      },
+      readout: function (v) {
+        var c = CASES[v.c], pl = plan(c);
+        var res = pl.bad >= 0 ? '<b>ERROR</b>' : '<b>' + shapeStr(pl.out) + '</b>';
+        return 'align right, pad left:  ' + c.an + ' ' + shapeStr(pl.pa) + '   ' + c.bn + ' ' + shapeStr(pl.pb) + '\n' +
+          'axis 1: ' + pl.steps[0] + '      axis 2: ' + pl.steps[1] + '\n' +
+          'result: ' + res + '      one entry: ' + c.entry + '\n' + c.note;
+      }
+    });
+  };
+
+  /* ----------------------------------------------------------------------
      Widget: 1D convolution over a sentence                   (chapter 03)
      ---------------------------------------------------------------------- */
 

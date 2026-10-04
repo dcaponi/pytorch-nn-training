@@ -6,7 +6,8 @@
 <p class="lede">
 This chapter uses one network, four training examples and no framework. At the end of it,
 you will calculate a forward pass, a loss and each gradient in a two-layer network with only
-arithmetic. You will also know exactly which line of PyTorch replaces each step.
+arithmetic. You will derive backpropagation and gradient descent with only the derivative
+rules from Chapter 00. You will also know exactly which line of PyTorch replaces each step.
 </p>
 
 <h2>XOR: the smallest problem that needs a hidden layer</h2>
@@ -166,8 +167,9 @@ one column.
 $b_1$ has shape <span class="shape">(1, 4)</span>, but the code adds it to a
 <span class="shape">(4, 4)</span> matrix. NumPy and PyTorch both stretch the length-1
 dimension to match. They add the same bias vector to each row, so each example gets the
-same bias. That is what you want. Broadcasting is convenient, but it also causes many
-silent bugs. Suppose that you have a <span class="shape">(4, 1)</span> where you wanted a
+same bias. That is what you want. (<a class="xref" href="#ch00-broadcasting">Chapter
+00</a> explains the rule, and why the bias gradient becomes a sum.) Broadcasting is
+convenient, but it also causes many silent bugs. Suppose that you have a <span class="shape">(4, 1)</span> where you wanted a
 <span class="shape">(1, 4)</span>. It broadcasts into a <span class="shape">(4, 4)</span> of
 incorrect values, and you get no error.
 </p>
@@ -300,12 +302,15 @@ formula in the next section applies that observation.
 <h2>Backpropagation</h2>
 
 <p>
-We need $\partial\mathcal{L}/\partial W$ for all four parameter tensors.
-<a class="xref" href="#ch00-backpropagation-on-xor-every-entry-written-out">Chapter 00</a>
-did this calculation entry by entry, with real numbers, for an XOR network with two hidden
-units. Here the network has four hidden units, and the goal is code. Backpropagation is
-not a new theorem. It is the chain rule, applied in a specific sequence. It keeps
-intermediate results and uses them again, so that it does not calculate them two times.
+We need $\partial\mathcal{L}/\partial W$ for all four parameter tensors. This section
+derives each one with only the rules from
+<a class="xref" href="#ch00-part-2-calculus-how-a-network-learns">Chapter 00, Part 2</a>:
+the logarithm rule, the chain rule, the partial-derivative rules and the sum over paths.
+Backpropagation is not a new theorem. It is the chain rule, applied in a specific
+sequence. It keeps intermediate results and uses them again, so that it does not calculate
+them two times. After the derivation,
+<a class="xref" href="#ch01-xor-by-hand">a smaller XOR network</a> does the same
+calculation with numbers, entry by entry.
 </p>
 
 <h3>Start at the output</h3>
@@ -366,7 +371,11 @@ $$\delta_2 = \frac{\partial \mathcal{L}}{\partial z_2} = \frac{1}{N}(a_2 - y)$$
   <p style="margin-top:0">
   $\delta_2$ is not new notation without a reason. It is a short name for one specific
   quantity: <strong>the derivative of the loss with respect to the pre-activation of a
-  layer</strong>, $\partial\mathcal{L}/\partial z$. It gets a name because all the other
+  layer</strong>, $\partial\mathcal{L}/\partial z$. It is a matrix with the shape of $z$:
+  here <span class="shape">(4, 1)</span>, one number for each example. Entry $n$ tells you
+  how much the loss changes when $z_2$ of example $n$ increases by a small amount. (This is
+  <a class="xref" href="#ch00-transpose-and-why-the-backward-pass-needs-it">the
+  $\delta$ of Chapter 00</a>, with $Y = z$.) It gets a name because all the other
   gradients in that layer come from it:
   </p>
   <div class="given">given delta for a layer, you immediately get:
@@ -396,7 +405,12 @@ $$\delta_2 = \frac{\partial \mathcal{L}}{\partial z_2} = \frac{1}{N}(a_2 - y)$$
 <h3>Gradients for the output layer</h3>
 
 <p>
-Because $z_2 = a_1W_2 + b_2$, and $\partial z_2/\partial W_2 = a_1$:
+Now go one step further back, from $z_2$ to the parameters. Look at one entry:
+$z_2$ of example $n$ is $\sum_j A_1[n,j]\,W_2[j] + b_2$. With the partial-derivative rules
+from Chapter 00, $\partial z_2[n]/\partial W_2[j] = A_1[n,j]$, because each other term is a
+constant. And $\partial z_2[n]/\partial b_2 = 1$. But each weight is used for all four
+examples, so it has four paths to the loss. The sum over paths adds them. The next section
+writes that sum entry by entry. The result is:
 </p>
 
 $$\frac{\partial \mathcal{L}}{\partial W_2} = A_1^{\top}\delta_2
@@ -408,7 +422,9 @@ Check the shapes, because they are the best proof that you wrote it correctly. $
 is <span class="shape">(4, 4)</span> and $\delta_2$ is <span class="shape">(4, 1)</span>.
 Thus the product is <span class="shape">(4, 1)</span>. That is exactly the shape of $W_2$,
 as a gradient must be. The bias gradient sums over the batch. The same $b_2$ broadcast to
-all four examples, so all four contributions add together.
+all four examples, so all four contributions add together. This is the rule from
+<a class="xref" href="#ch00-broadcasting">Chapter 00</a>: the gradient of a broadcast is a
+sum over the stretched axis.
 </p>
 
 <div class="box note">
@@ -500,7 +516,23 @@ in code:      db2 = d2.sum(axis=0)          shape (1,)  <- same as b2</div>
 
 <p>
 The hidden activations affected the loss only through $z_2$. Thus the error goes back
-through $W_2$, and then through the hidden sigmoid:
+through $W_2$, and then through the hidden sigmoid. Do it for one entry first. Two steps
+of the chain rule give it:
+</p>
+
+<div class="given">step 1, back through the product z2[n] = sum_j A1[n,j] W2[j] + b2:
+        A1[n,j] occurs only in z2[n], where W2[j] multiplies it
+        dL/dA1[n,j] = delta2[n] * W2[j]             one path, one product
+
+step 2, back through the sigmoid A1[n,j] = sigma(Z1[n,j]):
+        A1[n,j] depends only on Z1[n,j]
+        delta1[n,j] = dL/dA1[n,j] * sigma'(Z1[n,j])  one path, one product</div>
+
+<p>
+Step 1 for all entries at the same time is $\delta_2 W_2^\top$: it is the rule "multiply by
+the other factor, transposed" from the
+<a class="xref" href="#ch00-transpose-and-why-the-backward-pass-needs-it">transpose
+section of Chapter 00</a>. Step 2 is an entry-by-entry product, $\odot$. Thus:
 </p>
 
 $$\delta_1 = \big(\delta_2 W_2^{\top}\big) \odot \sigma'(Z_1)
@@ -571,23 +603,276 @@ $(\delta_2W_2^\top)\odot\sigma'(Z_1)$: the two extra factors that the nesting di
 predicted.
 </p>
 
-<h2>Gradient descent</h2>
-
-$$W \leftarrow W - \eta\,\frac{\partial \mathcal{L}}{\partial W}$$
+<h3>The same steps, for any number of layers</h3>
 
 <p>
-Move each parameter a small step in the direction that decreases the loss. The learning rate
-$\eta$ sets the size of the step. It is the most important number in training.
+Each layer did the same three things. Thus you can write the backward pass one time, for a
+network of any depth. Number the layers $l = 1, \dots, k$, and let $A_0 = X$. Each layer
+calculates $Z_l = A_{l-1}W_l + b_l$ and $A_l = f(Z_l)$.
 </p>
+
+<div class="given">FORWARD    A0 = X
+           for l = 1 .. k:
+               Z_l = A_(l-1) W_l + b_l          keep A_(l-1) and Z_l
+               A_l = f(Z_l)
+           L   = loss(A_k, Y)
+
+BACKWARD   delta_k = dL/dZ_k                    from the loss: (A_k - Y)/N here
+           for l = k down to 1:
+               dL/dW_l = A_(l-1)^T delta_l      what came in, transposed, times delta
+               dL/db_l = delta_l.sum(axis=0)    b_l was broadcast over the batch
+               if l > 1:
+                   delta_(l-1) = (delta_l W_l^T) * f'(Z_(l-1))      * is elementwise
+
+UPDATE     each parameter  <-  parameter - eta * its gradient     (next section)</div>
+
+<p>
+Each line of the backward pass comes from one rule in Chapter 00:
+</p>
+
+<ul>
+  <li><strong>$\delta_k$</strong> comes from the logarithm rule and the chain rule. The
+      $\sigma'$ cancels, as in <a class="xref" href="#ch01-start-at-the-output">Start at
+      the output</a>.</li>
+  <li><strong>The weight gradient</strong> comes from the partial-derivative rule (each
+      weight multiplies one input) and the sum over paths (each weight is used for each
+      example).</li>
+  <li><strong>The bias gradient</strong> is the
+      <a class="xref" href="#ch00-broadcasting">gradient of a broadcast</a>: a sum over the
+      batch axis.</li>
+  <li><strong>The next $\delta$</strong> comes from two chain-rule steps: through the
+      matrix product (multiply by the other factor, transposed), then through $f$ (multiply
+      entry by entry by $f'$).</li>
+</ul>
+
+<div class="box concept">
+  <span class="box-label">Key concept — why the order is backward</span>
+  <p style="margin-top:0">
+  Look at what each $\delta_l$ does. It gives two gradients, and it makes the next
+  $\delta$. Thus each $\delta$ is calculated one time and used three times. Now suppose you
+  calculated $\partial\mathcal{L}/\partial W_1$ separately, from the loss. You must
+  multiply through every layer above it. Then for $\partial\mathcal{L}/\partial W_2$, you
+  must do almost the same product again.
+  </p>
+  <div class="given">k layers, one chain-rule step per layer crossed
+
+each gradient separately:   k + (k-1) + ... + 1  =  k(k+1)/2  steps     (5,050 for k = 100)
+backward, keeping delta:    k steps                                     (100 for k = 100)</div>
+  <p style="margin-bottom:0">
+  The cost of the saving is memory. The backward pass needs each $A_{l-1}$ and each $Z_l$,
+  so the forward pass must keep all of them. That is why training uses much more memory
+  than inference, and why the memory increases with depth and with batch size.
+  </p>
+</div>
+
+<h3 id="ch01-jacobian">What you are multiplying by, and what it is called</h3>
+
+<p>
+Each step of the backward pass multiplied the incoming gradient by something. That
+something has a name. The name occurs frequently from here on, and texts rarely explain it.
+</p>
+
+<p>
+When one number depends on one number, the derivative is one number. When a vector of
+outputs depends on a vector of inputs, there is a derivative for each <em>pair</em>: each
+output with respect to each input. The natural place to put all of them is a grid:
+</p>
+
+<div class="given">for an operation taking m inputs to n outputs, the derivative is
+an n x m matrix, and entry (i, j) is
+
+        d(output i) / d(input j)
+
+that matrix is called the JACOBIAN of the operation.</div>
+
+<p>
+Thus a Jacobian is not a new type of mathematics. It is a table of ordinary partial
+derivatives, as in <a class="xref" href="#ch00-partial-derivatives-gradients-and-paths">Chapter
+00</a>. The table has this arrangement so that <strong>you move a gradient back through an
+operation with one matrix multiplication by that table</strong>. That is the only reason it
+exists. It changes "apply the chain rule to each pair of things" into one product.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept — and why elementwise functions are cheap</span>
+  <p style="margin-top:0">
+  Think about the Jacobian of an elementwise function like ReLU or sigmoid. Output $i$
+  depends on input $i$ and on nothing more. Thus each off-diagonal entry is
+  <strong>zero</strong>. For example, output 3 does not change when input 7 changes:
+  </p>
+  <div class="given">Jacobian of an elementwise f, for 3 values:
+
+        [ f'(z1)    0       0    ]
+        [   0     f'(z2)    0    ]
+        [   0       0     f'(z3) ]</div>
+  <p style="margin-bottom:0">
+  A multiplication by a diagonal matrix is the same as a multiplication entry by entry.
+  That is why $f'(Z)$ occurs in the backward pass with a $\odot$, and not with a matrix
+  product. It is also why the backward pass through an activation costs almost nothing.
+  When a later chapter says that a gradient was "multiplied by a Jacobian per step", think
+  of one of these matrices. A later chapter also says that the Jacobian of the softmax is
+  $\operatorname{diag}(p) - pp^{\top}$. Note that the softmax is <em>not</em> elementwise.
+  Thus its off-diagonal entries are not zero, and it costs more.
+  </p>
+</div>
+
+<div class="box note">
+  <span class="box-label">You can recover every line from the shapes alone</span>
+  <p style="margin-top:0">
+  Do this one time. After that, you never have to memorize the backward pass. You can
+  make it again on a whiteboard from only the forward shapes.
+  </p>
+  <p style="margin-bottom:0">
+  $\partial\mathcal{L}/\partial W_2$ must have the same shape as $W_2$, which is
+  <span class="shape">(h, K)</span>. You have two things: $A_1$ at
+  <span class="shape">(N, h)</span> and $\delta_2$ at <span class="shape">(N, K)</span>.
+  There is exactly one way to multiply them and get <span class="shape">(h, K)</span>:
+  transpose $A_1$ and put it on the left. In the same way, $\partial\mathcal{L}/\partial
+  A_1$ must be <span class="shape">(N, h)</span>. The only arrangement of $\delta_2$
+  <span class="shape">(N, K)</span> and $W_2$ <span class="shape">(h, K)</span> that gives
+  that shape is $\delta_2 W_2^\top$. The shapes give you no choice. That is why
+  <a class="xref" href="#ch00-transpose-and-why-the-backward-pass-needs-it">the transpose
+  section of Chapter 00</a> said that transposes come from the backward pass.
+  </p>
+</div>
+
+<h2>Gradient descent</h2>
+
+<p>
+Backpropagation gives $\partial\mathcal{L}/\partial\theta$ for each parameter $\theta$.
+Now use it. This section derives the update rule from two facts in Chapter 00: the
+<a class="xref" href="#ch00-partial-derivatives-gradients-and-paths">gradient</a> and the
+<a class="xref" href="#ch00-the-dot-product-is-a-similarity-score">dot product</a>.
+</p>
+
+<h3>Which direction decreases the loss fastest</h3>
+
+<p>
+Put all the parameters in one long vector $\theta$. Change them by a small vector
+$\Delta$. For a small change, each parameter changes the loss by its partial derivative
+times its own change, and these changes add:
+</p>
+
+$$\mathcal{L}(\theta + \Delta) \;\approx\; \mathcal{L}(\theta) + \sum_i
+\frac{\partial\mathcal{L}}{\partial\theta_i}\,\Delta_i
+\;=\; \mathcal{L}(\theta) + \nabla\mathcal{L}\cdot\Delta$$
+
+<p>
+This is the <strong>first-order approximation</strong>. It is only the definition of the
+derivative, used for all the parameters at the same time. Check it with the function from
+Chapter 00, $f(x, y) = x^2y + 3y$, at $(2, 1)$, where $\nabla f = [4, 7]$. Increase $x$ by
+0.01. The approximation says that $f$ increases by $4 \times 0.01 = 0.04$. The real change
+is $f(2.01, 1) - f(2, 1) = 0.0401$.
+</p>
+
+<p>
+Now look at the form of the change: $\nabla\mathcal{L}\cdot\Delta$ is a dot product.
+Chapter 00 showed that $\mathbf{a}\cdot\mathbf{b} = \|\mathbf{a}\|\,\|\mathbf{b}\|\cos\phi$,
+where $\phi$ is the angle between the two vectors. Select a step length $\varepsilon$, so
+that $\|\Delta\| = \varepsilon$. Then only the angle can change. The dot product is most
+negative when $\cos\phi = -1$, that is, when $\Delta$ points opposite to
+$\nabla\mathcal{L}$.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example — five steps of the same length, five results</span>
+  <p style="margin-top:0">Start at $(2, 1)$ with $\nabla f = [4, 7]$ and
+  $\|\nabla f\| = 8.062$. Take a step of length 0.01 in five directions:</p>
+  <div class="given">direction           step                   predicted   real change
+                                           ∇f · step   of f
++∇f  (uphill)       [ 0.00496,  0.00868]   +0.0806     +0.0808
+−x only             [−0.01,     0      ]   −0.0400     −0.0399
+−y only             [ 0,       −0.01   ]   −0.0700     −0.0700
+perpendicular to ∇f [−0.00868,  0.00496]    0.0000     −0.0001
+−∇f  (downhill)     [−0.00496, −0.00868]   −0.0806     −0.0804   ← the largest decrease</div>
+  <p style="margin-bottom:0">
+  A step perpendicular to the gradient changes almost nothing. A step along $-\nabla f$
+  decreases $f$ more than any other step of the same length.
+  </p>
+</div>
+
+<p>
+Thus the best step is $\Delta = -\varepsilon\,\nabla\mathcal{L}/\|\nabla\mathcal{L}\|$.
+Write $\eta = \varepsilon/\|\nabla\mathcal{L}\|$, and you get the update rule:
+</p>
+
+$$\theta \;\leftarrow\; \theta - \eta\,\nabla\mathcal{L}
+\qquad\text{one entry at a time:}\qquad
+W \;\leftarrow\; W - \eta\,\frac{\partial\mathcal{L}}{\partial W}$$
+
+<p>
+$\eta$ is the <strong>learning rate</strong>. It sets the size of the step, and it is the
+most important number in training. Put the step into the approximation, and you get the
+predicted change of the loss:
+</p>
+
+$$\mathcal{L}(\theta - \eta\nabla\mathcal{L}) - \mathcal{L}(\theta)
+\;\approx\; \nabla\mathcal{L}\cdot(-\eta\nabla\mathcal{L})
+\;=\; -\eta\,\|\nabla\mathcal{L}\|^2 \;\le\; 0$$
+
+<p>
+Two facts follow. First, a small enough step always decreases the loss, unless the
+gradient is zero. If the gradient is zero, you are at a minimum, a maximum or a flat point,
+and the method stops. Second, the length of the step is $\eta\,\|\nabla\mathcal{L}\|$.
+Near a minimum, the gradient becomes small, so the steps become small automatically.
+</p>
+
+<h3>How large the learning rate can be</h3>
+
+<p>
+The first-order approximation ignores the curvature, so it is correct only for small
+steps. Add the next term to see the limit. For one parameter, with $\mathcal{L}''$ the
+second derivative (the curvature):
+</p>
+
+$$\mathcal{L}(w + \Delta) \;\approx\; \mathcal{L}(w) + \mathcal{L}'\Delta +
+\tfrac{1}{2}\mathcal{L}''\Delta^2$$
+
+<p>
+Put in the step $\Delta = -\eta\mathcal{L}'$:
+</p>
+
+$$\mathcal{L}(w - \eta\mathcal{L}') - \mathcal{L}(w)
+\;\approx\; -\eta\mathcal{L}'^2 + \tfrac{1}{2}\mathcal{L}''\eta^2\mathcal{L}'^2
+\;=\; -\eta\,\mathcal{L}'^2\Big(1 - \frac{\eta\,\mathcal{L}''}{2}\Big)$$
+
+<p>
+The loss decreases only if the factor in brackets is positive. Thus
+$\boxed{\eta < 2/\mathcal{L}''}$. A sharp valley (large curvature) needs a small learning
+rate.
+</p>
+
+<div class="box example">
+  <span class="box-label">Example — one step, by hand</span>
+  <div class="given">L(w) = (w − 4)²      L′ = 2(w − 4)      L″ = 2      limit: η < 2/2 = 1
+
+w = 1, η = 0.1:
+  L′(1) = −6
+  w ← 1 − 0.1(−6) = 1.6
+  L(1.0) = 9.00    L(1.6) = 5.76
+  predicted change: −0.1 × 36 × (1 − 0.1) = −3.24     real: 5.76 − 9.00 = −3.24  ✓
+
+w = 1, η = 1.0  (at the limit):
+  w ← 1 + 6 = 7     L(7) = 9     the same loss, on the other side of the minimum</div>
+  <p style="margin-bottom:0">
+  The prediction is exact here, because this loss is a quadratic and has no higher terms.
+  For a real network, it is only an approximation. Also, a network has a different
+  curvature in each direction, and the sharpest direction sets the limit for all of them.
+  That is the problem that <a class="xref" href="#ch02">Adam</a> solves: it gives each
+  parameter its own effective step size.
+  </p>
+</div>
 
 <div class="widget" data-widget="gradient-descent"></div>
 
 <p>
 Push <em>Step</em> and watch. At a small learning rate, the ball moves downhill reliably
-but slowly. Increase $\eta$ past approximately 0.5, and it goes too far. The gradient at
-the new point is larger and points back the other way. Each step goes farther out, and the
-loss goes to infinity in a few iterations. When the loss is <code>nan</code> five steps into
-training, this is usually the cause. A lower learning rate is usually the fix.
+but slowly. The left valley has a curvature of approximately 4.4 at its bottom, so the
+limit is $2/4.4 \approx 0.45$. At 0.5, the ball jumps from one wall of the valley to the
+other and never settles. Above approximately 0.6, the first step goes too far. The gradient
+at the new point is larger and points back the other way. Each step goes farther out, and
+the loss goes to infinity in a few iterations. When the loss is <code>nan</code> five steps
+into training, this is usually the cause. A lower learning rate is usually the fix.
 </p>
 
 <p>
@@ -601,6 +886,344 @@ This failure is called <strong>symmetry</strong>, and random initialization does
 <strong>symmetry breaking</strong>. Biases can start at zero, because the random weights
 already break the symmetry.
 </p>
+
+<div class="box note">
+  <span class="box-label">The algorithm, in full</span>
+  <ol style="margin-top:0">
+    <li>Do the forward pass. Calculate the loss, and keep each intermediate result.</li>
+    <li>Do the backward pass. Get $\partial\mathcal{L}/\partial\theta$ for each
+        parameter.</li>
+    <li>Update each parameter: $\theta \leftarrow \theta - \eta\,\partial\mathcal{L}/\partial\theta$.</li>
+    <li>Do steps 1 to 3 again, until the loss stops decreasing.</li>
+  </ol>
+  <p style="margin-bottom:0">
+  The loss is a mean over the examples. Thus, by the sum rule, its gradient is also a mean
+  over the examples. A random batch of examples gives an estimate of that mean, at a much
+  lower cost. Gradient descent with a random batch at each step is
+  <strong>stochastic gradient descent</strong> (SGD).
+  <a class="xref" href="#ch02">Chapter 02</a> uses it.
+  </p>
+</div>
+
+<h2 id="ch01-xor-by-hand">One full step by hand: XOR, every entry written out</h2>
+
+<p>
+The derivation above uses letters. This section uses one real network and real numbers,
+and it does one complete step of training: forward, backward and update. It also makes one
+idea explicit, and the rest of the book depends on it. You do not need a picture of nodes
+and arrows to understand a network. A network is a short list of matrices. The backward pass is a second list of matrices, with the same shapes. Each entry
+of each matrix is one short formula that you can write down and calculate by hand.
+</p>
+
+<div class="box concept">
+  <span class="box-label">Key concept — a network is matrices, and so is its gradient</span>
+  <p style="margin-top:0">
+  The forward pass makes five matrices from the input. The backward pass makes six more.
+  Each one has a fixed shape, and each entry has a formula:
+  </p>
+  <div class="given">FORWARD                         BACKWARD
+Z1 = X W1 + b1      (4,2)       δ2    = dL/dZ2           (4,1)
+A1 = sigma(Z1)      (4,2)       dL/dW2                   (2,1)  same shape as W2
+Z2 = A1 W2 + b2     (4,1)       dL/db2                   (1,)   same shape as b2
+A2 = sigma(Z2)      (4,1)       δ1    = dL/dZ1           (4,2)
+L  = mean BCE       scalar      dL/dW1                   (2,2)  same shape as W1
+                                dL/db1                   (2,)   same shape as b1</div>
+  <p style="margin-bottom:0">
+  A diagram of circles and lines shows the same thing, but it hides the shapes and the
+  formulas. The <a class="xref" href="#ch00-network-diagram">network diagram in Chapter
+  00</a> shows how to read one: each line is one entry of a $W$, and each circle (a "unit"
+  or "neuron") is one column of an activation matrix such as $A_1$. Think in matrices, and
+  backpropagation becomes a list of entries to fill in.
+  </p>
+</div>
+
+<h3>The network and its numbers</h3>
+
+<p>
+The four XOR examples are the rows of $X$. The targets are the rows of $Y$. The network has
+two inputs, two hidden units and one output. It is the network in the
+<a class="xref" href="#ch00-network-diagram">Chapter 00 diagram</a>. Two hidden units is the
+smallest number that can solve XOR, and it keeps each matrix small enough to print. (The
+network in the rest of this chapter has four.) The activation is the sigmoid at both
+layers, and the loss is binary cross-entropy.
+</p>
+
+<div class="given">     X (4,2)       Y (4,1)
+   [ 0   0 ]       [ 0 ]          example 1
+   [ 0   1 ]       [ 1 ]          example 2
+   [ 1   0 ]       [ 1 ]          example 3
+   [ 1   1 ]       [ 0 ]          example 4
+
+     W1 (2,2)        b1 (2,)          W2 (2,1)      b2 (1,)
+   [ 2   2 ]       [ -1   -3 ]       [  2 ]        [ -1 ]
+   [ 2   2 ]                         [ -2 ]</div>
+
+<p>
+These weights are partly trained. Hidden unit 1 has bias $-1$, so it turns on when at least
+one input is on: it is approximately OR. Hidden unit 2 has bias $-3$, so it turns on only
+when both inputs are on: it is approximately AND. The output calculates
+"OR and not AND", which is XOR. But the weights are still too small to make clear decisions.
+</p>
+
+<p>
+In this section, indices start at 1, as in mathematics. In code, they start at 0. Thus
+$W_1[i,j]$ is the weight from input $i$ to hidden unit $j$, and $Z_1[n,j]$ is the
+pre-activation of hidden unit $j$ for example $n$.
+</p>
+
+<h3>Step 1 — the forward pass, entry by entry</h3>
+
+<p>
+<strong>$Z_1 = XW_1 + b_1$.</strong> Each entry is a dot product plus a bias. Here is the
+formula for each entry, and then the numbers:
+</p>
+
+<div class="given">Z1[n,j] = X[n,1] W1[1,j] + X[n,2] W1[2,j] + b1[j]
+
+          j = 1 (OR unit)              j = 2 (AND unit)
+n = 1     0(2) + 0(2) - 1 = -1         0(2) + 0(2) - 3 = -3
+n = 2     0(2) + 1(2) - 1 =  1         0(2) + 1(2) - 3 = -1
+n = 3     1(2) + 0(2) - 1 =  1         1(2) + 0(2) - 3 = -1
+n = 4     1(2) + 1(2) - 1 =  3         1(2) + 1(2) - 3 =  1</div>
+
+<p>
+<strong>$A_1 = \sigma(Z_1)$.</strong> The sigmoid acts on each entry separately:
+</p>
+
+<div class="given">A1[n,j] = sigma(Z1[n,j])
+
+       [ sigma(-1)  sigma(-3) ]     [ 0.2689   0.0474 ]
+A1  =  [ sigma( 1)  sigma(-1) ]  =  [ 0.7311   0.2689 ]
+       [ sigma( 1)  sigma(-1) ]     [ 0.7311   0.2689 ]
+       [ sigma( 3)  sigma( 1) ]     [ 0.9526   0.7311 ]</div>
+
+<p>
+<strong>$Z_2 = A_1W_2 + b_2$ and $A_2 = \sigma(Z_2)$.</strong> There is one output, so each
+row gives one number:
+</p>
+
+<div class="given">Z2[n] = A1[n,1] W2[1] + A1[n,2] W2[2] + b2
+
+n = 1    0.2689(2) + 0.0474(-2) - 1 = -0.5570     A2[1] = 0.3642    target 0
+n = 2    0.7311(2) + 0.2689(-2) - 1 = -0.0758     A2[2] = 0.4811    target 1
+n = 3    0.7311(2) + 0.2689(-2) - 1 = -0.0758     A2[3] = 0.4811    target 1
+n = 4    0.9526(2) + 0.7311(-2) - 1 = -0.5570     A2[4] = 0.3642    target 0</div>
+
+<p>
+<strong>The loss.</strong> Each example adds $-\ln \hat{y}$ if its target is 1, and
+$-\ln(1-\hat{y})$ if its target is 0. The loss is the mean of the four:
+</p>
+
+<div class="given">example 1:  -ln(1 - 0.3642) = 0.4529
+example 2:  -ln(0.4811)     = 0.7317
+example 3:  -ln(0.4811)     = 0.7317
+example 4:  -ln(1 - 0.3642) = 0.4529
+
+L = (0.4529 + 0.7317 + 0.7317 + 0.4529) / 4 = 0.5923</div>
+
+<p>
+A random guess gives $\ln 2 = 0.693$. Thus the network has learned something. But examples
+2 and 3 are on the wrong side of 0.5, so it still classifies two of the four examples
+incorrectly.
+</p>
+
+<h3>Step 2 — the backward pass, entry by entry</h3>
+
+<p>
+The method is the same for each matrix. Write the formula for one entry. Find which numbers
+that entry affects. Apply the chain rule to that one entry. Then look at the formula again,
+and recognize the matrix product that calculates all the entries at the same time.
+</p>
+
+<p>
+<strong>$\delta_2 = \partial L/\partial Z_2$, shape (4, 1).</strong> $Z_2[n]$ affects only the
+loss term of example $n$, and that term has weight $1/4$ in the mean. From
+<a class="xref" href="#ch01-start-at-the-output">Start at the output</a>, the sigmoid and
+the BCE cancel, and each
+entry is the error divided by the batch size:
+</p>
+
+<div class="given">δ2[n] = (A2[n] - Y[n]) / 4
+
+δ2 = [ (0.36425 - 0)/4 ]   [  0.09106 ]     too high: push example 1 down
+     [ (0.48107 - 1)/4 ] = [ -0.12973 ]     too low:  push example 2 up
+     [ (0.48107 - 1)/4 ]   [ -0.12973 ]     too low:  push example 3 up
+     [ (0.36425 - 0)/4 ]   [  0.09106 ]     too high: push example 4 down</div>
+
+<p>
+<strong>$\partial L/\partial W_2$, shape (2, 1).</strong> $W_2[j]$ occurs in all four rows
+of $Z_2$, one time for each example. In row $n$, it multiplies $A_1[n,j]$. Thus there are
+four paths from $W_2[j]$ to the loss, and the
+<a class="xref" href="#ch00-partial-derivatives-gradients-and-paths">sum over paths</a>
+adds them:
+</p>
+
+<div class="given">dL/dW2[j] = A1[1,j] δ2[1] + A1[2,j] δ2[2] + A1[3,j] δ2[3] + A1[4,j] δ2[4]
+
+dL/dW2[1] = 0.26894(0.09106) + 0.73106(-0.12973) + 0.73106(-0.12973) + 0.95257(0.09106)
+          =   0.02449        -   0.09484        -   0.09484         +   0.08674
+          = -0.07845
+
+dL/dW2[2] = 0.04743(0.09106) + 0.26894(-0.12973) + 0.26894(-0.12973) + 0.73106(0.09106)
+          =   0.00432        -   0.03489        -   0.03489         +   0.06657
+          =  0.00111</div>
+
+<p>
+Now look at the formula. Entry $j$ is column $j$ of $A_1$, dot product with $\delta_2$. Column $j$
+of $A_1$ is row $j$ of $A_1^\top$. Thus all the entries together are one matrix product:
+$\partial L/\partial W_2 = A_1^\top \delta_2$. The matrix product does not add a new idea. It is
+the sum over the four examples, done for each entry at the same time.
+</p>
+
+<p>
+Note the second entry, 0.00111. It is almost zero, but no individual term is small. Examples
+2 and 3 want $W_2[2]$ to change in one direction, and examples 1 and 4 want the opposite. A
+gradient is a sum over the batch, and here the examples almost cancel.
+</p>
+
+<p>
+<strong>$\partial L/\partial b_2$, shape (1,).</strong> $b_2$ is added to each row of $Z_2$
+with a multiplier of 1. Thus its gradient is the sum of $\delta_2$:
+</p>
+
+<div class="given">dL/db2 = δ2[1] + δ2[2] + δ2[3] + δ2[4]
+       = 0.09106 - 0.12973 - 0.12973 + 0.09106 = -0.07734</div>
+
+<p>
+<strong>$\partial L/\partial A_1$, shape (4, 2).</strong> Now go one layer down. $A_1[n,j]$
+occurs in only one place: row $n$ of $Z_2$, where $W_2[j]$ multiplies it. Thus each entry
+has one path and one product:
+</p>
+
+<div class="given">dL/dA1[n,j] = δ2[n] W2[j]
+
+         [ δ2[1]W2[1]   δ2[1]W2[2] ]     [  0.1821   -0.1821 ]
+dL/dA1 = [ δ2[2]W2[1]   δ2[2]W2[2] ]  =  [ -0.2595    0.2595 ]
+         [ δ2[3]W2[1]   δ2[3]W2[2] ]     [ -0.2595    0.2595 ]
+         [ δ2[4]W2[1]   δ2[4]W2[2] ]     [  0.1821   -0.1821 ]</div>
+
+<p>
+Each row is $\delta_2[n]$ times the row vector $W_2^\top$. Thus the full matrix is
+$\delta_2W_2^\top$: a (4, 1) column times a (1, 2) row. The output weight decides how much error
+each hidden unit gets. Unit 2 has a negative output weight, so its error has the opposite
+sign.
+</p>
+
+<p>
+<strong>$\delta_1 = \partial L/\partial Z_1$, shape (4, 2).</strong> $A_1[n,j] = \sigma(Z_1[n,j])$
+depends only on the one entry $Z_1[n,j]$. Thus the chain rule multiplies each entry by one
+local derivative, $\sigma'(Z_1[n,j]) = A_1[n,j](1 - A_1[n,j])$. There is no sum here:
+</p>
+
+<div class="given">δ1[n,j] = dL/dA1[n,j] * A1[n,j] (1 - A1[n,j])
+
+              [ 0.1966   0.0452 ]
+sigma'(Z1) =  [ 0.1966   0.1966 ]      = A1 * (1 - A1), entry by entry
+              [ 0.1966   0.1966 ]
+              [ 0.0452   0.1966 ]
+
+      [  0.1821(0.1966)   -0.1821(0.0452) ]     [  0.0358   -0.0082 ]
+δ1 =  [ -0.2595(0.1966)    0.2595(0.1966) ]  =  [ -0.0510    0.0510 ]
+      [ -0.2595(0.1966)    0.2595(0.1966) ]     [ -0.0510    0.0510 ]
+      [  0.1821(0.0452)   -0.1821(0.1966) ]     [  0.0082   -0.0358 ]</div>
+
+<p>
+In matrix form, $\delta_1 = (\delta_2W_2^\top) \odot \sigma'(Z_1)$. The $\odot$ means entry by entry,
+because each hidden output depends on only one pre-activation. Note the two entries with
+0.0452. There, $|Z_1| = 3$ and the sigmoid is starting to saturate. Thus those entries
+get approximately four times less gradient than the entries with $|Z_1| = 1$.
+</p>
+
+<p>
+<strong>$\partial L/\partial W_1$, shape (2, 2).</strong> $W_1[i,j]$ occurs in column $j$ of
+$Z_1$, in all four rows. In row $n$, it multiplies $X[n,i]$. Thus there are four paths, and
+we add them, exactly as for $W_2$:
+</p>
+
+<div class="given">dL/dW1[i,j] = X[1,i] δ1[1,j] + X[2,i] δ1[2,j] + X[3,i] δ1[3,j] + X[4,i] δ1[4,j]
+
+X has many zeros, so many terms disappear:
+
+dL/dW1[1,1] = 0 + 0 + 1(-0.0510) + 1( 0.0082) = -0.0428
+dL/dW1[1,2] = 0 + 0 + 1( 0.0510) + 1(-0.0358) =  0.0152
+dL/dW1[2,1] = 0 + 1(-0.0510) + 0 + 1( 0.0082) = -0.0428
+dL/dW1[2,2] = 0 + 1( 0.0510) + 0 + 1(-0.0358) =  0.0152
+
+          [ -0.0428    0.0152 ]
+dL/dW1 =  [ -0.0428    0.0152 ]   =   X^T δ1</div>
+
+<p>
+This is the same pattern as $\partial L/\partial W_2 = A_1^\top \delta_2$. The input to the layer,
+transposed, multiplies the error at the output of the layer. The only difference is the
+input: $X$ for layer 1, and $A_1$ for layer 2.
+</p>
+
+<p>
+<strong>$\partial L/\partial b_1$, shape (2,).</strong> $b_1[j]$ is added to each row of
+column $j$ of $Z_1$. Thus its gradient is the sum of column $j$ of $\delta_1$:
+</p>
+
+<div class="given">dL/db1[1] =  0.0358 - 0.0510 - 0.0510 + 0.0082 = -0.0580
+dL/db1[2] = -0.0082 + 0.0510 + 0.0510 - 0.0358 =  0.0580</div>
+
+<div class="box note">
+  <span class="box-label">All six gradients, as formulas and as matrix products</span>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Gradient</th><th>Shape</th><th>One entry</th><th>All entries</th></tr></thead>
+    <tbody>
+      <tr><td>$\delta_2$</td><td>(4, 1)</td><td>$(A_2[n] - Y[n])/4$</td><td>$(A_2 - Y)/4$</td></tr>
+      <tr><td>$\partial L/\partial W_2$</td><td>(2, 1)</td><td>$\sum_n A_1[n,j]\,\delta_2[n]$</td><td>$A_1^\top \delta_2$</td></tr>
+      <tr><td>$\partial L/\partial b_2$</td><td>(1,)</td><td>$\sum_n \delta_2[n]$</td><td>column sum of $\delta_2$</td></tr>
+      <tr><td>$\delta_1$</td><td>(4, 2)</td><td>$\delta_2[n]\,W_2[j]\,A_1[n,j](1-A_1[n,j])$</td><td>$(\delta_2W_2^\top)\odot A_1\odot(1-A_1)$</td></tr>
+      <tr><td>$\partial L/\partial W_1$</td><td>(2, 2)</td><td>$\sum_n X[n,i]\,\delta_1[n,j]$</td><td>$X^\top \delta_1$</td></tr>
+      <tr><td>$\partial L/\partial b_1$</td><td>(2,)</td><td>$\sum_n \delta_1[n,j]$</td><td>column sums of $\delta_1$</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-bottom:0">
+  Read across each row. The "one entry" formula is what the chain rule gives. The "all
+  entries" form is the same formula, written so that a library can calculate it in one
+  call. When a matrix formula confuses you, change it back into the one-entry formula.
+  </p>
+</div>
+
+<h3>Step 3 — one update, and a check</h3>
+
+<p>
+Take one gradient descent step with $\eta = 1$. Subtract each gradient matrix from its
+parameter matrix, entry by entry:
+</p>
+
+<div class="given">W1 <- [ 2 + 0.0428   2 - 0.0152 ]  =  [ 2.0428   1.9848 ]
+      [ 2 + 0.0428   2 - 0.0152 ]     [ 2.0428   1.9848 ]
+b1 <- [ -1 + 0.0580   -3 - 0.0580 ]  =  [ -0.9420   -3.0580 ]
+W2 <- [ 2 + 0.0785   -2 - 0.0011 ]^T  =  [ 2.0785   -2.0011 ]^T
+b2 <- -1 + 0.0773  =  -0.9227
+
+new predictions:  A2 = [ 0.3943   0.5317   0.5317   0.4115 ]    targets [ 0  1  1  0 ]
+new loss:         L  = 0.5737                                   was 0.5923</div>
+
+<p>
+The loss decreased. Also, all four predictions are now on the correct side of 0.5. The step
+made the OR unit stronger and the AND unit more strict, and it moved the output threshold.
+</p>
+
+<p>
+Two more observations:
+</p>
+
+<ul>
+  <li><strong>The two rows of $W_1$ stay equal.</strong> The two inputs have the same role in
+      XOR, so their gradients are always equal. For XOR, this is satisfactory, because OR
+      and AND are also symmetric in their inputs. In general, equal rows or columns that
+      stay equal are the <a class="xref" href="#ch01-gradient-descent">symmetry problem</a>.
+      Random initialization prevents it.</li>
+  <li><strong>Each value agrees with autograd.</strong> A finite-difference check on one
+      entry also agrees. Change $W_1[1,1]$ by $\pm 0.001$, and the loss changes from
+      0.592391 to 0.592305. Thus the slope is $(0.592305 - 0.592391)/0.002 = -0.0428$,
+      the same as the formula.</li>
+</ul>
 
 <h2>The training loop</h2>
 
@@ -737,6 +1360,161 @@ new a2 = σ(1.0713) ≈ 0.745</div>
   </details>
 </div>
 
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 01.3 · gradient descent and the learning rate</span>
+  <p>Minimize $\mathcal{L}(w) = 3(w-2)^2$. Start at $w_0 = 0$.</p>
+  <ol>
+    <li>Write $d\mathcal{L}/dw$ and calculate its value at $w = 0$. Which direction must $w$
+        move?</li>
+    <li>Do three steps with $\eta = 0.1$. Make a table of $w$ and $\mathcal{L}$. Do the
+        steps become larger or smaller? Why?</li>
+    <li>Use $\eta < 2/\mathcal{L}''$ to find the largest learning rate that converges. Do
+        one step at exactly that rate. Where are you after the step?</li>
+    <li>Do two steps with $\eta = 0.5$. Describe the pattern.</li>
+    <li>Which value of $\eta$ converges fastest? Show that it gets to the minimum in one
+        step.</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $d\mathcal{L}/dw = 6(w-2)$. At $w = 0$ this is
+    $\mathbf{-12}$. It is negative, so $w$ must increase.</p>
+    <p><strong>2.</strong></p>
+    <div class="given">step  w        dL/dw     Δw       L(w)
+ 0    0.000    −12.000            12.000
+ 1    1.200     −4.800   +1.200    1.920
+ 2    1.680     −1.920   +0.480    0.307
+ 3    1.872     −0.768   +0.192    0.049</div>
+    <p>The steps become <strong>smaller</strong>, because the gradient decreases as $w$
+    moves near the minimum. Each step is exactly 0.4× the step before it. The reason:
+    $w_{t+1} - 2 = w_t - 2 - 6\eta(w_t - 2) = (1-6\eta)(w_t - 2)$, and
+    $1 - 6\eta = 0.4$.</p>
+    <p><strong>3.</strong> $\mathcal{L}'' = 6$, so $\eta &lt; 2/6 = \mathbf{1/3}$. At
+    $\eta = 1/3$: $w = 0 - \frac{1}{3}(-12) = \mathbf{4}$, and $\mathcal{L}(4) = 12$. This
+    is the <em>same loss as at the start</em>, on the other side of the minimum. The ratio
+    $1 - 6\eta$ is $-1$, so $w$ moves between 0 and 4 forever.</p>
+    <p><strong>4.</strong> The ratio is $1 - 3 = -2$:</p>
+    <div class="given">w₀ = 0   (distance 2)    L = 12
+w₁ = 6   (distance 4)    L = 48
+w₂ = −6  (distance 8)    L = 192</div>
+    <p>The distance doubles at each step, and the loss becomes four times larger. Within
+    ten steps, the values go to <code>inf</code> and then to <code>nan</code>. The problem
+    itself is correct. Only $\eta$ is wrong.</p>
+    <p><strong>5.</strong> $\eta = \mathbf{1/6}$, which makes the ratio $1 - 6\eta = 0$.
+    One step: $w = 0 - \frac{1}{6}(-12) = 2$, which is the minimum. In general, the best
+    rate for a quadratic is $1/\mathcal{L}''$, half of the limit. A real network has a
+    different curvature in each direction, so no single $\eta$ is best for all of them.
+    That is the problem that <a class="xref" href="#ch02">Adam</a> solves.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 01.4 · XOR, one entry of each gradient<span class="tag tag-rec">Recommended</span></span>
+  <p>
+  Use the matrices from <a class="xref" href="#ch01-xor-by-hand">the XOR section</a>. For each item, write the one-entry formula first. Then put in the
+  numbers.
+  </p>
+  <ol>
+    <li>Calculate entry $(4, 1)$ of $\delta_1$ directly from $\delta_2$, $W_2$ and $A_1$. Do not use
+        the $\partial L/\partial A_1$ matrix.</li>
+    <li>Calculate entry $(2, 2)$ of $\partial L/\partial W_1$. Which examples contribute,
+        and why do the others give zero?</li>
+    <li>Entry $(1, 2)$ of $\delta_1$ is $-0.0082$, and entry $(2, 2)$ is $0.0510$. Both come from
+        hidden unit 2. Find the two factors that make the first one smaller.</li>
+    <li>Suppose that $W_2[2]$ was 0, not $-2$. Which gradient entries become exactly zero?
+        Does $\partial L/\partial W_2[2]$ become zero?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $\delta_1[4,1] = \delta_2[4]\,W_2[1]\,A_1[4,1](1-A_1[4,1])$:</p>
+    <div class="given">δ1[4,1] = 0.09106 x 2 x 0.9526 x (1 - 0.9526)
+        = 0.18212 x 0.0452
+        = 0.0082     ✓</div>
+    <p><strong>2.</strong> $\partial L/\partial W_1[2,2] = \sum_n X[n,2]\,\delta_1[n,2]$. Column 2
+    of $X$ is $[0, 1, 0, 1]$. Thus only examples 2 and 4 contribute:
+    $0.0510 + (-0.0358) = 0.0152$ ✓. Examples 1 and 3 have $X[n,2] = 0$. Input 2 was off for
+    them, so a change to its weight could not change their output.</p>
+    <p><strong>3.</strong> The first factor is the error. $|\delta_2[1]| = 0.0911$ and
+    $|\delta_2[2]| = 0.1297$, so example 1 is less wrong. The second factor is the sigmoid slope.
+    $Z_1[1,2] = -3$ gives $\sigma' = 0.0452$, but $Z_1[2,2] = -1$ gives $\sigma' = 0.1966$.
+    The saturation factor is the larger effect: it is approximately 4.3 times, and the error
+    is approximately 1.4 times.</p>
+    <p><strong>4.</strong> Column 2 of $\partial L/\partial A_1$ is $\delta_2[n]\,W_2[2]$, so it
+    becomes zero. Thus column 2 of $\delta_1$, column 2 of $\partial L/\partial W_1$, and
+    $\partial L/\partial b_1[2]$ all become zero. Hidden unit 2 gets no gradient, because its
+    output has no effect on the loss. But $\partial L/\partial W_2[2] = \sum_n A_1[n,2]
+    \delta_2[n]$ does not use $W_2[2]$, so it does not become zero. (With the new $\delta_2$, it is
+    0.0827.) Thus the output weight can grow again, and then unit 2 starts to learn
+    again.</p>
+  </details>
+</div>
+
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 01.5 · backpropagation in matrices, with softmax<span class="tag tag-must">Must do</span></span>
+  <p>
+  Use one example, two inputs, two hidden units, two classes and ReLU in the middle. It is
+  small enough to do fully on paper, and it is a complete training step of a real network.
+  </p>
+  <div class="given">X  = [ 1   2 ]          W1 = [ 1   0 ]        W2 = [ 1  -1 ]
+                             [ 0   1 ]             [ 0   2 ]
+
+biases are zero        correct class is the FIRST one,  so  Y = [ 1   0 ]
+
+e^1 = 2.718     e^3 = 20.086     ln(0.1192) = -2.127</div>
+  <ol>
+    <li>Do the forward pass. Calculate $Z_1$, $A_1$ and $Z_2$, then
+        $P = \operatorname{softmax}(Z_2)$ and the loss.</li>
+    <li>Calculate $\delta_2 = (P - Y)/N$ with $N = 1$. ($P - Y$ is the gradient of softmax
+        with cross-entropy, from <a class="xref" href="#ch00-cross-entropy">Chapter 00</a>.)</li>
+    <li>Calculate $\partial\mathcal{L}/\partial W_2 = A_1^\top \delta_2$. Before you calculate
+        an entry, make sure that the shape is <span class="shape">(2, 2)</span>.</li>
+    <li>Calculate $\delta_2 W_2^\top$, then $\delta_1$. What does the derivative of ReLU do here?
+        When would it cause a problem?</li>
+    <li>Calculate $\partial\mathcal{L}/\partial W_1 = X^\top \delta_1$.</li>
+    <li>Which entry of $\partial\mathcal{L}/\partial W_1$ has the largest magnitude? Which
+        input causes this?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> $W_1$ is the identity, so $Z_1 = [1, 2]$. Both values are
+    positive, so ReLU does not change them: $A_1 = [1, 2]$.</p>
+    <div class="given">Z2 = A1 W2 = [ 1(1) + 2(0) ,  1(-1) + 2(2) ] = [ 1 , 3 ]
+
+softmax: e^1 = 2.718, e^3 = 20.086, sum = 22.804
+P = [ 2.718/22.804 , 20.086/22.804 ] = [ 0.1192 , 0.8808 ]
+
+L = -ln(0.1192) = 2.127</div>
+    <p>The model gives 12% to the correct class. Thus the loss is much larger than the
+    value from a random guess, $\ln 2 = 0.69$. The model is wrong, and it is confident.</p>
+    <p><strong>2.</strong> $\delta_2 = [0.1192 - 1,\ 0.8808 - 0] = [-0.8808,\ 0.8808]$. Its sum
+    is zero. This is true for each softmax-with-cross-entropy gradient.</p>
+    <p><strong>3.</strong> $A_1^\top$ is <span class="shape">(2, 1)</span> and $\delta_2$ is
+    <span class="shape">(1, 2)</span>. Thus the product is <span class="shape">(2, 2)</span>,
+    which is the shape of $W_2$, as it must be.</p>
+    <div class="given">dL/dW2 = [ 1 ] [ -0.8808   0.8808 ]  =  [ -0.8808   0.8808 ]
+         [ 2 ]                           [ -1.7616   1.7616 ]</div>
+    <p><strong>4.</strong></p>
+    <div class="given">δ2 W2^T = [ -0.8808  0.8808 ] [  1   0 ]  =  [ -1.7616   1.7616 ]
+                                [ -1   2 ]</div>
+    <p>The derivative of ReLU is 1 where the pre-activation was positive. Both entries of
+    $Z_1$ were positive. Thus $f'(Z_1) = [1, 1]$ and $\delta_1 = [-1.7616,\ 1.7616]$. The
+    elementwise step changes nothing. Now suppose that an entry of $Z_1$ was negative. Then
+    the gradient for that coordinate is multiplied by zero, and the matching row of $W_1$
+    gets nothing from this example. That is a dead ReLU.</p>
+    <p><strong>5.</strong></p>
+    <div class="given">dL/dW1 = X^T δ1 = [ 1 ] [ -1.7616   1.7616 ]
+                  [ 2 ]
+
+       = [ -1.7616   1.7616 ]
+         [ -3.5232   3.5232 ]</div>
+    <p><strong>6.</strong> The bottom row, at $\pm 3.5232$. It is exactly two times the top
+    row. The second input was 2 and the first input was 1. $X^\top \delta_1$ multiplies each row
+    of the weight gradient by the matching input. Thus each weight changes in proportion to
+    the contribution of its input. That is why feature scaling is important. It is also why
+    an input that is always zero cannot change its own weights.</p>
+    <p>Each number above agrees with <code>autograd</code> to the last printed digit.</p>
+  </details>
+</div>
+
 <div class="box library">
   <span class="box-label">In the wild</span>
   <p>
@@ -820,7 +1598,10 @@ optimizer.step()                             # replaces the four updates</code><
   <span class="box-label">Notebook</span>
   Open <code>01_nn_from_scratch/prompt.ipynb</code>. You will implement
   <code>sigmoid</code> and its derivative, the forward pass, the BCE loss, all six backward
-  expressions and the update. Then you will train to convergence and watch the loss curve.
+  expressions and the update. Then you will run the gradient-descent derivation with
+  numbers, and run your code on this chapter's XOR weights and compare each value with
+  <a class="xref" href="#ch01-xor-by-hand">the worked step</a>. Last, you will train to
+  convergence and watch the loss curve.
   The concept-check cells ask you to predict what will happen before you run the code.
   Answer them first. Each array is small enough to print, and you should print them.
 </div>

@@ -13,7 +13,7 @@ attention all come from arguments about variance. Probability tells you what the
 
 <p>
 This chapter gives you the parts of each area that the rest of the book needs. Each idea
-has a worked example, and there are twenty-seven pencil-and-paper exercises. It is the
+has a worked example, and there are twenty-five pencil-and-paper exercises. It is the
 longest chapter in the book by a large amount.
 </p>
 
@@ -27,7 +27,7 @@ longest chapter in the book by a large amount.
   </p>
   <p style="margin-bottom:0">
   Do a small number of exercises carefully. These have the
-  <span class="tag tag-must">Must do</span> tag. The rest of the book uses these seven. Each
+  <span class="tag tag-must">Must do</span> tag. The rest of the book uses these six. Each
   one derives a fact that chapters 01 through 11 use. If you do not do it, you must accept
   that fact without proof. The other exercises are extra practice. If you skip them, you
   lose only that practice.
@@ -36,7 +36,7 @@ longest chapter in the book by a large amount.
 
 <p>
 A feeling that the material is familiar is not a good test. A better test: select one of
-the seven exercises and try it without preparation. A network needs only specific parts of
+the six exercises and try it without preparation. A network needs only specific parts of
 these subjects, and some of them are surprising. Shapes are more important than proofs. The
 chain rule is more important than integration. And <em>variance</em> explains half of the
 architecture. If that exercise is easy, read the rest of the chapter quickly and start at
@@ -142,7 +142,7 @@ softmax = [0.354, 0.646, 0.0000049]</div>
     same. But the distribution is much sharper, and "idea" now gets only five parts in a
     million. If you make $q$ longer again, the row becomes fully one-hot. Then the softmax
     gradient becomes zero, and the layer stops learning.</p>
-    <p>The <strong>$1/\sqrt{d_k}$ factor</strong> prevents this. Exercise 00.14 shows why
+    <p>The <strong>$1/\sqrt{d_k}$ factor</strong> prevents this. Exercise 00.12 shows why
     the magnitude of a score increases with the dimension.</p>
   </details>
 </div>
@@ -382,6 +382,156 @@ x@(B@A) : (1000×4×1000) + (1×1000×1000)  = 4,000,000 + 1,000,000</div>
   </details>
 </div>
 
+<h3 id="ch00-network-diagram">Network diagrams: the matrix is the lines, not the circles</h3>
+
+<p>
+Most texts draw a network as circles and lines. That picture shows the same calculation
+as the matrices, but it is easy to read incorrectly. Many readers think that a weight
+matrix is a layer of circles. It is not. <strong>A weight matrix is a set of
+lines.</strong> The circles are the values that the lines connect.
+</p>
+
+<figure class="figure wide">
+<svg viewBox="0 0 760 330" role="img" aria-labelledby="f-diag-t f-diag-d" style="font-family:var(--sans)">
+  <title id="f-diag-t">A 2-2-1 network drawn as circles and lines, next to its two weight matrices</title>
+  <desc id="f-diag-d">Two input circles, two hidden circles and one output circle. Four lines connect the inputs to the hidden units. Each line is labelled with its entry of W-one. The two lines into hidden unit 1 are column 1 of W-one, and the two lines into hidden unit 2 are column 2. Two lines connect the hidden units to the output, and they are the two entries of W-two. On the right, W-one is a 2 by 2 matrix and W-two is a 2 by 1 matrix, with the same colors.</desc>
+  <!-- W1 lines: column 1 (into h1) accent, column 2 (into h2) concept -->
+  <line x1="80" y1="95" x2="290" y2="95" stroke="var(--accent)" stroke-width="2.2"/>
+  <line x1="80" y1="215" x2="290" y2="95" stroke="var(--accent)" stroke-width="2.2"/>
+  <line x1="80" y1="95" x2="290" y2="215" stroke="var(--concept)" stroke-width="2.2"/>
+  <line x1="80" y1="215" x2="290" y2="215" stroke="var(--concept)" stroke-width="2.2"/>
+  <!-- W2 lines -->
+  <line x1="290" y1="95" x2="450" y2="155" stroke="var(--notebook)" stroke-width="2.2"/>
+  <line x1="290" y1="215" x2="450" y2="155" stroke="var(--notebook)" stroke-width="2.2"/>
+  <!-- line labels, with a halo so the lines behind them do not cut the text -->
+  <!-- each label sits on its own line, rotated to the line, away from the crossing -->
+  <g font-size="12.5" font-weight="600" text-anchor="middle" dominant-baseline="central" stroke="var(--bg-raised)" stroke-width="10" paint-order="stroke" stroke-linejoin="round">
+    <text transform="translate(165,95)" fill="var(--accent)">W₁[1,1]</text>
+    <text transform="translate(232,128) rotate(-29.7)" fill="var(--accent)">W₁[2,1]</text>
+    <text transform="translate(232,182) rotate(29.7)" fill="var(--concept)">W₁[1,2]</text>
+    <text transform="translate(165,215)" fill="var(--concept)">W₁[2,2]</text>
+    <text transform="translate(370,125) rotate(20.6)" fill="var(--notebook)">W₂[1]</text>
+    <text transform="translate(370,185) rotate(-20.6)" fill="var(--notebook)">W₂[2]</text>
+  </g>
+  <!-- units -->
+  <g stroke="var(--ink-soft)" stroke-width="1.6" fill="var(--bg-raised)">
+    <circle cx="80" cy="95" r="22"/><circle cx="80" cy="215" r="22"/>
+    <circle cx="290" cy="95" r="22"/><circle cx="290" cy="215" r="22"/>
+    <circle cx="450" cy="155" r="22"/>
+  </g>
+  <g font-size="14" font-weight="600" text-anchor="middle" fill="var(--ink)">
+    <text x="80" y="100">x₁</text><text x="80" y="220">x₂</text>
+    <text x="290" y="100">h₁</text><text x="290" y="220">h₂</text>
+    <text x="450" y="160">ŷ</text>
+  </g>
+  <g font-size="11.5" text-anchor="middle" fill="var(--ink-faint)">
+    <text x="290" y="62">+ b₁[1] = −1</text>
+    <text x="290" y="257">+ b₁[2] = −3</text>
+    <text x="450" y="197">+ b₂ = −1</text>
+  </g>
+  <!-- layer captions and gap brackets -->
+  <g font-size="12" text-anchor="middle" fill="var(--ink-faint)">
+    <text x="80" y="284">2 inputs</text>
+    <text x="290" y="284">2 hidden units</text>
+    <text x="450" y="284">1 output</text>
+  </g>
+  <path d="M84,298 v6 h202 v-6" fill="none" stroke="var(--accent)" stroke-width="1.3"/>
+  <text x="185" y="322" font-size="12" font-weight="600" text-anchor="middle" fill="var(--accent)">W₁: 2 × 2 = 4 lines</text>
+  <path d="M294,298 v6 h152 v-6" fill="none" stroke="var(--notebook)" stroke-width="1.3"/>
+  <text x="370" y="322" font-size="12" font-weight="600" text-anchor="middle" fill="var(--notebook)">W₂: 2 × 1 = 2 lines</text>
+  <!-- the matrices -->
+  <line x1="505" y1="30" x2="505" y2="310" stroke="var(--rule)" stroke-width="1"/>
+  <text x="530" y="48" font-size="13" font-weight="600" fill="var(--ink-soft)">W₁   shape (2, 2)</text>
+  <g font-size="11" text-anchor="middle">
+    <text x="640" y="72" fill="var(--accent)">into h₁</text>
+    <text x="700" y="72" fill="var(--concept)">into h₂</text>
+  </g>
+  <g font-size="11" text-anchor="end" fill="var(--ink-faint)">
+    <text x="602" y="101">from x₁</text>
+    <text x="602" y="131">from x₂</text>
+  </g>
+  <path d="M618,82 h-6 v58 h6 M722,82 h6 v58 h-6" fill="none" stroke="var(--ink-soft)" stroke-width="1.4"/>
+  <g font-size="14" font-weight="600" text-anchor="middle">
+    <text x="640" y="102" fill="var(--accent)">2</text><text x="700" y="102" fill="var(--concept)">2</text>
+    <text x="640" y="132" fill="var(--accent)">2</text><text x="700" y="132" fill="var(--concept)">2</text>
+  </g>
+  <text x="530" y="188" font-size="13" font-weight="600" fill="var(--ink-soft)">W₂   shape (2, 1)</text>
+  <text x="640" y="212" font-size="11" text-anchor="middle" fill="var(--notebook)">into ŷ</text>
+  <g font-size="11" text-anchor="end" fill="var(--ink-faint)">
+    <text x="602" y="241">from h₁</text>
+    <text x="602" y="271">from h₂</text>
+  </g>
+  <path d="M624,222 h-6 v58 h6 M656,222 h6 v58 h-6" fill="none" stroke="var(--ink-soft)" stroke-width="1.4"/>
+  <g font-size="14" font-weight="600" text-anchor="middle" fill="var(--notebook)">
+    <text x="640" y="242">2</text><text x="640" y="272">−2</text>
+  </g>
+</svg>
+<figcaption><b>Each weight matrix is a set of lines.</b> The line from unit $i$ of one layer
+to unit $j$ of the next layer is the entry $W[i,j]$. One color is one column: column $j$
+holds every line that goes into unit $j$. The matrices on the right hold the value of each
+line. Three layers of circles have two gaps between them, so the network has two weight
+matrices. These are the weights of the XOR network that
+<a class="xref" href="#ch01">Chapter 01</a> calculates by hand.</figcaption>
+</figure>
+
+<p>
+A <strong>unit</strong> is one circle. (Other texts call it a <em>neuron</em>.) Read the
+figure with these four rules:
+</p>
+
+<ul>
+  <li><strong>A circle is a value, not a parameter.</strong> It holds one number for each
+      example. Training does not change it directly.</li>
+  <li><strong>A line is one weight, and it is a parameter.</strong> The line from unit $i$
+      to unit $j$ is $W[i,j]$. Training changes it.</li>
+  <li><strong>Row $i$ of $W$ is every line that leaves unit $i$.</strong> Column $j$ of $W$
+      is every line that goes into unit $j$.</li>
+  <li><strong>A bias belongs to a circle, not to a line.</strong> Each unit in the next
+      layer has one bias. Thus $b$ has one entry for each column of $W$.</li>
+</ul>
+
+<div class="box example">
+  <span class="box-label">Example — one unit, line by line</span>
+  <p style="margin-top:0">Put the input $x = [1, 0]$ into the figure. Hidden unit 1 adds
+  what its two incoming lines carry, then adds its bias. Each line carries the value at its
+  start, multiplied by its weight:</p>
+  <div class="given">h₁ before the activation  =  x₁ · W₁[1,1]  +  x₂ · W₁[2,1]  +  b₁[1]
+                          =  1 · 2      +  0 · 2      +  (−1)
+                          =  1
+
+That is column 1 of W₁, dot product with x, plus b₁[1].
+Do it for every column at the same time, and you get  x W₁ + b₁.</div>
+  <p style="margin-bottom:0">
+  The line from $x_2$ carried $0 \times 2 = 0$. When an input is zero, its lines carry
+  nothing. Chapter 01 shows the result: those lines also get a zero gradient.
+  </p>
+</div>
+
+<p>
+Now count. A gap from $n$ units to $m$ units has $n \times m$ lines. Thus its matrix has the
+shape <span class="shape">(n, m)</span>, and the layer has $n \times m + m$ parameters
+(lines plus biases). A network with $k + 1$ layers of circles has $k$ weight matrices, one
+for each gap. When a text says "a two-layer network", it usually counts the gaps, not the
+circles. The figure is a two-layer network.
+</p>
+
+<div class="box note">
+  <span class="box-label">Three facts that the circles hide</span>
+  <ul style="margin:0">
+    <li><strong>A batch.</strong> A circle holds one number for each example. With $N$
+        examples, one layer of circles is a matrix with $N$ rows. Thus hidden unit $j$ is
+        column $j$ of the activation matrix. The lines do not change with $N$: the same
+        weights carry each example.</li>
+    <li><strong>The gradient.</strong> $\partial\mathcal{L}/\partial W$ has the shape of
+        $W$. Thus it has one number for each line: how much the loss changes when that one
+        line becomes slightly stronger. Backpropagation calculates one number per line.</li>
+    <li><strong>The PyTorch storage.</strong> <code>nn.Linear(n, m)</code> stores its
+        weight as <span class="shape">(m, n)</span>, the transpose. Thus the line from $i$
+        to $j$ is <code>layer.weight[j, i]</code>. This book writes
+        <span class="shape">(n, m)</span>, so that the forward pass is $XW$.</li>
+  </ul>
+</div>
+
 <h3>Transpose, and why the backward pass needs it</h3>
 
 <p>
@@ -395,12 +545,36 @@ not only memorize the rule.
   The forward pass sends information through $W$ from $n$ inputs to $m$ outputs. Thus the
   backward pass must send the gradient in the opposite direction, from $m$ back to $n$.
   $W^\top$ is the only operator made from $W$ that has the correct shape for this. Here are
-  the two standard results, for $Y = XW$ with $\delta = \partial\mathcal{L}/\partial Y$:
+  the two standard results, for $Y = XW$ with $\delta = \partial\mathcal{L}/\partial Y$
+  (the box below defines $\delta$):
   $$\frac{\partial\mathcal{L}}{\partial W} = X^\top\delta
     \qquad\qquad
     \frac{\partial\mathcal{L}}{\partial X} = \delta W^\top$$
   A gradient always has the same shape as the thing that it differentiates. This is the
   easiest correctness check in the subject.
+</div>
+
+<div class="box note">
+  <span class="box-label" id="ch00-delta">What $\delta$ is</span>
+  <p style="margin-top:0">
+  $\delta$ (the Greek letter delta) is the name for one specific matrix: <strong>the
+  gradient of the loss with respect to the output of a layer</strong>,
+  $\delta = \partial\mathcal{L}/\partial Y$. It has the same shape as $Y$. Entry
+  $\delta[n, j]$ answers one question: if output $j$ of example $n$ increases by a small
+  amount, how much does the loss change?
+  </p>
+  <div class="given">δ[1, 3] =  0.5    Y[1,3] up by 0.01  ->  loss up by about   0.005
+δ[1, 3] = −2.0    Y[1,3] up by 0.01  ->  loss DOWN by about 0.02
+δ[1, 3] =  0      Y[1,3] has no effect on the loss</div>
+  <p style="margin-bottom:0">
+  The layer cannot calculate its own $\delta$. Only the operations after the layer (the
+  later layers and the loss) know how $Y$ affects the loss. Thus the backward pass starts at
+  the loss, and each operation gives a $\delta$ to the operation before it. In the exercise
+  below, $\delta$ is given. <a class="xref" href="#ch01">Chapter 01</a> calculates it for a
+  real network. There, $Y$ is the pre-activation $Z$ of each layer, so $\delta_1$ and
+  $\delta_2$ are $\partial\mathcal{L}/\partial Z_1$ and $\partial\mathcal{L}/\partial Z_2$.
+  Some texts call $\delta$ the <em>error signal</em>.
+  </p>
 </div>
 
 <div class="box example">
@@ -424,7 +598,7 @@ W = [ 1  0  2 ]             (2×3)
     [ 0  1  3 ]
 
 Y = XW                      (1×3)
-δ = ∂L/∂Y = [1, 1, 1]       (1×3)   given from downstream</div>
+δ = ∂L/∂Y = [1, 1, 1]       (1×3)   given: the later layers calculated it</div>
   <ol>
     <li>Calculate $Y$.</li>
     <li>Do not calculate anything. Use only the shapes to find which formula is correct for
@@ -568,32 +742,87 @@ a ⊙ b  (elementwise) = [4, 10, 18]            a vector, same shape</div>
 <h3>Broadcasting</h3>
 
 <p>
-NumPy invented broadcasting, and PyTorch copied it. It is not mathematics. It is a
-convention that tells the library how to combine arrays of different shapes. Many silent
-numerical bugs come from it. If you have not written array code before, you cannot guess
-these rules. Thus, work through them slowly one time.
+<strong>Broadcasting</strong> is the set of rules that a library uses to combine two arrays
+with different shapes. NumPy made the rules, and PyTorch uses the same rules. They are not
+mathematics. They are a convention. You must know them well, for two reasons. Each layer
+in this book uses broadcasting. And many silent numerical bugs come from it.
+</p>
+
+<h4>Why it exists</h4>
+
+<p>
+Look at the first line of each network in this book:
+</p>
+
+<div class="given">Z = X W + b          X W is (N, m)    b is (m,)</div>
+
+<p>
+In strict linear algebra, this line is not legal. You cannot add a matrix with $N$ rows to
+a vector. What the line <em>means</em> is "add $b$ to each row". A mathematician writes
+that exactly, with a column of $N$ ones:
+</p>
+
+$$Z = XW + \mathbf{1}\,b^\top
+\qquad\text{where}\qquad
+\mathbf{1}\,b^\top =
+\begin{bmatrix}1\\1\\\vdots\\1\end{bmatrix}
+\begin{bmatrix}b_1 & \cdots & b_m\end{bmatrix}
+= \begin{bmatrix}b_1 & \cdots & b_m\\ b_1 & \cdots & b_m\\ & \vdots & \\ b_1 & \cdots & b_m\end{bmatrix}$$
+
+<p>
+That is the <a class="xref" href="#ch00-outer-products-and-rank">outer product</a> of a
+column of ones with $b$: it stacks $N$ copies of $b$. Broadcasting is a short way to write
+$\mathbf{1}\,b^\top$. You write <code>X @ W + b</code>, and the library adds the copies for
+you. Keep this form in mind. It explains the gradient of a bias at the end of this
+section.
 </p>
 
 <p>
-Here is the problem that broadcasting solves. You often must combine things with
-different shapes. Here are three examples. You add one bias number to each row of a
-matrix. You subtract a per-column mean from each row. You scale each row of a batch by its
-own number. Each of these is a loop if you write it literally. A Python loop over a large array
-is hundreds of times slower than the array operation. With broadcasting, you write the
-expression as if the shapes already agree. The library finds what you mean.
+You could also do the same addition in two other ways. Both are worse:
 </p>
 
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Method</th><th>Code</th><th>Problem</th></tr></thead>
+  <tbody>
+    <tr><td>A Python loop</td><td><code>for n in range(N):<br>&nbsp;&nbsp;for k in range(m):<br>&nbsp;&nbsp;&nbsp;&nbsp;Z[n,k] = XW[n,k] + b[k]</code></td>
+        <td>Hundreds of times slower. Python does each of the $N \times m$ additions
+        separately.</td></tr>
+    <tr><td>A real copy</td><td><code>XW + np.tile(b, (N, 1))</code></td>
+        <td>Makes an <span class="shape">(N, m)</span> array of copies. With
+        $N = 100{,}000$ and $m = 256$, that is 102 MB of float32 for nothing.</td></tr>
+    <tr><td>Broadcasting</td><td><code>XW + b</code></td>
+        <td>No loop and no copy. The risk: it also runs when the shapes are wrong.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+These are the frequent uses in a network. Add one bias to each row. Subtract the mean of
+each row, as layer normalization does. Multiply each position by a mask of zeros and ones.
+Divide each row by its own sum, as softmax does. Each one combines a large array with a
+smaller array that must be repeated.
+</p>
+
+<h4>How it works: the rule</h4>
+
 <div class="box concept">
-  <span class="box-label">Key concept</span>
-  <p>
-  The rule has two steps. First, <strong>align the two shapes from the right</strong>. Add
-  1s on the left of the shorter shape. Second, examine each column of that alignment. In
-  each column, the two sizes must be <strong>equal</strong>, or <strong>one of them must be
-  1</strong>. A size of 1 stretches to match the other side.
-  </p>
+  <span class="box-label">Key concept — three steps</span>
+  <ol style="margin-top:0">
+    <li><strong>Align the two shapes on the right.</strong> Write one shape under the
+        other, with the last axes in the same column.</li>
+    <li><strong>Add 1s on the left of the shorter shape</strong>, until both shapes have
+        the same number of axes.</li>
+    <li><strong>Examine each column.</strong> If the two sizes are equal, the result has
+        that size. If one size is 1, the result has the other size: the size-1 axis
+        <em>stretches</em>. If the sizes are different and neither is 1, you get an
+        error.</li>
+  </ol>
   <p style="margin-bottom:0">
-  If a column fails that test, you get an error. That is the good result. If all columns
-  pass, you get an answer. But nothing checks that it is the answer you wanted.
+  "Stretch" has an exact meaning. Along a stretched axis, the library uses index 0 for each
+  position. Thus <code>(M + b)[n, k] = M[n, k] + b[k]</code>: the row index $n$ does not
+  go into $b$, because $b$ has no row axis. If you are not sure what a broadcast does,
+  write this one-entry formula. It is always clear.
   </p>
 </div>
 
@@ -601,13 +830,13 @@ expression as if the shapes already agree. The library finds what you mean.
   <span class="box-label">Example — the rule, then the same thing with numbers</span>
   <div class="given">SHAPES        (4, 3)  +  (3,)
 
-line up right      4   3
-                       3          the shorter shape is padded on the LEFT
-                   1   3
-
-check              4 vs 1   ->  one side is 1, stretch it
-                   3 vs 3   ->  equal, fine
-result             (4, 3)
+step 1, align right      4   3
+                             3
+step 2, pad left with 1  4   3
+                         1   3
+step 3, each column      4 vs 1   ->  one side is 1: stretch it to 4
+                         3 vs 3   ->  equal
+result                   (4, 3)
 
 WITH NUMBERS
 
@@ -618,20 +847,125 @@ WITH NUMBERS
   [ 70  80  90 ]
   [  0   0   0 ]
 
-  M + b   adds b to every row, as if b had been stacked four times:
+one entry:   (M + b)[n, k] = M[n, k] + b[k]
+             (M + b)[2, 3] = M[2, 3] + b[3] = 60 + 3 = 63
 
-  [ 11  22  33 ]
-  [ 41  52  63 ]
-  [ 71  82  93 ]
-  [  1   2   3 ]</div>
+  M + b  =  [ 11  22  33 ]
+            [ 41  52  63 ]       b was added to every row
+            [ 71  82  93 ]
+            [  1   2   3 ]</div>
+</div>
+
+<p>
+Use the widget to see the stretch. A solid cell is a number that the array really stores.
+A faded cell is a stretched copy: the library reads the stored number again, but it does
+not store the copy. Select each case, and predict the result shape before you look.
+</p>
+
+<div class="widget" data-widget="broadcast"></div>
+
+<div class="box example">
+  <span class="box-label">Example — the four cases worth recognizing</span>
+  <div class="given">(4, 3) + (3,)       ->  (4, 3)    one row added to every row          OK
+(4, 3) + (4, 1)     ->  (4, 3)    one column added to every column     OK
+(4, 3) + (4,)       ->  ERROR     aligns as 3 vs 4: not equal, neither is 1
+(4, 1) + (1, 3)     ->  (4, 3)    BOTH sides stretch: a table of every pair</div>
   <p style="margin-bottom:0">
-  The library does not really make copies. It reads the stretched array with a stride of
-  zero along the broadcast dimension, so it reads the same three numbers again for each
-  row. Thus, if you broadcast a vector across a matrix with a million rows, you use no more
-  memory. That is the second reason for broadcasting. It is also why you should use
-  broadcasting and not <code>repeat</code> or <code>tile</code>.
+  The third case is the good failure. You wanted to add one value for each row. But
+  alignment is always from the right, so a length-4 vector meets the length-3 axis, and you
+  get an error. To fix it, give the vector the shape <span class="shape">(4, 1)</span>.
+  The fourth case makes <code>out[i, j] = a[i] + b[j]</code>, for every pair. Sometimes you
+  want that table, for example a table of distances between every pair of points. When you
+  do not want it, it is the worst bug in this section, because it runs without an error.
   </p>
 </div>
+
+<h4>How you control it in code</h4>
+
+<p>
+Broadcasting never moves an axis. It only adds axes on the left, and it only stretches
+axes of size 1. Thus, when the axes do not align as you want, you must add a size-1 axis
+yourself, at the correct position. Three tools do almost all of this work:
+</p>
+
+<div class="given">v.unsqueeze(1)     or  v[:, None]      (4,)  -> (4, 1)    add an axis of size 1
+v.squeeze(1)                           (4, 1) -> (4,)     remove an axis of size 1
+x.mean(dim=1, keepdim=True)            (4, 3) -> (4, 1)   reduce, but keep the axis</div>
+
+<div class="box example">
+  <span class="box-label">Example — subtract the mean of each row</span>
+  <div class="given">x = [  1   2   3 ]        shape (4, 3)
+    [  4   5   6 ]
+    [  7   8   9 ]
+    [ 10  11  12 ]
+
+x.mean(dim=1)                ->  [2, 5, 8, 11]       shape (4,)
+x - x.mean(dim=1)            ->  ERROR: aligns 3 vs 4
+
+x.mean(dim=1, keepdim=True)  ->  shape (4, 1)
+x - x.mean(dim=1, keepdim=True)
+                             ->  [ -1  0  1 ]        every row centered
+                                 [ -1  0  1 ]
+                                 [ -1  0  1 ]
+                                 [ -1  0  1 ]</div>
+  <p style="margin-bottom:0">
+  Here the error protected you. Now make $x$ square, with three rows and three columns:
+  <code>[[1,2,3],[4,5,6],[7,8,9]]</code>. The row means are <code>[2, 5, 8]</code>, shape
+  <span class="shape">(3,)</span>. Without <code>keepdim</code>, the means align with the
+  <em>columns</em>. Then <code>x - x.mean(dim=1)</code> subtracts 2 from column 1, 5 from
+  column 2 and 8 from column 3. It gives <code>[[-1,-3,-5],[2,0,-2],[5,3,1]]</code>, with
+  no error. The correct answer is three rows of <code>[-1, 0, 1]</code>. Thus, when you
+  reduce an axis and then combine the result with the original array, use
+  <code>keepdim=True</code>.
+  </p>
+</div>
+
+<h4>How the library does it without copies</h4>
+
+<p>
+An array in memory is one flat list of numbers, plus a <strong>stride</strong> for each
+axis. The stride is the number of positions to move in that list when the index on that
+axis increases by 1. For a stretched axis, the library uses a stride of <strong>0</strong>.
+Thus each row reads the same three numbers again. You can see this in PyTorch:
+</p>
+
+<div class="given">b = torch.tensor([1., 2., 3.])
+B = b.expand(4, 3)          # the view that broadcasting uses
+B.stride()                  # (0, 1): move 0 positions per row, 1 per column
+B.data_ptr() == b.data_ptr()   # True: the same memory, no copy</div>
+
+<p>
+That is why broadcasting a vector across a million rows uses no extra memory. It is also
+why you should use broadcasting, or <code>expand</code>, and not <code>repeat</code> or
+<code>tile</code>, which make real copies.
+</p>
+
+<h4>The gradient of a broadcast is a sum</h4>
+
+<p>
+Training must also send gradients <em>back</em> through each broadcast. Remember the
+exact form, $Z = XW + \mathbf{1}\,b^\top$. In the forward pass, one number $b[k]$ went into
+all $N$ rows of column $k$. Thus $b[k]$ has $N$ separate paths to the loss.
+<a class="xref" href="#ch00-partial-derivatives-gradients-and-paths">Part 2</a> shows that
+the derivative over several paths is the sum of the paths. Thus the gradient of $b$ is the
+sum of the incoming gradient over the stretched axis:
+</p>
+
+<div class="given">forward:   one copy of b goes to each of the N rows
+backward:  the N row gradients add into one
+
+G = dL/dZ = [ 1  0  2 ]           dL/db = G.sum(dim=0) = [ 5  2  4 ]
+            [ 0  1  0 ]
+            [ 3  0  1 ]
+            [ 1  1  1 ]</div>
+
+<p>
+PyTorch does this for you. When autograd goes back through a broadcast, it sums over each
+stretched axis, so <code>b.grad</code> always has the shape of <code>b</code>. When you
+write a backward pass by hand, as in <a class="xref" href="#ch01">Chapter 01</a>, you must
+write the sum yourself. That is the line <code>db = d.sum(axis=0)</code>, and this section
+is the reason for it.
+</p>
 
 <div class="box warn">
   <span class="box-label">The one that will cost you an afternoon</span>
@@ -644,46 +978,56 @@ WITH NUMBERS
   <div class="given">predictions   (N, 1)
 targets       (N,)
 
-line up right      N   1
+align right        N   1
                        N
+pad left           N   1
                    1   N
 
-check              N vs 1   ->  stretch
+each column        N vs 1   ->  stretch
                    1 vs N   ->  stretch
 result             (N, N)        every prediction minus every target</div>
+  <p>Here it is with four numbers:</p>
+  <div class="given">predictions = [0.9, 0.2, 0.7, 0.4]  as (4, 1)      targets = [1, 0, 1, 0]  as (4,)
+
+predictions - targets   (4, 4)          you wanted only the diagonal:
+
+  [ -0.1   0.9  -0.1   0.9 ]            [-0.1, 0.2, -0.3, 0.4]
+  [ -0.8   0.2  -0.8   0.2 ]
+  [ -0.3   0.7  -0.3   0.7 ]
+  [ -0.6   0.4  -0.6   0.4 ]
+
+MSE over all 16 entries = 0.325          correct MSE = 0.075</div>
   <p>
-  You get no error and no warning. At $N = 32$, you make a 32×32 grid without knowing it.
-  Then you average 1,024 numbers, not 32. The result is close to the variance of your
-  labels. It is not a loss. The model trains, the number decreases a little, and nothing
-  works.
+  You get no error and no warning. The other twelve entries compare the prediction for one
+  example with the label of a <em>different</em> example. This incorrect loss has its
+  minimum when each prediction is equal to the mean of the labels. Thus the model learns to
+  ignore its input. It predicts the average for everything, and the loss stops at the
+  variance of the labels. The model trains, the loss decreases a little, and nothing works.
   </p>
   <p style="margin-bottom:0">
   The fix is one call: <code>targets.unsqueeze(1)</code> or
-  <code>predictions.squeeze(1)</code>. To prevent the bug, print <code>.shape</code> on
-  both sides of each subtraction that you are not sure about.
-  <a class="xref" href="#ch02">Chapter 02</a> shows this bug again, with a real loss
-  function.
+  <code>predictions.squeeze(1)</code>. The notebook shows a training run with the bug and
+  without it. <a class="xref" href="#ch02">Chapter 02</a> shows this bug again, with a real
+  loss function.
   </p>
 </div>
 
-<div class="box example">
-  <span class="box-label">Example — the four cases worth recognizing</span>
-  <div class="given">(4, 3) + (3,)       ->  (4, 3)    one row added to every row          OK
-(4, 3) + (4, 1)     ->  (4, 3)    one column added to every column     OK
-(4, 3) + (4,)       ->  ERROR     lines up as 3 vs 4: not equal, neither is 1
-(4, 1) + (1, 3)     ->  (4, 3)    BOTH sides stretch — the outer-product trap</div>
-  <p style="margin-bottom:0">
-  The third case is the good failure. You wanted to add one value for each row. But a
-  length-4 vector aligns with the length-3 axis, so you get an error. To fix it, use
-  <span class="shape">(4, 1)</span>, not <span class="shape">(4,)</span>. The fourth case is
-  the bad success. It is the same type of error as the <span class="shape">(N, 1)</span>
-  against <span class="shape">(N,)</span> case above.
-  </p>
+<div class="box note">
+  <span class="box-label">How to protect yourself</span>
+  <ul style="margin:0">
+    <li>Before each operation that combines two arrays, say the two shapes aloud. If one
+        array has fewer axes, say which axis it will align with.</li>
+    <li>If an operation reduces an axis, and you use the result with the original array,
+        use <code>keepdim=True</code>.</li>
+    <li>If you are not sure, add <code>assert a.shape == b.shape</code>. An assert costs
+        one line. The bug costs an afternoon.</li>
+    <li>Test with sizes that are all different, for example $N = 4$, $L = 5$, $C = 6$.
+        Square test sizes hide broadcasting bugs, because an incorrect alignment is also
+        legal.</li>
+  </ul>
 </div>
-
 
 <hr>
-
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 00.6 · a broadcasting audit</span>
@@ -697,70 +1041,135 @@ result             (N, N)        every prediction minus every target</div>
     <li>Do all five.</li>
     <li>You want the mean over the positions that are not padding. <code>x</code> is
         <span class="shape">(B, L, C)</span> and <code>mask</code> is
-        <span class="shape">(B, L)</span>. Why does <code>x * mask</code> fail? What is the
+        <span class="shape">(B, L)</span>, with ones at real positions. Why does
+        <code>x * mask</code> fail when $B = 32$, $L = 128$ and $C = 64$? What is the
         fix?</li>
-    <li>Now let <code>C == L</code> by chance (a batch of 128-token sequences and a
+    <li>Now use one sequence at a time, $B = 1$, and let $C = L = 128$ (128 tokens, and a
         128-dimensional model). What does <code>x * mask</code> do then? Why is that
         <em>worse</em> than the error?</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
     <p><strong>1.</strong></p>
-    <div class="given">1.  (32, 64) + (64,)      → (32, 64)   64 vs 64 ✓, vector added to every row
-2.  (32, 64) + (32,)      → ERROR      64 vs 32, neither equal nor 1
-3.  (32, 64) + (32, 1)    → (32, 64)   64 vs 1 stretches, 32 vs 32 ✓
-4.  (8,1,64) + (1,10,64)  → (8, 10, 64)  both middle and outer stretch
-5.  (2,3,4)  * (2,3,1)    → (2, 3, 4)   the classic per-position scale</div>
-    <p><strong>2.</strong> Align from the right: $C$ against $L$. If they are not equal,
-    you get an error. The mask selects <em>positions</em>. Thus it needs a last axis of
-    size 1, so that it can broadcast across the channels:</p>
+    <div class="given">1.  (32, 64) + (64,)      → (32, 64)     64 vs 64 ✓, vector added to every row
+2.  (32, 64) + (32,)      → ERROR        64 vs 32, neither equal nor 1
+3.  (32, 64) + (32, 1)    → (32, 64)     64 vs 1 stretches, 32 vs 32 ✓
+4.  (8,1,64) + (1,10,64)  → (8, 10, 64)  both the first and the middle axis stretch
+5.  (2,3,4)  * (2,3,1)    → (2, 3, 4)    one scale for each position</div>
+    <p><strong>2.</strong> Pad and align from the right:</p>
+    <div class="given">x      32   128   64
+mask    1    32  128      128 vs 64 fails (and 32 vs 128 fails too)</div>
+    <p>The mask selects <em>positions</em>. Thus it needs a last axis of size 1, so that it
+    stretches across the channels:</p>
     <div class="given">mask.unsqueeze(-1)             → (B, L, 1)
 x * mask.unsqueeze(-1)         → (B, L, C)   ✓
 
+m = mask.unsqueeze(-1)
 pooled = (x * m).sum(1) / m.sum(1).clamp(min=1)</div>
-    <p><strong>3.</strong> It <strong>runs without an error</strong> and calculates
-    incorrect values. With $C = L$, the mask broadcasts across the <em>batch</em>
-    dimension, not the channel dimension. Thus the mask of example 0 multiplies the feature
-    axis of each example. You get no error and no warning. The model trains to a lower
-    accuracy than you expect, and nothing in the output tells you why.</p>
-    <p>That is why the error is the lucky case. It is also why this mask-shape bug occurs
-    most frequently in square configurations, and people often use square configurations
-    for quick prototypes.</p>
+    <p><strong>3.</strong></p>
+    <div class="given">x       1   128   128
+mask    1     1   128      every column passes: result (1, 128, 128)</div>
+    <p>It <strong>runs without an error</strong> and calculates incorrect values. The mask
+    aligns with the <em>channel</em> axis, not the position axis. One entry is
+    <code>out[0, l, c] = x[0, l, c] * mask[0, c]</code>. Thus the mask turns off channels,
+    the same channels at each position, and the padding positions stay in the mean. You get
+    no error and no warning. The model trains to a lower accuracy than you expect, and
+    nothing in the output tells you why.</p>
+    <p>That is why the error is the lucky case. The same silent result occurs when
+    $B = L = C$, for example a small test with 8 sequences of 8 tokens and 8 channels. This
+    is why you should test with sizes that are all different.</p>
   </details>
 </div>
 
 <h2>Part 2 · Calculus: How a Network Learns</h2>
 
-<h3>The derivative as a rate of change</h3>
+<p>
+Training changes each parameter so that the loss decreases. The derivative tells you which
+direction to change it. This part is a short recap of the derivative rules that a network
+uses. It has the rules for one variable, then the same rules for partial derivatives.
+</p>
 
-$$f'(x) = \lim_{h\to 0}\frac{f(x+h)-f(x)}{h}
-\qquad\text{estimated by}\qquad
-\frac{f(x+h)-f(x-h)}{2h}$$
+<div class="box note">
+  <span class="box-label">Where the derivations are</span>
+  <p style="margin-top:0">
+  This part does not derive backpropagation or gradient descent.
+  <a class="xref" href="#ch01">Chapter 01</a> derives both for a real network, with only
+  the rules below. When you get to Chapter 01, you will use:
+  </p>
+  <ul style="margin-bottom:0">
+    <li>the logarithm rule and the chain rule, to get the error at the output;</li>
+    <li>the partial-derivative rules and the sum over paths, to get the gradient of each
+        weight matrix and each bias;</li>
+    <li>the gradient and the <a class="xref" href="#ch00-the-dot-product-is-a-similarity-score">dot
+        product</a>, to show why each step goes along $-\nabla\mathcal{L}$:</li>
+  </ul>
+  $$\theta \leftarrow \theta - \eta\,\frac{\partial\mathcal{L}}{\partial\theta}$$
+  <p style="margin-bottom:0">
+  Here $\theta$ is any parameter and $\eta$ (eta) is the <strong>learning rate</strong>, a
+  small positive number. Exercise 00.8 uses this update one time, before Chapter 01
+  explains it.
+  </p>
+</div>
+
+<h3>Derivative rules, one variable</h3>
+
+<p>
+The derivative $f'(x)$ is the slope of $f$ at $x$: the change in $f$ for each unit of
+change in $x$, when the change is very small. You can always estimate it with numbers:
+</p>
+
+$$f'(x) \;\approx\; \frac{f(x+h)-f(x-h)}{2h}
+\qquad\text{for a small } h \text{, for example } 10^{-5}$$
 
 <div class="box example">
   <span class="box-label">Example — and the technique behind it</span>
   <p>$f(x) = x^2$ has $f'(x) = 2x$, so $f'(3) = 6$. Check this with numbers:</p>
-  <div class="given">(f(3.001) − f(3)) / 0.001 = (9.006001 − 9) / 0.001 = 6.001  ≈ 6  ✓</div>
+  <div class="given">(f(3.001) − f(2.999)) / 0.002 = (9.006001 − 8.994001) / 0.002 = 6.000  ✓</div>
   <p style="margin-bottom:0">
   This is <strong>gradient checking</strong>. It is the standard way to verify a backward
-  pass that you wrote by hand. Compare your analytic gradient with a finite-difference
-  estimate. If the difference is larger than round-off error, the analytic gradient is
-  wrong. The notebook uses this check on the softmax gradient.
+  pass that you wrote by hand. Compare your formula with the estimate. If the difference
+  is larger than round-off error, the formula is wrong.
   </p>
 </div>
 
+<p>
+Five rules give almost every derivative in this book. Each row has a small example. The
+examples are the same values that the notebook checks.
+</p>
+
 <div class="table-wrap">
 <table>
-  <thead><tr><th>Rule</th><th>Statement</th><th>Where it appears</th></tr></thead>
+  <thead><tr><th>Rule</th><th>Statement</th><th>Example</th><th>Where it appears</th></tr></thead>
   <tbody>
-    <tr><td>Power</td><td>$\frac{d}{dx}x^n = nx^{n-1}$</td><td>MSE: $\frac{d}{de}e^2 = 2e$</td></tr>
-    <tr><td>Exponential</td><td>$\frac{d}{dx}e^x = e^x$</td><td>softmax, sigmoid</td></tr>
-    <tr><td>Logarithm</td><td>$\frac{d}{dx}\ln x = 1/x$</td><td>every cross-entropy loss</td></tr>
-    <tr><td>Chain</td><td>$\frac{d}{dx}f(g(x)) = f'(g(x))g'(x)$</td><td>all of backpropagation</td></tr>
+    <tr><td>Sum and constant factor</td><td>$\frac{d}{dx}\big(c\,f + g\big) = c\,f' + g'$</td>
+        <td>$\frac{d}{dx}(3x + 5) = 3$</td><td>each linear layer</td></tr>
+    <tr><td>Power</td><td>$\frac{d}{dx}x^n = nx^{n-1}$</td>
+        <td>$\frac{d}{dx}x^2 = 2x$, which is 6 at $x = 3$</td><td>MSE: $\frac{d}{de}e^2 = 2e$</td></tr>
+    <tr><td>Exponential</td><td>$\frac{d}{dx}e^x = e^x$</td>
+        <td>at $x = 1$: $e^1 = 2.718$</td><td>softmax, sigmoid</td></tr>
+    <tr><td>Logarithm</td><td>$\frac{d}{dx}\ln x = 1/x$</td>
+        <td>at $x = 2$: $1/2 = 0.5$</td><td>each cross-entropy loss</td></tr>
+    <tr><td>Chain</td><td>$\frac{d}{dx}f(g(x)) = f'(g(x))\,g'(x)$</td>
+        <td>$\frac{d}{dx}(3x+1)^2 = 2(3x+1)\cdot 3$, which is 42 at $x = 2$</td>
+        <td>all of backpropagation</td></tr>
   </tbody>
 </table>
 </div>
 
+<p>
+The chain rule says: to differentiate a function inside a function, multiply the
+derivative of the outside (at the inside value) by the derivative of the inside. Two
+combinations of it occur in almost every loss:
+</p>
+
+<div class="given">d/dx  e^g(x)   =  e^g(x) · g'(x)          example:  d/dz e^(−z)      =  −e^(−z)
+d/dx  ln g(x)  =  g'(x) / g(x)            example:  d/dz ln(1 + e^z) =  e^z / (1 + e^z)</div>
+
+<p>
+The second example is the sigmoid, $\sigma(z) = 1/(1+e^{-z}) = e^z/(1+e^z)$. Thus the
+derivative of $\ln(1+e^z)$ is $\sigma(z)$. Exercise 00.7 uses the same two combinations to
+find the derivatives of the activations.
+</p>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 00.7 · derivatives of the activations<span class="tag tag-rec">Recommended</span></span>
@@ -778,7 +1187,8 @@ $$f'(x) = \lim_{h\to 0}\frac{f(x+h)-f(x)}{h}
   </ol>
   <details>
     <summary>Worked solution</summary>
-    <p><strong>1.</strong> Write $\sigma = (1+e^{-z})^{-1}$ and apply the chain rule:</p>
+    <p><strong>1.</strong> Write $\sigma = (1+e^{-z})^{-1}$. Apply the chain rule, with the
+    power rule outside and $\frac{d}{dz}e^{-z} = -e^{-z}$ inside:</p>
     $$\sigma'(z) = -(1+e^{-z})^{-2}\cdot(-e^{-z}) = \frac{e^{-z}}{(1+e^{-z})^2}$$
     <p>Now divide the fraction into two parts: $\frac{e^{-z}}{(1+e^{-z})^2} =
     \frac{1}{1+e^{-z}}\cdot\frac{e^{-z}}{1+e^{-z}}$. The first factor is $\sigma(z)$. The
@@ -809,43 +1219,11 @@ $$f'(x) = \lim_{h\to 0}\frac{f(x+h)-f(x)}{h}
   </details>
 </div>
 
-<h3>The chain rule is backpropagation</h3>
-
-<div class="box concept">
-  <span class="box-label">Key concept</span>
-  <p>
-  A network is a composition of functions, $\mathcal{L}(a_2(z_2(a_1(z_1(x)))))$. The chain
-  rule gives the derivative of the full function with respect to any value inside it. That
-  derivative is the <strong>product of the derivatives along the path</strong>:
-  </p>
-  <div class="given">∂L/∂z₁ = ∂L/∂a₂ · ∂a₂/∂z₂ · ∂z₂/∂a₁ · ∂a₁/∂z₁
-          └───────── one factor per layer crossed ─────────┘</div>
-  <p style="margin-bottom:0">
-  Backpropagation calculates that product, starting at the loss. It keeps each partial
-  result, so it calculates each shared part only one time. Two results explain most of the
-  history of architectures in this book. If the factors are usually less than 1, the
-  product decreases exponentially with depth (<a class="xref" href="#ch04">vanishing
-  gradients</a>). If they are more than 1, the product increases exponentially.
-  </p>
-</div>
-
-<div class="box example">
-  <span class="box-label">Example — a two-link chain</span>
-  <div class="given">y = (3x + 1)²,  so with u = 3x + 1:
-
-dy/du = 2u = 2(3x + 1)
-du/dx = 3
-dy/dx = 6(3x + 1) = 18x + 6
-
-at x = 2:  42
-numerically: ((3(2.001)+1)² − 49)/0.001 = 42.0  ✓</div>
-</div>
-
-
 <div class="box byhand">
   <span class="box-label">By hand — exercise 00.8 · the chain rule as backpropagation<span class="tag tag-must">Must do</span></span>
-  <p>This is the smallest possible case: one row of $W$, one input and one output, in the
-  forward and the backward direction. Each larger network is a stack of this.</p>
+  <p>This is the smallest possible network: one weight, one input and one output. You go
+  forward, then backward, then you make one update. Each larger network is a stack of this.
+  <a class="xref" href="#ch01">Chapter 01</a> does the same steps with matrices.</p>
   <div class="given">x = 2.0     w = 0.5     b = 0.1     true label y = 1
 
 z = wx + b            (linear)
@@ -855,11 +1233,12 @@ L = −ln(a)            (BCE, with y = 1)
 σ(1.1) = 0.750    ln(0.750) = −0.288</div>
   <ol>
     <li>Do the forward pass: calculate $z$, $a$ and $\mathcal{L}$.</li>
-    <li>Calculate $\partial\mathcal{L}/\partial a$.</li>
+    <li>Calculate $\partial\mathcal{L}/\partial a$. (Logarithm rule.)</li>
     <li>Calculate $\partial a/\partial z$ with $\sigma'(z) = a(1-a)$.</li>
-    <li>Multiply them. Simplify the result, and compare it with $a - y$.</li>
+    <li>Multiply them (chain rule). Simplify the result, and compare it with $a - y$.</li>
     <li>Calculate $\partial\mathcal{L}/\partial w$ and $\partial\mathcal{L}/\partial b$.
-        Do one step with $\eta = 0.5$. Make sure that the loss decreased.</li>
+        Do one update $\theta \leftarrow \theta - \eta\,\partial\mathcal{L}/\partial\theta$
+        with $\eta = 0.5$. Make sure that the loss decreased.</li>
   </ol>
   <details>
     <summary>Worked solution</summary>
@@ -871,8 +1250,10 @@ L = −ln(a)            (BCE, with y = 1)
 a − y = 0.750 − 1      = −0.250      identical</div>
     <p>In algebra: $-\frac{1}{a}\cdot a(1-a) = a-1 = a-y$. The $\sigma'$ factor cancels
     <em>exactly</em> with the $1/a$ from the logarithm. This is the cancellation in its
-    simplest form. It is why sigmoid goes with BCE, and not with MSE.</p>
-    <p><strong>5.</strong></p>
+    simplest form. It is why sigmoid goes with BCE, and not with MSE. Chapter 01 calls
+    this number $\delta$.</p>
+    <p><strong>5.</strong> $z = wx + b$, so $\partial z/\partial w = x$ and
+    $\partial z/\partial b = 1$ (sum and constant-factor rules):</p>
     <div class="given">∂L/∂w = (−0.250)(2.0) = −0.500
 ∂L/∂b = (−0.250)(1.0) = −0.250
 
@@ -888,28 +1269,67 @@ new z = 1.725     new a = 0.849     new L = 0.164    was 0.288  ✓</div>
 
 <h3>Partial derivatives, gradients, and paths</h3>
 
+<p>
+A loss depends on many parameters. The <strong>partial derivative</strong>
+$\partial f/\partial w$ is the derivative with respect to $w$ when all the other variables
+stay constant. Thus you do not need new rules. Use the five rules above, and treat each
+other variable as a number. A term that does not contain $w$ is a constant, and its
+derivative is zero.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Function</th><th>Partial derivative</th><th>Rules used</th><th>Where it appears</th></tr></thead>
+  <tbody>
+    <tr><td>$f = wx + b$</td><td>$\partial f/\partial w = x$,&nbsp; $\partial f/\partial x = w$,&nbsp; $\partial f/\partial b = 1$</td>
+        <td>constant factor, sum</td><td>one weight of a linear layer</td></tr>
+    <tr><td>$f = \sum_k w_k x_k$</td><td>$\partial f/\partial w_i = x_i$</td>
+        <td>sum: each term without $w_i$ gives 0</td><td>one unit of a linear layer</td></tr>
+    <tr><td>$f = (y - wx)^2$</td><td>$\partial f/\partial w = -2x\,(y - wx)$</td>
+        <td>chain, power</td><td>MSE for one example</td></tr>
+    <tr><td>$f = \ln\!\big(e^{z_1} + e^{z_2}\big)$</td><td>$\partial f/\partial z_1 = e^{z_1}/(e^{z_1} + e^{z_2})$</td>
+        <td>chain, logarithm, exponential</td><td>softmax with cross-entropy</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Look at the last row with numbers. At $z = (0, 0)$ it gives $1/(1+1) = 0.5$. At
+$z = (2, 0)$ it gives $7.389/(7.389 + 1) = 0.881$. That fraction is the softmax. Thus the
+softmax is the derivative of $\ln\sum_k e^{z_k}$, and this is why the cross-entropy
+gradient is so simple (Part 4 and Chapter 01).
+</p>
+
+<p>
+The <strong>gradient</strong> $\nabla f$ is the list of all the partial derivatives, one
+for each variable. It has the same shape as the variables. If the variables are a matrix
+$W$, the gradient is a matrix with the shape of $W$.
+</p>
+
 <div class="box example">
   <span class="box-label">Example — the gradient of a two-variable function</span>
   <div class="given">f(x, y) = x²y + 3y
 
-∂f/∂x:  hold y fixed  →  2xy
-∂f/∂y:  hold x fixed  →  x² + 3
+∂f/∂x:  y is constant  →  2xy
+∂f/∂y:  x is constant  →  x² + 3
 
 ∇f = [2xy, x² + 3]      at (2, 1):  ∇f = [4, 7]</div>
   <p style="margin-bottom:0">
   At this point, a change in $y$ changes $f$ almost two times faster than the same change
   in $x$. The gradient points in the direction of the fastest <em>increase</em>. Thus
   gradient <em>descent</em> moves along $-\nabla f$.
+  <a class="xref" href="#ch01">Chapter 01</a> uses this same function to show why.
   </p>
 </div>
 
 <div class="box concept">
-  <span class="box-label">Key concept — sum over paths</span>
+  <span class="box-label">Key concept — the chain rule with many paths</span>
   <p>
   A variable can affect the loss through more than one route. If it does, the total
-  derivative is the <strong>sum over all the paths</strong>. People get this rule wrong
-  more than any other. It is also the reason that PyTorch <em>adds</em> to
-  <code>.grad</code> and does not overwrite it.
+  derivative is the <strong>sum over all the paths</strong>. Each path contributes the
+  product of the derivatives along it. People get this rule wrong more than any other. It
+  is also the reason that PyTorch <em>adds</em> to <code>.grad</code> and does not
+  overwrite it.
   </p>
   <div class="given">a = w·x
 b = a + w          ← w reaches b directly AND through a
@@ -920,13 +1340,13 @@ path 1 (w → a → b → L):  2 × 1 × 18 = 36
 path 2 (w → b → L):          1 × 18 = 18
                        total ∂L/∂w = 54</div>
   <p style="margin-bottom:0">
-  The same sum makes weight sharing work in
-  <a class="xref" href="#ch04">recurrent networks</a>, which use one matrix at each
-  timestep. It is also why you must call <code>zero_grad()</code>. Autograd cannot know
-  where one backward pass ends and the next one starts.
+  The same sum gives the gradient of a bias, because one bias goes to every example in a
+  batch (<a class="xref" href="#ch00-broadcasting">broadcasting</a>). It makes weight
+  sharing work in <a class="xref" href="#ch04">recurrent networks</a>, which use one matrix
+  at each timestep. It is also why you must call <code>zero_grad()</code>. Autograd cannot
+  know where one backward pass ends and the next one starts.
   </p>
 </div>
-
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 00.9 · summing over paths</span>
@@ -960,777 +1380,24 @@ path 2:      1 × 3 =  3
   </details>
 </div>
 
-<h3>Backpropagation, in matrices</h3>
-
-<p>
-Until now, we used one number at a time. That is the easiest way to learn the chain rule,
-but no real code calculates that way. A real network does not hold scalars. It is a
-sequence of matrix multiplications with an elementwise function between them. The backward
-pass is the same sequence in reverse. This section derives it one time, completely. It is
-the last mathematics that the rest of the book needs. Each later chapter uses this
-procedure with different matrices.
-</p>
-
-<p>
-Use a two-layer network and a batch of $N$ examples. There are $d$ inputs, $h$ hidden
-units and $K$ classes. The forward pass has five lines:
-</p>
-
-<div class="box example">
-  <span class="box-label">Forward</span>
-  <div class="given">Z1 = X  W1 + b1        (N,d)(d,h) -> (N,h)
-A1 = f(Z1)             elementwise, shape unchanged
-Z2 = A1 W2 + b2        (N,h)(h,K) -> (N,K)
-P  = softmax(Z2)       row by row
-L  = mean over the batch of  -log P[i, correct class]</div>
-  <p style="margin-bottom:0">
-  It has two matrix multiplications, one elementwise function, one softmax and one
-  average. It has nothing more. $f$ is the activation that you select, and nothing below
-  depends on which one it is.
-  </p>
-</div>
-
-<p>
-The five lines make the calculation easy, but they are not five separate functions. If you
-put each line into the next one, you get one expression. Write it out one time, because you
-will differentiate <em>this expression</em>, not the five lines:
-</p>
-
-$$\mathcal{L}(W_1, b_1, W_2, b_2) \;=\; \text{CE}\Big(\;
-\operatorname{softmax}\big(\, f(XW_1 + b_1)\,W_2 + b_2 \,\big) \;,\; Y \Big)$$
-
-<p>
-There are four parameters. Each one occurs exactly one time, under a different number of
-operations. $W_2$ is inside two operations, and $W_1$ is inside four. That is the only
-reason the two gradients below have different lengths.
-<a class="xref" href="#ch01">Chapter 01</a> draws this nesting. Then it calculates each
-entry of one of these gradients by hand, as a matrix of partial derivatives.
-</p>
-
-<p>
-Now differentiate. Write $G_2 = \partial\mathcal{L}/\partial Z_2$ and
-$G_1 = \partial\mathcal{L}/\partial Z_1$. These are the gradients of the loss with respect
-to the pre-activation of each layer. The full backward pass is these six lines:
-</p>
-
-<div class="box example">
-  <span class="box-label">Backward</span>
-  <div class="given">G2      = (P - Y) / N          (N,K)     Y is the one-hot targets
-dL/dW2  = A1^T G2              (h,K)
-dL/db2  = column sums of G2    (K,)
-G1      = (G2 W2^T) * f'(Z1)   (N,h)     * is elementwise
-dL/dW1  = X^T G1               (d,h)
-dL/db1  = column sums of G1    (h,)</div>
-  <p style="margin-bottom:0">
-  Read down the right column, and you see that the section title is true. Each line is a
-  matrix multiplication, an elementwise multiplication or a sum. There is no difficult
-  derivative. All of that became the first line, the $\hat{y} - y$ that you will see again
-  in Part 4. The rest became $f'$, which for ReLU is a matrix of ones and zeros.
-  </p>
-</div>
-
-<h4>Where each of those four gradients comes from</h4>
-
-<p>
-To state six lines is not to derive them. Thus, here is each parameter in turn. The
-procedure is always the same:
-</p>
-
-<ol>
-  <li>Find where the parameter occurs in the full expression.</li>
-  <li>List the operations between it and the loss.</li>
-  <li>Multiply by the derivative of each of those operations, one at a time.</li>
-</ol>
-
-<p>
-<strong>1. $\partial\mathcal{L}/\partial W_2$.</strong> $W_2$ occurs one time, in
-$Z_2 = A_1W_2 + b_2$. Two operations are between it and the loss: the softmax and the
-cross-entropy. This agrees with the nesting. Those two operations together become one
-subtraction:
-</p>
-
-<div class="given">L  <-  CE  <-  softmax  <-  Z2  <-  W2
-
-  step 1   both of the outer two at once:
-           G2 = dL/dZ2 = (P - Y) / N               (N,K)
-
-  step 2   Z2 = A1 W2 + b2, and W2 is the RIGHT factor of that product,
-           so by the rule above you multiply by the left one, transposed:
-           dL/dW2 = A1^T G2                        (h,N)(N,K) -> (h,K)</div>
-
-<p>
-The result has the shape of $W_2$. That is the check. Note that the matrix product sums
-over the batch axis $N$. Each example contributes to each weight, and the product adds
-those contributions for you.
-</p>
-
-<p>
-<strong>2. $\partial\mathcal{L}/\partial b_2$.</strong> This is the same line, with the
-same two operations above it. But $b_2$ comes in by addition, not by multiplication. The
-derivative of a sum with respect to one of its terms is 1. Thus nothing scales the
-gradient that comes in. The only question is how many places $b_2$ went to:
-</p>
-
-<div class="given">Z2[n,k] = sum_j A1[n,j] W2[j,k]  +  b2[k]
-                                    ^^^^^
-                                    the same b2[k] was added to all N rows
-
-  dZ2[n,k] / db2[k] = 1     for every n
-
-  so every row's gradient lands on the same entry, and they add:
-  dL/db2[k] = sum over n of G2[n,k]              (K,)
-
-  in code:    db2 = G2.sum(axis=0)</div>
-
-<p>
-That sum is not a convention. It is the
-<a class="xref" href="#ch00-partial-derivatives-gradients-and-paths">sum over paths</a>
-from earlier in this part. When $b_2$ broadcasts across the batch, it makes $N$ separate
-routes from $b_2$ to the loss. The total derivative is the sum over all of them. Here is
-the general rule: sum the gradient of a broadcast parameter over the axis of the
-broadcast. That one sentence covers each bias in this book.
-</p>
-
-<p>
-<strong>3. $\partial\mathcal{L}/\partial W_1$.</strong> Now the longer one. It is longer
-only because $W_1$ is deeper. Four operations are between it and the loss:
-</p>
-
-<div class="given">L  <-  CE  <-  softmax  <-  Z2  <-  A1  <-  Z1  <-  W1
-
-  step 1   as before:
-           G2 = (P - Y) / N                        (N,K)
-
-  step 2   Z2 = A1 W2 + b2, and now we want the LEFT factor, A1,
-           so multiply by the right one transposed:
-           dL/dA1 = G2 W2^T                        (N,K)(K,h) -> (N,h)
-
-  step 3   A1 = f(Z1) is elementwise, so its derivative is elementwise too
-           — no matrix product, just a mask:
-           G1 = dL/dZ1 = (G2 W2^T) * f'(Z1)        (N,h)
-
-  step 4   Z1 = X W1 + b1, W1 is again the RIGHT factor:
-           dL/dW1 = X^T G1                         (d,N)(N,h) -> (d,h)</div>
-
-<p>
-Compare step 4 with step 2 of the first derivation. They say the same thing: <em>what came
-in, transposed, times what must change</em>. Only $X$ replaces $A_1$, and $G_1$ replaces
-$G_2$. The only extra work for $W_1$ was steps 2 and 3, which made $G_1$. That is the cost
-of two more layers of nesting: two more steps, and both are mechanical.
-</p>
-
-<p>
-<strong>4. $\partial\mathcal{L}/\partial b_1$.</strong> This has the same form as $b_2$,
-one layer lower. $b_1$ broadcast across the batch. Thus, sum the gradient that comes in
-over the batch axis:
-</p>
-
-<div class="given">dL/db1[j] = sum over n of G1[n,j]              (h,)
-
-  in code:    db1 = G1.sum(axis=0)</div>
-
 <div class="box note">
-  <span class="box-label">All four, together</span>
-  <div class="given">dL/dW2 = A1^T G2                (h,K)     G2 = (P - Y) / N
-dL/db2 = G2.sum(axis=0)         (K,)
-
-dL/dW1 = X^T  G1                (d,h)     G1 = (G2 W2^T) * f'(Z1)
-dL/db1 = G1.sum(axis=0)         (h,)</div>
-  <p style="margin-bottom:0">
-  There are two weight gradients. Each one is <em>input, transposed, times error</em>.
-  There are two bias gradients. Each one is <em>error, summed over the batch</em>. All the
-  other steps in the backward pass only make $G_2$ and $G_1$.
-  </p>
-</div>
-
-<div class="box concept">
-  <span class="box-label">Seeing it with numbers in it</span>
-  Each expression above is a matrix with the same shape as its parameter. Thus
-  $\partial\mathcal{L}/\partial W_1$ is a $d \times h$ grid. Its entry $(i,j)$ is the
-  ordinary partial derivative of the loss with respect to the single number $W_1[i,j]$.
-  <a class="xref" href="#ch00-backpropagation-on-xor-every-entry-written-out">The XOR
-  section below</a> writes each of those grids entry by entry, for a real network with real
-  numbers. <a class="xref" href="#ch01">Chapter 01</a> then turns the same calculation into
-  code, first as a triple loop and then as the matrix product above. If the formulas here
-  still seem like statements without proof, those two sections make them concrete.
-</div>
-
-<h4 id="ch00-jacobian">What you are multiplying by, and what it is called</h4>
-
-<p>
-Each of those steps multiplied the gradient by something. That something has a name. The
-name occurs frequently from here on, and texts rarely explain it.
-</p>
-
-<p>
-When one number depends on one number, the derivative is one number. When a vector of
-outputs depends on a vector of inputs, there is a derivative for each <em>pair</em>: each
-output with respect to each input. The natural place to put all of them is a grid:
-</p>
-
-<div class="given">for an operation taking m inputs to n outputs, the derivative is
-an n x m matrix, and entry (i, j) is
-
-        d(output i) / d(input j)
-
-that matrix is called the JACOBIAN of the operation.</div>
-
-<p>
-Thus a Jacobian is not a new type of mathematics. It is a table of ordinary partial
-derivatives, the same as in the rest of this part. The table has this arrangement so that
-<strong>you move a gradient back through an operation with one matrix multiplication by
-that table</strong>. That is the only reason it exists. It changes "apply the chain rule to
-each pair of things" into one product.
-</p>
-
-<div class="box concept">
-  <span class="box-label">Key concept — and why elementwise functions are cheap</span>
+  <span class="box-label">Next: Chapter 01 puts these rules together</span>
   <p style="margin-top:0">
-  Think about the Jacobian of an elementwise function like ReLU or sigmoid. Output $i$
-  depends on input $i$ and on nothing more. Thus each off-diagonal entry is
-  <strong>zero</strong>. For example, output 3 does not change when input 7 changes:
+  You now have each tool that backpropagation and gradient descent use. In
+  <a class="xref" href="#ch01">Chapter 01</a>, you will derive both for a two-layer
+  network:
   </p>
-  <div class="given">Jacobian of an elementwise f, for 3 values:
-
-        [ f'(z1)    0       0    ]
-        [   0     f'(z2)    0    ]
-        [   0       0     f'(z3) ]</div>
-  <p style="margin-bottom:0">
-  A multiplication by a diagonal matrix is the same as a multiplication entry by entry.
-  That is why $f'(Z_1)$ occurs in the backward pass with a $\odot$, and not with a matrix
-  product. It is also why the backward pass through an activation costs almost nothing.
-  When a later chapter says that a gradient was "multiplied by a Jacobian per step", think
-  of one of these matrices. A later chapter also says that the Jacobian of the softmax is
-  $\operatorname{diag}(p) - pp^{\top}$. Note that the softmax is <em>not</em> elementwise.
-  Thus its off-diagonal entries are not zero, and it costs more.
-  </p>
-</div>
-
-<div class="box concept">
-  <span class="box-label">Key concept</span>
-  <p>
-  One rule is under all six lines. To move a gradient back through a product $Y = AB$,
-  <strong>multiply by the other factor, transposed</strong>. Put it on the left or on the
-  right, on the side where the shapes fit:
-  </p>
-  <div class="given">going back to A:   dL/dA = (dL/dY) B^T
-going back to B:   dL/dB = A^T (dL/dY)</div>
-  <p style="margin-bottom:0">
-  That is the full mechanism. Backpropagation through a network of matrix multiplications
-  multiplies the gradient by a transposed matrix, one time for each layer, down to the
-  input. Where there was an activation, it adds an elementwise factor.
-  </p>
-</div>
-
-<div class="box note">
-  <span class="box-label">You can recover every line from the shapes alone</span>
-  <p style="margin-top:0">
-  Do this one time. After that, you never have to memorize the backward pass. You can
-  make it again on a whiteboard from only the forward shapes.
-  </p>
-  <p style="margin-bottom:0">
-  $\partial\mathcal{L}/\partial W_2$ must have the same shape as $W_2$, which is
-  <span class="shape">(h, K)</span>. You have two things: $A_1$ at
-  <span class="shape">(N, h)</span> and $G_2$ at <span class="shape">(N, K)</span>. There
-  is exactly one way to multiply them and get <span class="shape">(h, K)</span>: transpose
-  $A_1$ and put it on the left. In the same way, $\partial\mathcal{L}/\partial A_1$ must be
-  <span class="shape">(N, h)</span>. The only arrangement of $G_2$
-  <span class="shape">(N, K)</span> and $W_2$ <span class="shape">(h, K)</span> that gives
-  that shape is $G_2 W_2^\top$. The shapes give you no choice. That is why
-  <a class="xref" href="#ch00-transpose-and-why-the-backward-pass-needs-it">the transpose
-  section</a> said that transposes come from the backward pass.
-  </p>
-</div>
-
-<h3>Backpropagation on XOR, every entry written out</h3>
-
-<p>
-The section above uses letters. This section uses one real network and real numbers. It
-also makes one idea explicit, and the rest of the book depends on it. You do not need a
-picture of nodes and arrows to understand a network. A network is a short list of
-matrices. The backward pass is a second list of matrices, with the same shapes. Each entry
-of each matrix is one short formula that you can write down and calculate by hand.
-</p>
-
-<div class="box concept">
-  <span class="box-label">Key concept — a network is matrices, and so is its gradient</span>
-  <p style="margin-top:0">
-  The forward pass makes five matrices from the input. The backward pass makes six more.
-  Each one has a fixed shape, and each entry has a formula:
-  </p>
-  <div class="given">FORWARD                         BACKWARD
-Z1 = X W1 + b1      (4,2)       G2    = dL/dZ2           (4,1)
-A1 = sigma(Z1)      (4,2)       dL/dW2                   (2,1)  same shape as W2
-Z2 = A1 W2 + b2     (4,1)       dL/db2                   (1,)   same shape as b2
-A2 = sigma(Z2)      (4,1)       G1    = dL/dZ1           (4,2)
-L  = mean BCE       scalar      dL/dW1                   (2,2)  same shape as W1
-                                dL/db1                   (2,)   same shape as b1</div>
-  <p style="margin-bottom:0">
-  A diagram of circles and lines shows the same thing, but it hides the shapes and the
-  formulas. In this book, a "unit" or "neuron" is only a column of one of these matrices.
-  Think in matrices, and backpropagation becomes a list of entries to fill in.
-  </p>
-</div>
-
-<h4>The network and its numbers</h4>
-
-<p>
-The four XOR examples are the rows of $X$. The targets are the rows of $Y$. The network has
-two inputs, two hidden units and one output. Two hidden units is the smallest number that
-can solve XOR, and it keeps each matrix small enough to print. (Chapter 01 uses four hidden
-units.) The activation is the sigmoid at both layers, and the loss is binary cross-entropy.
-</p>
-
-<div class="given">     X (4,2)       Y (4,1)
-   [ 0   0 ]       [ 0 ]          example 1
-   [ 0   1 ]       [ 1 ]          example 2
-   [ 1   0 ]       [ 1 ]          example 3
-   [ 1   1 ]       [ 0 ]          example 4
-
-     W1 (2,2)        b1 (2,)          W2 (2,1)      b2 (1,)
-   [ 2   2 ]       [ -1   -3 ]       [  2 ]        [ -1 ]
-   [ 2   2 ]                         [ -2 ]</div>
-
-<p>
-These weights are partly trained. Hidden unit 1 has bias $-1$, so it turns on when at least
-one input is on: it is approximately OR. Hidden unit 2 has bias $-3$, so it turns on only
-when both inputs are on: it is approximately AND. The output calculates
-"OR and not AND", which is XOR. But the weights are still too small to make clear decisions.
-</p>
-
-<p>
-In this section, indices start at 1, as in mathematics. In code, they start at 0. Thus
-$W_1[i,j]$ is the weight from input $i$ to hidden unit $j$, and $Z_1[n,j]$ is the
-pre-activation of hidden unit $j$ for example $n$.
-</p>
-
-<h4>Step 1 — the forward pass, entry by entry</h4>
-
-<p>
-<strong>$Z_1 = XW_1 + b_1$.</strong> Each entry is a dot product plus a bias. Here is the
-formula for each entry, and then the numbers:
-</p>
-
-<div class="given">Z1[n,j] = X[n,1] W1[1,j] + X[n,2] W1[2,j] + b1[j]
-
-          j = 1 (OR unit)              j = 2 (AND unit)
-n = 1     0(2) + 0(2) - 1 = -1         0(2) + 0(2) - 3 = -3
-n = 2     0(2) + 1(2) - 1 =  1         0(2) + 1(2) - 3 = -1
-n = 3     1(2) + 0(2) - 1 =  1         1(2) + 0(2) - 3 = -1
-n = 4     1(2) + 1(2) - 1 =  3         1(2) + 1(2) - 3 =  1</div>
-
-<p>
-<strong>$A_1 = \sigma(Z_1)$.</strong> The sigmoid acts on each entry separately:
-</p>
-
-<div class="given">A1[n,j] = sigma(Z1[n,j])
-
-       [ sigma(-1)  sigma(-3) ]     [ 0.2689   0.0474 ]
-A1  =  [ sigma( 1)  sigma(-1) ]  =  [ 0.7311   0.2689 ]
-       [ sigma( 1)  sigma(-1) ]     [ 0.7311   0.2689 ]
-       [ sigma( 3)  sigma( 1) ]     [ 0.9526   0.7311 ]</div>
-
-<p>
-<strong>$Z_2 = A_1W_2 + b_2$ and $A_2 = \sigma(Z_2)$.</strong> There is one output, so each
-row gives one number:
-</p>
-
-<div class="given">Z2[n] = A1[n,1] W2[1] + A1[n,2] W2[2] + b2
-
-n = 1    0.2689(2) + 0.0474(-2) - 1 = -0.5570     A2[1] = 0.3642    target 0
-n = 2    0.7311(2) + 0.2689(-2) - 1 = -0.0758     A2[2] = 0.4811    target 1
-n = 3    0.7311(2) + 0.2689(-2) - 1 = -0.0758     A2[3] = 0.4811    target 1
-n = 4    0.9526(2) + 0.7311(-2) - 1 = -0.5570     A2[4] = 0.3642    target 0</div>
-
-<p>
-<strong>The loss.</strong> Each example adds $-\ln \hat{y}$ if its target is 1, and
-$-\ln(1-\hat{y})$ if its target is 0. The loss is the mean of the four:
-</p>
-
-<div class="given">example 1:  -ln(1 - 0.3642) = 0.4529
-example 2:  -ln(0.4811)     = 0.7317
-example 3:  -ln(0.4811)     = 0.7317
-example 4:  -ln(1 - 0.3642) = 0.4529
-
-L = (0.4529 + 0.7317 + 0.7317 + 0.4529) / 4 = 0.5923</div>
-
-<p>
-A random guess gives $\ln 2 = 0.693$. Thus the network has learned something. But examples
-2 and 3 are on the wrong side of 0.5, so it still classifies two of the four examples
-incorrectly.
-</p>
-
-<h4>Step 2 — the backward pass, entry by entry</h4>
-
-<p>
-The method is the same for each matrix. Write the formula for one entry. Find which numbers
-that entry affects. Apply the chain rule to that one entry. Then look at the formula again,
-and recognize the matrix product that calculates all the entries at the same time.
-</p>
-
-<p>
-<strong>$G_2 = \partial L/\partial Z_2$, shape (4, 1).</strong> $Z_2[n]$ affects only the
-loss term of example $n$, and that term has weight $1/4$ in the mean. From
-<a class="xref" href="#ch00">exercise 00.8</a>, the sigmoid and the BCE cancel, and each
-entry is the error divided by the batch size:
-</p>
-
-<div class="given">G2[n] = (A2[n] - Y[n]) / 4
-
-G2 = [ (0.36425 - 0)/4 ]   [  0.09106 ]     too high: push example 1 down
-     [ (0.48107 - 1)/4 ] = [ -0.12973 ]     too low:  push example 2 up
-     [ (0.48107 - 1)/4 ]   [ -0.12973 ]     too low:  push example 3 up
-     [ (0.36425 - 0)/4 ]   [  0.09106 ]     too high: push example 4 down</div>
-
-<p>
-<strong>$\partial L/\partial W_2$, shape (2, 1).</strong> $W_2[j]$ occurs in all four rows
-of $Z_2$, one time for each example. In row $n$, it multiplies $A_1[n,j]$. Thus there are
-four paths from $W_2[j]$ to the loss, and the
-<a class="xref" href="#ch00-partial-derivatives-gradients-and-paths">sum over paths</a>
-adds them:
-</p>
-
-<div class="given">dL/dW2[j] = A1[1,j] G2[1] + A1[2,j] G2[2] + A1[3,j] G2[3] + A1[4,j] G2[4]
-
-dL/dW2[1] = 0.26894(0.09106) + 0.73106(-0.12973) + 0.73106(-0.12973) + 0.95257(0.09106)
-          =   0.02449        -   0.09484        -   0.09484         +   0.08674
-          = -0.07845
-
-dL/dW2[2] = 0.04743(0.09106) + 0.26894(-0.12973) + 0.26894(-0.12973) + 0.73106(0.09106)
-          =   0.00432        -   0.03489        -   0.03489         +   0.06657
-          =  0.00111</div>
-
-<p>
-Now look at the formula. Entry $j$ is column $j$ of $A_1$, dot product with $G_2$. Column $j$
-of $A_1$ is row $j$ of $A_1^\top$. Thus all the entries together are one matrix product:
-$\partial L/\partial W_2 = A_1^\top G_2$. The matrix product does not add a new idea. It is
-the sum over the four examples, done for each entry at the same time.
-</p>
-
-<p>
-Note the second entry, 0.00111. It is almost zero, but no individual term is small. Examples
-2 and 3 want $W_2[2]$ to change in one direction, and examples 1 and 4 want the opposite. A
-gradient is a sum over the batch, and here the examples almost cancel.
-</p>
-
-<p>
-<strong>$\partial L/\partial b_2$, shape (1,).</strong> $b_2$ is added to each row of $Z_2$
-with a multiplier of 1. Thus its gradient is the sum of $G_2$:
-</p>
-
-<div class="given">dL/db2 = G2[1] + G2[2] + G2[3] + G2[4]
-       = 0.09106 - 0.12973 - 0.12973 + 0.09106 = -0.07734</div>
-
-<p>
-<strong>$\partial L/\partial A_1$, shape (4, 2).</strong> Now go one layer down. $A_1[n,j]$
-occurs in only one place: row $n$ of $Z_2$, where $W_2[j]$ multiplies it. Thus each entry
-has one path and one product:
-</p>
-
-<div class="given">dL/dA1[n,j] = G2[n] W2[j]
-
-         [ G2[1]W2[1]   G2[1]W2[2] ]     [  0.1821   -0.1821 ]
-dL/dA1 = [ G2[2]W2[1]   G2[2]W2[2] ]  =  [ -0.2595    0.2595 ]
-         [ G2[3]W2[1]   G2[3]W2[2] ]     [ -0.2595    0.2595 ]
-         [ G2[4]W2[1]   G2[4]W2[2] ]     [  0.1821   -0.1821 ]</div>
-
-<p>
-Each row is $G_2[n]$ times the row vector $W_2^\top$. Thus the full matrix is
-$G_2W_2^\top$: a (4, 1) column times a (1, 2) row. The output weight decides how much error
-each hidden unit gets. Unit 2 has a negative output weight, so its error has the opposite
-sign.
-</p>
-
-<p>
-<strong>$G_1 = \partial L/\partial Z_1$, shape (4, 2).</strong> $A_1[n,j] = \sigma(Z_1[n,j])$
-depends only on the one entry $Z_1[n,j]$. Thus the chain rule multiplies each entry by one
-local derivative, $\sigma'(Z_1[n,j]) = A_1[n,j](1 - A_1[n,j])$. There is no sum here:
-</p>
-
-<div class="given">G1[n,j] = dL/dA1[n,j] * A1[n,j] (1 - A1[n,j])
-
-              [ 0.1966   0.0452 ]
-sigma'(Z1) =  [ 0.1966   0.1966 ]      = A1 * (1 - A1), entry by entry
-              [ 0.1966   0.1966 ]
-              [ 0.0452   0.1966 ]
-
-      [  0.1821(0.1966)   -0.1821(0.0452) ]     [  0.0358   -0.0082 ]
-G1 =  [ -0.2595(0.1966)    0.2595(0.1966) ]  =  [ -0.0510    0.0510 ]
-      [ -0.2595(0.1966)    0.2595(0.1966) ]     [ -0.0510    0.0510 ]
-      [  0.1821(0.0452)   -0.1821(0.1966) ]     [  0.0082   -0.0358 ]</div>
-
-<p>
-In matrix form, $G_1 = (G_2W_2^\top) \odot \sigma'(Z_1)$. The $\odot$ means entry by entry,
-because each hidden output depends on only one pre-activation. Note the two entries with
-0.0452. There, $|Z_1| = 3$ and the sigmoid is starting to saturate. Thus those entries
-get approximately four times less gradient than the entries with $|Z_1| = 1$.
-</p>
-
-<p>
-<strong>$\partial L/\partial W_1$, shape (2, 2).</strong> $W_1[i,j]$ occurs in column $j$ of
-$Z_1$, in all four rows. In row $n$, it multiplies $X[n,i]$. Thus there are four paths, and
-we add them, exactly as for $W_2$:
-</p>
-
-<div class="given">dL/dW1[i,j] = X[1,i] G1[1,j] + X[2,i] G1[2,j] + X[3,i] G1[3,j] + X[4,i] G1[4,j]
-
-X has many zeros, so many terms disappear:
-
-dL/dW1[1,1] = 0 + 0 + 1(-0.0510) + 1( 0.0082) = -0.0428
-dL/dW1[1,2] = 0 + 0 + 1( 0.0510) + 1(-0.0358) =  0.0152
-dL/dW1[2,1] = 0 + 1(-0.0510) + 0 + 1( 0.0082) = -0.0428
-dL/dW1[2,2] = 0 + 1( 0.0510) + 0 + 1(-0.0358) =  0.0152
-
-          [ -0.0428    0.0152 ]
-dL/dW1 =  [ -0.0428    0.0152 ]   =   X^T G1</div>
-
-<p>
-This is the same pattern as $\partial L/\partial W_2 = A_1^\top G_2$. The input to the layer,
-transposed, multiplies the error at the output of the layer. The only difference is the
-input: $X$ for layer 1, and $A_1$ for layer 2.
-</p>
-
-<p>
-<strong>$\partial L/\partial b_1$, shape (2,).</strong> $b_1[j]$ is added to each row of
-column $j$ of $Z_1$. Thus its gradient is the sum of column $j$ of $G_1$:
-</p>
-
-<div class="given">dL/db1[1] =  0.0358 - 0.0510 - 0.0510 + 0.0082 = -0.0580
-dL/db1[2] = -0.0082 + 0.0510 + 0.0510 - 0.0358 =  0.0580</div>
-
-<div class="box note">
-  <span class="box-label">All six gradients, as formulas and as matrix products</span>
-  <div class="table-wrap">
-  <table>
-    <thead><tr><th>Gradient</th><th>Shape</th><th>One entry</th><th>All entries</th></tr></thead>
-    <tbody>
-      <tr><td>$G_2$</td><td>(4, 1)</td><td>$(A_2[n] - Y[n])/4$</td><td>$(A_2 - Y)/4$</td></tr>
-      <tr><td>$\partial L/\partial W_2$</td><td>(2, 1)</td><td>$\sum_n A_1[n,j]\,G_2[n]$</td><td>$A_1^\top G_2$</td></tr>
-      <tr><td>$\partial L/\partial b_2$</td><td>(1,)</td><td>$\sum_n G_2[n]$</td><td>column sum of $G_2$</td></tr>
-      <tr><td>$G_1$</td><td>(4, 2)</td><td>$G_2[n]\,W_2[j]\,A_1[n,j](1-A_1[n,j])$</td><td>$(G_2W_2^\top)\odot A_1\odot(1-A_1)$</td></tr>
-      <tr><td>$\partial L/\partial W_1$</td><td>(2, 2)</td><td>$\sum_n X[n,i]\,G_1[n,j]$</td><td>$X^\top G_1$</td></tr>
-      <tr><td>$\partial L/\partial b_1$</td><td>(2,)</td><td>$\sum_n G_1[n,j]$</td><td>column sums of $G_1$</td></tr>
-    </tbody>
-  </table>
-  </div>
-  <p style="margin-bottom:0">
-  Read across each row. The "one entry" formula is what the chain rule gives. The "all
-  entries" form is the same formula, written so that a library can calculate it in one
-  call. When a matrix formula confuses you, change it back into the one-entry formula.
-  </p>
-</div>
-
-<h4>Step 3 — one update, and a check</h4>
-
-<p>
-Take one gradient descent step with $\eta = 1$. Subtract each gradient matrix from its
-parameter matrix, entry by entry:
-</p>
-
-<div class="given">W1 <- [ 2 + 0.0428   2 - 0.0152 ]  =  [ 2.0428   1.9848 ]
-      [ 2 + 0.0428   2 - 0.0152 ]     [ 2.0428   1.9848 ]
-b1 <- [ -1 + 0.0580   -3 - 0.0580 ]  =  [ -0.9420   -3.0580 ]
-W2 <- [ 2 + 0.0785   -2 - 0.0011 ]^T  =  [ 2.0785   -2.0011 ]^T
-b2 <- -1 + 0.0773  =  -0.9227
-
-new predictions:  A2 = [ 0.3943   0.5317   0.5317   0.4115 ]    targets [ 0  1  1  0 ]
-new loss:         L  = 0.5737                                   was 0.5923</div>
-
-<p>
-The loss decreased. Also, all four predictions are now on the correct side of 0.5. The step
-made the OR unit stronger and the AND unit more strict, and it moved the output threshold.
-</p>
-
-<p>
-Two more observations:
-</p>
-
-<ul>
-  <li><strong>The two rows of $W_1$ stay equal.</strong> The two inputs have the same role in
-      XOR, so their gradients are always equal. For XOR, this is satisfactory, because OR
-      and AND are also symmetric in their inputs. In general, equal rows or columns that
-      stay equal are the symmetry problem of <a class="xref" href="#ch01">Chapter 01</a>.
-      Random initialization prevents it.</li>
-  <li><strong>Each value agrees with autograd.</strong> A finite-difference check on one
-      entry also agrees. Change $W_1[1,1]$ by $\pm 0.001$, and the loss changes from
-      0.592391 to 0.592305. Thus the slope is $(0.592305 - 0.592391)/0.002 = -0.0428$,
-      the same as the formula.</li>
-</ul>
-
-<div class="box byhand">
-  <span class="box-label">By hand — XOR, one entry of each gradient<span class="tag tag-rec">Recommended</span></span>
-  <p>
-  Use the matrices above. For each item, write the one-entry formula first. Then put in the
-  numbers.
-  </p>
-  <ol>
-    <li>Calculate entry $(4, 1)$ of $G_1$ directly from $G_2$, $W_2$ and $A_1$. Do not use
-        the $\partial L/\partial A_1$ matrix.</li>
-    <li>Calculate entry $(2, 2)$ of $\partial L/\partial W_1$. Which examples contribute,
-        and why do the others give zero?</li>
-    <li>Entry $(1, 2)$ of $G_1$ is $-0.0082$, and entry $(2, 2)$ is $0.0510$. Both come from
-        hidden unit 2. Find the two factors that make the first one smaller.</li>
-    <li>Suppose that $W_2[2]$ was 0, not $-2$. Which gradient entries become exactly zero?
-        Does $\partial L/\partial W_2[2]$ become zero?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> $G_1[4,1] = G_2[4]\,W_2[1]\,A_1[4,1](1-A_1[4,1])$:</p>
-    <div class="given">G1[4,1] = 0.09106 x 2 x 0.9526 x (1 - 0.9526)
-        = 0.18212 x 0.0452
-        = 0.0082     ✓</div>
-    <p><strong>2.</strong> $\partial L/\partial W_1[2,2] = \sum_n X[n,2]\,G_1[n,2]$. Column 2
-    of $X$ is $[0, 1, 0, 1]$. Thus only examples 2 and 4 contribute:
-    $0.0510 + (-0.0358) = 0.0152$ ✓. Examples 1 and 3 have $X[n,2] = 0$. Input 2 was off for
-    them, so a change to its weight could not change their output.</p>
-    <p><strong>3.</strong> The first factor is the error. $|G_2[1]| = 0.0911$ and
-    $|G_2[2]| = 0.1297$, so example 1 is less wrong. The second factor is the sigmoid slope.
-    $Z_1[1,2] = -3$ gives $\sigma' = 0.0452$, but $Z_1[2,2] = -1$ gives $\sigma' = 0.1966$.
-    The saturation factor is the larger effect: it is approximately 4.3 times, and the error
-    is approximately 1.4 times.</p>
-    <p><strong>4.</strong> Column 2 of $\partial L/\partial A_1$ is $G_2[n]\,W_2[2]$, so it
-    becomes zero. Thus column 2 of $G_1$, column 2 of $\partial L/\partial W_1$, and
-    $\partial L/\partial b_1[2]$ all become zero. Hidden unit 2 gets no gradient, because its
-    output has no effect on the loss. But $\partial L/\partial W_2[2] = \sum_n A_1[n,2]
-    G_2[n]$ does not use $W_2[2]$, so it does not become zero. (With the new $G_2$, it is
-    0.0827.) Thus the output weight can grow again, and then unit 2 starts to learn
-    again.</p>
-  </details>
-</div>
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.10 · backpropagation in matrices<span class="tag tag-must">Must do</span></span>
-  <p>
-  Use one example, two inputs, two hidden units, two classes and ReLU in the middle. It is
-  small enough to do fully on paper, and it is a complete training step of a real network.
-  </p>
-  <div class="given">X  = [ 1   2 ]          W1 = [ 1   0 ]        W2 = [ 1  -1 ]
-                             [ 0   1 ]             [ 0   2 ]
-
-biases are zero        correct class is the FIRST one,  so  Y = [ 1   0 ]
-
-e^1 = 2.718     e^3 = 20.086     ln(0.1192) = -2.127</div>
-  <ol>
-    <li>Do the forward pass. Calculate $Z_1$, $A_1$ and $Z_2$, then
-        $P = \operatorname{softmax}(Z_2)$ and the loss.</li>
-    <li>Calculate $G_2 = (P - Y)/N$ with $N = 1$.</li>
-    <li>Calculate $\partial\mathcal{L}/\partial W_2 = A_1^\top G_2$. Before you calculate
-        an entry, make sure that the shape is <span class="shape">(2, 2)</span>.</li>
-    <li>Calculate $G_2 W_2^\top$, then $G_1$. What does the derivative of ReLU do here?
-        When would it cause a problem?</li>
-    <li>Calculate $\partial\mathcal{L}/\partial W_1 = X^\top G_1$.</li>
-    <li>Which entry of $\partial\mathcal{L}/\partial W_1$ has the largest magnitude? Which
-        input causes this?</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> $W_1$ is the identity, so $Z_1 = [1, 2]$. Both values are
-    positive, so ReLU does not change them: $A_1 = [1, 2]$.</p>
-    <div class="given">Z2 = A1 W2 = [ 1(1) + 2(0) ,  1(-1) + 2(2) ] = [ 1 , 3 ]
-
-softmax: e^1 = 2.718, e^3 = 20.086, sum = 22.804
-P = [ 2.718/22.804 , 20.086/22.804 ] = [ 0.1192 , 0.8808 ]
-
-L = -ln(0.1192) = 2.127</div>
-    <p>The model gives 12% to the correct class. Thus the loss is much larger than the
-    value from a random guess, $\ln 2 = 0.69$. The model is wrong, and it is confident.</p>
-    <p><strong>2.</strong> $G_2 = [0.1192 - 1,\ 0.8808 - 0] = [-0.8808,\ 0.8808]$. Its sum
-    is zero. This is true for each softmax-with-cross-entropy gradient.</p>
-    <p><strong>3.</strong> $A_1^\top$ is <span class="shape">(2, 1)</span> and $G_2$ is
-    <span class="shape">(1, 2)</span>. Thus the product is <span class="shape">(2, 2)</span>,
-    which is the shape of $W_2$, as it must be.</p>
-    <div class="given">dL/dW2 = [ 1 ] [ -0.8808   0.8808 ]  =  [ -0.8808   0.8808 ]
-         [ 2 ]                           [ -1.7616   1.7616 ]</div>
-    <p><strong>4.</strong></p>
-    <div class="given">G2 W2^T = [ -0.8808  0.8808 ] [  1   0 ]  =  [ -1.7616   1.7616 ]
-                                [ -1   2 ]</div>
-    <p>The derivative of ReLU is 1 where the pre-activation was positive. Both entries of
-    $Z_1$ were positive. Thus $f'(Z_1) = [1, 1]$ and $G_1 = [-1.7616,\ 1.7616]$. The
-    elementwise step changes nothing. Now suppose that an entry of $Z_1$ was negative. Then
-    the gradient for that coordinate is multiplied by zero, and the matching row of $W_1$
-    gets nothing from this example. That is a dead ReLU.</p>
-    <p><strong>5.</strong></p>
-    <div class="given">dL/dW1 = X^T G1 = [ 1 ] [ -1.7616   1.7616 ]
-                  [ 2 ]
-
-       = [ -1.7616   1.7616 ]
-         [ -3.5232   3.5232 ]</div>
-    <p><strong>6.</strong> The bottom row, at $\pm 3.5232$. It is exactly two times the top
-    row. The second input was 2 and the first input was 1. $X^\top G_1$ multiplies each row
-    of the weight gradient by the matching input. Thus each weight changes in proportion to
-    the contribution of its input. That is why feature scaling is important. It is also why
-    an input that is always zero cannot change its own weights.</p>
-    <p>Each number above agrees with <code>autograd</code> to the last printed digit. The
-    notebook tells you to check exactly that.</p>
-  </details>
-</div>
-
-<h3>Gradient descent</h3>
-
-$$\theta \leftarrow \theta - \eta\,\frac{\partial\mathcal{L}}{\partial\theta}$$
-
-<div class="box example">
-  <span class="box-label">Example — one step, by hand</span>
-  <div class="given">L(w) = (w − 4)²      w = 1      η = 0.1
-
-dL/dw = 2(w − 4) = −6
-w ← 1 − 0.1(−6) = 1.6
-
-L(1.0) = 9.00    L(1.6) = 5.76    ↓ better
-
-At η = 1.0 the step is +6, landing at w = 7 — the same distance from the
-optimum, on the other side. Above that, it diverges.</div>
-</div>
-
-<div class="widget" data-widget="gradient-descent"></div>
-
-<hr>
-
-
-<div class="box byhand">
-  <span class="box-label">By hand — exercise 00.11 · gradient descent and the learning rate</span>
-  <p>Minimize $\mathcal{L}(w) = (w-4)^2$. Start at $w_0 = 1$.</p>
-  <ol>
-    <li>Write $d\mathcal{L}/dw$ and calculate its value at $w = 1$.</li>
-    <li>Do three steps with $\eta = 0.1$. Make a table of $w$ and $\mathcal{L}$. Do the
-        steps become larger or smaller? Why?</li>
-    <li>Do one step with $\eta = 1.0$. Where are you after the step?</li>
-    <li>Do two steps with $\eta = 1.5$. Describe the pattern.</li>
-    <li>Find the exact range of $\eta$ that converges. Find the value that converges
-        fastest.</li>
-  </ol>
-  <details>
-    <summary>Worked solution</summary>
-    <p><strong>1.</strong> $2(w-4)$. At $w=1$ this is $\mathbf{-6}$. It is negative, so
-    $w$ must increase.</p>
-    <p><strong>2.</strong></p>
-    <div class="given">step  w        dL/dw     Δw       L(w)
- 0    1.000    −6.000             9.000
- 1    1.600    −4.800    +0.600   5.760
- 2    2.080    −3.840    +0.480   3.686
- 3    2.464    −3.072    +0.384   2.359</div>
-    <p>The steps become <strong>smaller</strong>, because the gradient decreases as $w$
-    moves near the minimum. Thus descent becomes slower near an optimum automatically.
-    Each step is exactly 0.8× the step before it, because
-    $w_{t+1} - 4 = (1-2\eta)(w_t - 4)$, and $1-2\eta = 0.8$.</p>
-    <p><strong>3.</strong> $w = 1 + 6 = \mathbf{7}$, and $\mathcal{L}(7) = 9$. This is the
-    <em>same loss as at the start</em>, on the other side of the minimum. The ratio is
-    $-1$, so $w$ moves between 1 and 7 forever.</p>
-    <p><strong>4.</strong> The ratio is $1 - 3 = -2$:</p>
-    <div class="given">w₀ = 1   (distance 3)    L = 9
-w₁ = 10  (distance 6)    L = 36
-w₂ = −8  (distance 12)   L = 144</div>
-    <p>The distance doubles at each step, and the loss becomes four times larger. Within
-    ten steps, the values go to <code>inf</code> and then to <code>nan</code>. The problem
-    itself is correct. Only $\eta$ is wrong.</p>
-    <p><strong>5.</strong> Convergence needs $|1-2\eta| &lt; 1$. Thus
-    $\mathbf{0 &lt; \eta &lt; 1}$. With $\eta = 0.5$, $1-2\eta = 0$, and one
-    <em>single</em> step goes exactly to the minimum. The general condition is
-    $\eta &lt; 2/\mathcal{L}''$. Here $\mathcal{L}'' = 2$, which gives $\eta < 1$ ✓. Real
-    loss surfaces have very different curvature in different directions.
-    <a class="xref" href="#ch02">Adam</a> solves exactly this problem: it gives each
-    parameter its own effective step size.</p>
-  </details>
+  <ul style="margin-bottom:0">
+    <li><strong>Backpropagation.</strong> Exercise 00.8, with matrices in place of single
+        numbers. The bias gradient comes from the sum over paths, and the transposes come
+        from <a class="xref" href="#ch00-transpose-and-why-the-backward-pass-needs-it">the
+        transpose section</a>.</li>
+    <li><strong>Gradient descent.</strong> Why the step goes along $-\nabla\mathcal{L}$,
+        and why a learning rate that is too large makes the loss increase.</li>
+    <li><strong>One step by hand.</strong> The XOR network from the
+        <a class="xref" href="#ch00-network-diagram">network diagram</a>, with each entry of
+        each gradient calculated.</li>
+  </ul>
 </div>
 
 <h2>Part 3 · Statistics: Why the Architecture Looks Like It Does</h2>
@@ -1776,7 +1443,7 @@ Bernoulli(p): X is 1 with probability p, else 0.
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.12 · expectation and variance from the definition</span>
+  <span class="box-label">By hand — exercise 00.10 · expectation and variance from the definition</span>
   <ol>
     <li>A fair four-sided die shows 1, 2, 3 or 4. Calculate $\mathbb{E}[X]$,
         $\mathbb{E}[X^2]$ and $\operatorname{Var}(X)$.</li>
@@ -1870,7 +1537,7 @@ these two lines.
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.13 · variance of a sum, and weight initialization<span class="tag tag-must">Must do</span></span>
+  <span class="box-label">By hand — exercise 00.11 · variance of a sum, and weight initialization<span class="tag tag-must">Must do</span></span>
   <p>
   This exercise derives Xavier initialization from the start. It is the most useful
   statistics in the chapter.
@@ -1949,7 +1616,7 @@ Var(q·k) = d_k          SD(q·k) = √d_k</div>
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.14 · the variance of a dot product, and $\sqrt{d_k}$<span class="tag tag-must">Must do</span></span>
+  <span class="box-label">By hand — exercise 00.12 · the variance of a dot product, and $\sqrt{d_k}$<span class="tag tag-must">Must do</span></span>
   <p>
   Exercise 00.1 showed <em>that</em> large scores saturate a softmax. This exercise shows
   <em>why they become large</em>.
@@ -1991,7 +1658,7 @@ SCALED    z = [0, 1, −1]
   e⁰ = 1,  e¹ = 2.718,  e⁻¹ = 0.368       sum = 4.086
   softmax = [0.245, 0.665, 0.090]                ← soft</div>
     <p><strong>6.</strong> The diagonal of the softmax Jacobian is $p(1-p)$. This is the
-    same Bernoulli variance as in exercise 00.12.</p>
+    same Bernoulli variance as in exercise 00.10.</p>
     <div class="given">unscaled: p = 0.99966  →  p(1−p) = 0.00034
 scaled:   p = 0.665    →  p(1−p) = 0.223
 
@@ -2024,7 +1691,7 @@ decrease what the model can express.
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.15 · standardization and layer normalization</span>
+  <span class="box-label">By hand — exercise 00.13 · standardization and layer normalization</span>
   <div class="given">One token's features:   x = [2, 4, 4, 4, 5, 5, 7, 9]</div>
   <ol>
     <li>Calculate the mean $\mu$.</li>
@@ -2094,7 +1761,7 @@ Inverted dropout divides by the keep probability:  y = xB/(1 − p)
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.16 · dropout and preserved expectation</span>
+  <span class="box-label">By hand — exercise 00.14 · dropout and preserved expectation</span>
   <div class="given">A layer outputs four activations, all equal to 1.0.
 Dropout with p = 0.5 (each coordinate kept with probability 0.5).</div>
   <ol>
@@ -2157,7 +1824,7 @@ s^2 = \frac{1}{n-1}\sum_i (x_i - \bar{x})^2
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.17 · sample mean, standard error, and how many seeds<span class="tag tag-rec">Recommended</span></span>
+  <span class="box-label">By hand — exercise 00.15 · sample mean, standard error, and how many seeds<span class="tag tag-rec">Recommended</span></span>
   <p>You train the same model three times. Only the random seed changes.</p>
   <div class="given">test accuracies:  0.812,  0.789,  0.834</div>
   <ol>
@@ -2217,7 +1884,7 @@ Two cautions are important in practice:
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.18 · covariance and correlation</span>
+  <span class="box-label">By hand — exercise 00.16 · covariance and correlation</span>
   <div class="given">x = [1, 2, 3, 4]        y = [2, 3, 5, 4]</div>
   <ol>
     <li>Calculate the two means.</li>
@@ -2225,7 +1892,7 @@ Two cautions are important in practice:
     <li>Calculate the two standard deviations, and then the correlation $\rho$.</li>
     <li>Give an example of two variables that have zero covariance but are clearly
         <em>not</em> independent.</li>
-    <li>Exercise 00.13 assumed independence when it added variances. Write the correct
+    <li>Exercise 00.11 assumed independence when it added variances. Write the correct
         rule for correlated variables. What does it tell you about a layer with highly
         correlated input features?</li>
   </ol>
@@ -2254,7 +1921,7 @@ Var(y) = (2.25+0.25+2.25+0.25)/4 = 1.25    σ_y = 1.118
     $$\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y) + 2\operatorname{Cov}(X,Y)$$
     <p>With positively correlated inputs, the cross terms are positive. Thus the real
     variance of a pre-activation is <em>larger</em> than the $n\sigma_w^2$ from exercise
-    00.13. An initialization that assumes independence is too optimistic, and activations
+    00.11. An initialization that assumes independence is too optimistic, and activations
     still increase with depth. This is part of the reason that explicit normalization
     layers are useful, even in a network with good initialization. It is also a reason to
     decorrelate inputs when that is cheap.</p>
@@ -2269,7 +1936,7 @@ $$P(A \mid B) = \frac{P(B \mid A)\,P(A)}{P(B)}$$
 Here is the practical result. <strong>When a very accurate test for a rare condition
 gives a positive result, that result is usually wrong.</strong> The false positives come
 from a much larger group. This is the same arithmetic as class imbalance in
-<a class="xref" href="#ch03">classification</a>. Exercise 00.19 shows the full
+<a class="xref" href="#ch03">classification</a>. Exercise 00.17 shows the full
 calculation.
 </p>
 
@@ -2277,7 +1944,7 @@ calculation.
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.19 · Bayes, base rates, and class imbalance<span class="tag tag-rec">Recommended</span></span>
+  <span class="box-label">By hand — exercise 00.17 · Bayes, base rates, and class imbalance<span class="tag tag-rec">Recommended</span></span>
   <div class="given">A disease affects 0.5% of the population.
 A test detects it in 99% of sick people          (sensitivity)
 and correctly clears 95% of healthy people       (specificity).</div>
@@ -2483,7 +2150,7 @@ ratio: about 1,500×</div>
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.20 · binary cross-entropy on a batch</span>
+  <span class="box-label">By hand — exercise 00.18 · binary cross-entropy on a batch</span>
   <div class="given">example   true y    predicted ŷ
    1         1         0.9
    2         0         0.2
@@ -2561,7 +2228,7 @@ therefore free — and it makes overflow impossible.</div>
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.21 · softmax, cross-entropy, and the gradient<span class="tag tag-must">Must do</span></span>
+  <span class="box-label">By hand — exercise 00.19 · softmax, cross-entropy, and the gradient<span class="tag tag-must">Must do</span></span>
   <div class="given">z = [2.0, 1.0, 0.0]        true class c = 1 (the middle one)
 
 e⁰ = 1.000    e¹ = 2.718    e² = 7.389</div>
@@ -2632,7 +2299,7 @@ same story in two ways.
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.22 · entropy, cross-entropy, and KL</span>
+  <span class="box-label">By hand — exercise 00.20 · entropy, cross-entropy, and KL</span>
   <p>
   A weather model says that the probability of rain is $q = 0.25$ each day. Really, it
   rains half the time, $p = 0.5$. Use bits, with $\log_2 3 \approx 1.585$.
@@ -2699,7 +2366,7 @@ Three rules cause more bugs than all the others together:
 
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.23 · choosing the loss</span>
+  <span class="box-label">By hand — exercise 00.21 · choosing the loss</span>
   <p>There is no arithmetic. For each task, name the loss and use the distribution to
   explain your choice.</p>
   <ol>
@@ -2723,7 +2390,7 @@ Three rules cause more bugs than all the others together:
     exactly one word comes next. Report perplexity, not raw loss. The uniform baseline is
     $\ln(50000) = 10.8$ nats.</p>
     <p><strong>4. BCE with <code>pos_weight</code></strong>. Report precision and recall,
-    not accuracy. Exercise 00.19 is this question with numbers. The unweighted
+    not accuracy. Exercise 00.17 is this question with numbers. The unweighted
     maximum-likelihood answer is "always predict healthy". It gets 99.5% accuracy, and it
     is useless.</p>
   </details>
@@ -2868,7 +2535,7 @@ It is not evidence the variant is worse; it is not evidence of anything.</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.24 · name the tool</span>
+  <span class="box-label">By hand — exercise 00.22 · name the tool</span>
   <p>
   For each statement, name the trigger and the tool <em>before</em> you calculate
   anything. Then say in one line what you would check. You do not need arithmetic.
@@ -2891,7 +2558,7 @@ It is not evidence the variant is worse; it is not evidence of anything.</div>
     standard deviation of $\sqrt{d_k}$. Thus four times the $d_k$ gave two times the spread
     of the attention logits, and the softmax saturated. Its Jacobian term $p(1-p)$
     decreased to almost zero, and the layer stopped learning. <em>Check:</em> does the code
-    really apply the $1/\sqrt{d_k}$ scale? (Exercise 00.14.)</p>
+    really apply the $1/\sqrt{d_k}$ scale? (Exercise 00.12.)</p>
     <p><strong>2. Is this number good? → baseline.</strong> A uniform model over 60
     characters gets $\ln 60 = 4.09$. At 3.9, the model has learned almost nothing. Its
     perplexity is 49, and the baseline is 60. <em>Check:</em> always give $\ln K$ next to a
@@ -2914,14 +2581,14 @@ It is not evidence the variant is worse; it is not evidence of anything.</div>
     <p><strong>6. Rare → base rates.</strong> Sensitivity alone tells you nothing about
     $P(\text{disease} \mid +)$. For that, you need the prevalence and the false-positive
     rate. At 0.5% prevalence and 95% specificity, a positive result gives only an
-    approximately <strong>9%</strong> chance of disease (exercise 00.19). <em>Check:</em>
+    approximately <strong>9%</strong> chance of disease (exercise 00.17). <em>Check:</em>
     ask for the prevalence and the specificity. Or count people in a population of
     10,000.</p>
   </details>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.25 · spot the flawed claim</span>
+  <span class="box-label">By hand — exercise 00.23 · spot the flawed claim</span>
   <p>
   A reasonable person could say each of these. One is correct. Find the error in the other
   three, and name the tool that shows it.
@@ -2969,7 +2636,7 @@ It is not evidence the variant is worse; it is not evidence of anything.</div>
 </div>
 
 <p>
-Exercises 00.24 and 00.25 stop at the diagnosis on purpose, because people skip the step of
+Exercises 00.22 and 00.23 stop at the diagnosis on purpose, because people skip the step of
 naming the category. But a diagnosis is not very useful if you cannot act on it. Thus the
 last two exercises take a problem <em>through all the steps</em>: identify, set up,
 calculate, decide.
@@ -2987,7 +2654,7 @@ teach it to you by explanation alone.
 </p>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.26 · a network that will not train, end to end<span class="tag tag-must">Must do</span></span>
+  <span class="box-label">By hand — exercise 00.24 · a network that will not train, end to end<span class="tag tag-must">Must do</span></span>
   <p class="statement" style="font-family:var(--serif);font-style:italic;border-left:2px solid var(--byhand);padding-left:.9rem;margin:.4rem 0 1rem">
     "I built a 12-layer classifier over 10 classes, width 256, ReLU, initialized with
     <code>torch.randn(256, 256) * 1.0</code>. The loss starts at 2.30 and does not move.
@@ -3070,7 +2737,7 @@ sqrt(1.93e25) ≈ 4.4 × 10¹² before the final layer.</div>
 </div>
 
 <div class="box byhand">
-  <span class="box-label">By hand — exercise 00.27 · is the result real, end to end<span class="tag tag-rec">Recommended</span></span>
+  <span class="box-label">By hand — exercise 00.25 · is the result real, end to end<span class="tag tag-rec">Recommended</span></span>
   <p class="statement" style="font-family:var(--serif);font-style:italic;border-left:2px solid var(--byhand);padding-left:.9rem;margin:.4rem 0 1rem">
     "Our new architecture reaches 71.2% on the rare-event detection task, against 69.6%
     for the baseline. It also has 96% accuracy overall. Positives are 4% of the data."
@@ -3230,15 +2897,20 @@ precision = 24 / (24 + 24) = 50%</div>
   <span class="box-label">Notebook</span>
   Open <code>00_math_foundations/prompt.ipynb</code>. In it, you will do these tasks:
   <ul style="margin-bottom:0">
-    <li>Verify the linear algebra and broadcasting rules in code.</li>
-    <li>Check derivatives with finite differences.</li>
+    <li>Verify the linear algebra rules in code, and read a network diagram as matrices.</li>
+    <li>Run each broadcasting example from this chapter. See two silent bugs, a
+        <span class="shape">(N, 1)</span> minus <span class="shape">(N,)</span> loss and a
+        mask on the wrong axis, and fix each one.</li>
+    <li>Check the derivative rules, and the partial-derivative rules, with finite
+        differences.</li>
     <li>Measure variance propagation through a deep stack. See it explode and collapse with
         the wrong initialization.</li>
     <li>Confirm the $\sqrt{d_k}$ argument with experiments.</li>
     <li>Implement BCE, softmax and cross-entropy from their definitions.</li>
     <li>Get the $\hat{y}-y$ gradient in three independent ways.</li>
   </ul>
-  It is the only notebook here that trains nothing. It is only about the mathematics.
+  It trains no real model. (One cell fits a single weight, to show what the
+  broadcasting bug does to training.) It is only about the mathematics.
 </div>
 
 <div class="box note">

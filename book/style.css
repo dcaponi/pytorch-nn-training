@@ -811,6 +811,21 @@ td code { font-size: 0.78em; }
 }
 .readout b { color: var(--ink); font-weight: 600; }
 
+/* A delta in a monospace block. Most monospace fonts draw it like a 6, so "δ2" reads
+   as "62". The real character stays in place, transparent, so it keeps exactly one
+   column (hand-aligned blocks stay aligned) and copies as text; a serif delta is
+   drawn over it. */
+.given .mono-greek { position: relative; color: transparent; }
+.given .mono-greek::after {
+  content: "δ";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink);
+}
+
 /* --- cross-references --------------------------------------------------- */
 
 a.xref {

@@ -603,7 +603,7 @@ of the next.
 <p>
 The result is that a transformer has no backpropagation through time. Its graph depth is the
 number of layers, and nothing more. It is not layers times sequence length. An RNN over 200
-timesteps multiplies 200 <a class="xref" href="#ch00-jacobian">Jacobian</a>s on the way back:
+timesteps multiplies 200 <a class="xref" href="#ch01-jacobian">Jacobian</a>s on the way back:
 200 matrices of partial derivatives, one for each step. A 6-layer decoder over 200 timesteps
 multiplies 6 sub-layer Jacobians, and it does all 200 positions in parallel. Attention pays
 $O(L^2)$ memory for this. It gets the short path length of

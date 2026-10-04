@@ -203,6 +203,21 @@ def highlight_blocks(body: str) -> str:
     return CODE_BLOCK_RE.sub(replace, body)
 
 
+GIVEN_RE = re.compile(r'(<div class="given">)(.*?)(</div>)', re.DOTALL)
+
+
+def mark_mono_greek(body: str) -> str:
+    """Show the delta in monospace blocks in the body font.
+
+    Most monospace fonts draw the delta like a 6, so "δ2" reads as "62". The span is
+    exactly one character wide, so the hand-aligned columns stay aligned.
+    """
+    def replace(m: re.Match) -> str:
+        return m.group(1) + m.group(2).replace("δ", '<span class="mono-greek">δ</span>') + m.group(3)
+
+    return GIVEN_RE.sub(replace, body)
+
+
 # --------------------------------------------------------------------------
 # Table of contents
 # --------------------------------------------------------------------------
@@ -601,7 +616,7 @@ def build(check_only: bool = False) -> int:
     if dupes:
         raise SystemExit(f"duplicate chapter ids: {', '.join(sorted(dupes))}")
 
-    body = "\n\n".join(highlight_blocks(c.body) for c in chapters)
+    body = "\n\n".join(highlight_blocks(mark_mono_greek(c.body)) for c in chapters)
     index_js = "window.__BOOK_INDEX__ = " + build_search_index(chapters) + ";" 
     # str.format is unusable here: the CSS and JS are full of braces.
     page = PAGE

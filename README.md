@@ -53,7 +53,7 @@ needed and deep links survive a refresh.
 
 Every chapter carries **By hand** exercises — small calculations you do on paper
 before writing code, with fully worked solutions folded up underneath. Chapter 00
-alone has twenty-seven. That step is the one people skip and the one that does the work:
+alone has twenty-five. That step is the one people skip and the one that does the work:
 a gradient you have computed once with a pencil stops being a symbol and becomes a
 number you know how to check.
 
