@@ -27,6 +27,101 @@ There is no parameter for each position, so the model cannot run out of them. A 
 two times as long costs two times the compute, not two times the weights.
 </p>
 
+<figure class="figure wide">
+<svg viewBox="0 0 760 362" role="img" aria-labelledby="rnn-step-t rnn-step-d" style="font-family:var(--sans)">
+  <title id="rnn-step-t">One step of a character RNN, with each part named</title>
+  <desc id="rnn-step-d">A character id enters at the bottom and goes through the embedding table E to a 64-number vector. Inside the step, W_xh multiplies that vector and W_hh multiplies the previous hidden state, which enters from the left. The two results and the bias b_h are added, and tanh gives the new hidden state h_t. h_t leaves to the right, to the next step. h_t also goes up through W_hy to 72 logits and a softmax, which gives the probability of each possible next character.</desc>
+  <defs>
+    <marker id="rs-arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
+    <marker id="rs-arw-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
+  </defs>
+
+  <!-- the step boundary -->
+  <rect x="170" y="148" width="352" height="120" rx="12" fill="none" stroke="var(--rule-strong)" stroke-dasharray="5 5"/>
+  <text x="182" y="166" font-size="11.5" fill="var(--ink-faint)">one step</text>
+
+  <!-- hidden state in and out -->
+  <path d="M24,200 L233,200" stroke="var(--concept)" stroke-width="2.6" fill="none" marker-end="url(#rs-arw-h)"/>
+  <path d="M486,200 L742,200" stroke="var(--concept)" stroke-width="2.6" fill="none" marker-end="url(#rs-arw-h)"/>
+  <circle cx="600" cy="200" r="4" fill="var(--concept)"/>
+  <g font-size="14" font-weight="600" fill="var(--concept)">
+    <text x="30" y="190">h<tspan font-size="11" dy="3">t−1</tspan></text>
+    <text x="530" y="190">h<tspan font-size="11" dy="3">t</tspan></text>
+  </g>
+  <g font-size="11" fill="var(--ink-faint)">
+    <text x="30" y="220">the past, 256 numbers</text>
+    <text x="742" y="220" text-anchor="end">to step t+1</text>
+  </g>
+
+  <!-- inside the step -->
+  <g fill="none" stroke="var(--ink-soft)" stroke-width="1.5">
+    <path d="M331,200 L364,200" marker-end="url(#rs-arw)"/>
+    <path d="M380,226 L380,215" marker-end="url(#rs-arw)"/>
+    <path d="M393,200 L418,200" marker-end="url(#rs-arw)"/>
+    <path d="M380,290 L380,264" marker-end="url(#rs-arw)"/>
+    <path d="M380,338 L380,324" marker-end="url(#rs-arw)"/>
+    <path d="M600,196 L600,142" marker-end="url(#rs-arw)"/>
+    <path d="M600,100 L600,70" marker-end="url(#rs-arw)"/>
+    <path d="M600,40 L600,31" marker-end="url(#rs-arw)"/>
+  </g>
+  <g fill="var(--accent)" fill-opacity="0.13" stroke="var(--accent)" stroke-width="1.5">
+    <rect x="235" y="182" width="96" height="36" rx="6"/>
+    <rect x="332" y="226" width="96" height="36" rx="6"/>
+    <rect x="296" y="290" width="168" height="34" rx="6"/>
+    <rect x="548" y="102" width="104" height="38" rx="6"/>
+  </g>
+  <circle cx="380" cy="200" r="13" fill="var(--bg-raised)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+  <text x="380" y="206" font-size="16" font-weight="600" text-anchor="middle" fill="var(--ink)">+</text>
+  <rect x="420" y="186" width="64" height="28" rx="6" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.4"/>
+  <text x="452" y="205" font-size="13" text-anchor="middle" fill="var(--ink)">tanh</text>
+  <rect x="560" y="40" width="80" height="28" rx="6" fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.4"/>
+  <text x="600" y="59" font-size="13" text-anchor="middle" fill="var(--ink)">softmax</text>
+
+  <g font-size="13" font-weight="600" text-anchor="middle" fill="var(--accent)">
+    <text x="283" y="198">× W<tspan font-size="10" dy="3">hh</tspan></text>
+    <text x="380" y="242">× W<tspan font-size="10" dy="3">xh</tspan></text>
+    <text x="380" y="305">embedding E</text>
+    <text x="600" y="119">× W<tspan font-size="10" dy="3">hy</tspan><tspan dy="-3"> + b</tspan><tspan font-size="10" dy="3">y</tspan></text>
+  </g>
+  <g font-size="10.5" text-anchor="middle" fill="var(--ink-faint)">
+    <text x="283" y="212">256 × 256</text>
+    <text x="380" y="256">64 × 256</text>
+    <text x="380" y="318">72 × 64, one row per char</text>
+    <text x="600" y="133">256 × 72</text>
+  </g>
+  <text x="380" y="180" font-size="11.5" text-anchor="middle" fill="var(--accent)">+ b<tspan font-size="9.5" dy="3">h</tspan></text>
+  <g font-size="11" fill="var(--ink-faint)">
+    <text x="390" y="284">e<tspan font-size="9" dy="3">t</tspan><tspan dy="-3">: 64 numbers</tspan></text>
+    <text x="610" y="90">72 logits</text>
+  </g>
+
+  <!-- data in and out -->
+  <g font-size="13" font-weight="600" text-anchor="middle" fill="var(--notebook)">
+    <text x="380" y="354">x<tspan font-size="10" dy="3">t</tspan><tspan dy="-3"> = 'q'   (one character id)</tspan></text>
+    <text x="600" y="24">p(next character)</text>
+  </g>
+
+  <!-- legend -->
+  <g font-size="11" fill="var(--ink-soft)">
+    <rect x="24" y="290" width="14" height="10" rx="2" fill="var(--accent)" fill-opacity="0.13" stroke="var(--accent)"/>
+    <text x="46" y="299">learned, the same at every step</text>
+    <line x1="24" y1="317" x2="38" y2="317" stroke="var(--concept)" stroke-width="2.6"/>
+    <text x="46" y="321">hidden state: carries the past</text>
+    <rect x="24" y="334" width="14" height="10" rx="2" fill="none" stroke="var(--notebook)"/>
+    <text x="46" y="343">data in and out</text>
+  </g>
+</svg>
+<figcaption><b>One step of the RNN, with each part named.</b> A character goes in at the
+bottom. The embedding $E$ changes its id into 64 numbers. $W_{xh}$ brings those numbers into
+the step, and $W_{hh}$ brings in the previous hidden state from the left. The step adds the
+two results and the bias, and $\tanh$ gives the new hidden state $h_t$. Then $h_t$ does two
+jobs. It goes right, to the next step. It also goes up, where $W_{hy}$ changes it into 72
+logits, one for each character, and the softmax changes the logits into probabilities. The
+colored boxes are the learned tensors. The step uses the <em>same</em> tensors at every
+position. The shapes are those of the notebook, which stacks two of these layers: the $h_t$
+of layer 1 is the input of layer 2.</figcaption>
+</figure>
+
 <div class="box concept">
   <span class="box-label">Key concept</span>
   The hidden state is a vector with a fixed size, for example 256 numbers. It must compress
@@ -66,7 +161,10 @@ A 256-unit hidden state must therefore hold, simultaneously:
 The notebook trains on <em>Alice's Adventures in Wonderland</em> at the character level. At
 each position, the task is to predict the next character. This is a $K$-way classification,
 where $K$ is the size of the alphabet. It trains with cross-entropy, exactly as in
-<a class="xref" href="#ch00-cross-entropy">Chapter 00</a>.
+<a class="xref" href="#ch00-cross-entropy">Chapter 00</a>. The target of each position is
+the next character of the text. Thus the targets are the input, moved one character to the
+right. <a class="xref" href="#ch04-every-step">The next section</a> shows exactly what that
+means for training.
 </p>
 
 <p>
@@ -77,6 +175,259 @@ learn anything else. Thus the first samples are random letters. Then they are wo
 can say but that do not exist. Then they are real words without grammar. That progression
 is the most useful part of the exercise.
 </p>
+
+<h2 id="ch04-every-step">One training example: a prediction at every step</h2>
+
+<p>
+This is the part of an RNN that most readers misunderstand. Then they memorize the diagram
+and continue. Read this section slowly.
+</p>
+
+<p>
+A training example is one <strong>window</strong> of text. The targets are the same window,
+moved one token to the right. Thus every position in the window has its own target: the
+token that comes next. The figure uses words, because words are easy to read. The notebook
+does the same thing with characters.
+</p>
+
+<figure class="figure wide">
+<svg viewBox="0 0 760 420" role="img" aria-labelledby="rnn-train-t rnn-train-d" style="font-family:var(--sans)">
+  <title id="rnn-train-t">Training on one window: a prediction, a target and a loss at every step</title>
+  <desc id="rnn-train-d">Four RNN steps read the true words "the", "quick", "brown" and "fox". After each step, the model gives a distribution over the next word. Each distribution is compared with the true next word: "quick", "brown", "fox" and "jumps". This gives four losses. Their mean is the loss of the window, and one backward pass goes through all four steps. At step 2 the top guess is "red", but step 3 still reads the true word "brown".</desc>
+  <defs>
+    <marker id="rt-arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
+    <marker id="rt-arw-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
+  </defs>
+
+  <!-- the window loss -->
+  <text x="390" y="24" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--byhand)">loss of this window = (1.17 + 1.61 + 0.60 + 0.48) / 4 = 0.96</text>
+  <text x="390" y="42" font-size="11.5" text-anchor="middle" fill="var(--ink-faint)">then ONE backward pass through all four steps, and ONE update</text>
+  <path d="M96,64 V56 H684 V64" fill="none" stroke="var(--byhand)" stroke-width="1.3"/>
+
+  <!-- row labels -->
+  <g font-size="11.5" fill="var(--ink-faint)">
+    <text x="14" y="92">loss</text>
+    <text x="14" y="126">target</text>
+    <text x="14" y="177">prediction</text>
+    <text x="14" y="341">input</text>
+  </g>
+
+  <!-- arrows: input to step, step to prediction -->
+  <g fill="none" stroke="var(--ink-soft)" stroke-width="1.4">
+    <path d="M150,322 V284" marker-end="url(#rt-arw)"/><path d="M310,322 V284" marker-end="url(#rt-arw)"/>
+    <path d="M470,322 V284" marker-end="url(#rt-arw)"/><path d="M630,322 V284" marker-end="url(#rt-arw)"/>
+    <path d="M150,240 V200" marker-end="url(#rt-arw)"/><path d="M310,240 V200" marker-end="url(#rt-arw)"/>
+    <path d="M470,240 V200" marker-end="url(#rt-arw)"/><path d="M630,240 V200" marker-end="url(#rt-arw)"/>
+  </g>
+  <!-- hidden state -->
+  <g fill="none" stroke="var(--concept)" stroke-width="2.4">
+    <path d="M62,260 H102" marker-end="url(#rt-arw-h)"/>
+    <path d="M194,260 H262" marker-end="url(#rt-arw-h)"/>
+    <path d="M354,260 H422" marker-end="url(#rt-arw-h)"/>
+    <path d="M514,260 H582" marker-end="url(#rt-arw-h)"/>
+  </g>
+  <text x="14" y="264" font-size="11.5" fill="var(--concept)">h<tspan font-size="9.5" dy="3">0</tspan><tspan dy="-3"> = 0</tspan></text>
+  <g font-size="11" text-anchor="middle" fill="var(--concept)">
+    <text x="228" y="252">h<tspan font-size="9" dy="3">1</tspan></text>
+    <text x="388" y="252">h<tspan font-size="9" dy="3">2</tspan></text>
+    <text x="548" y="252">h<tspan font-size="9" dy="3">3</tspan></text>
+  </g>
+
+  <!-- the steps -->
+  <g fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.4">
+    <rect x="106" y="240" width="88" height="40" rx="7"/><rect x="266" y="240" width="88" height="40" rx="7"/>
+    <rect x="426" y="240" width="88" height="40" rx="7"/><rect x="586" y="240" width="88" height="40" rx="7"/>
+  </g>
+  <g font-size="12.5" text-anchor="middle" fill="var(--ink)">
+    <text x="150" y="265">step 1</text><text x="310" y="265">step 2</text>
+    <text x="470" y="265">step 3</text><text x="630" y="265">step 4</text>
+  </g>
+
+  <!-- inputs: the true text -->
+  <g fill="none" stroke="var(--notebook)" stroke-width="1.5">
+    <rect x="108" y="322" width="84" height="28" rx="6"/><rect x="268" y="322" width="84" height="28" rx="6"/>
+    <rect x="428" y="322" width="84" height="28" rx="6"/><rect x="588" y="322" width="84" height="28" rx="6"/>
+  </g>
+  <g font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--notebook)">
+    <text x="150" y="341">the</text><text x="310" y="341">quick</text>
+    <text x="470" y="341">brown</text><text x="630" y="341">fox</text>
+  </g>
+  <g font-size="11" text-anchor="middle" fill="var(--ink-faint)">
+    <text x="150" y="372">sees: the</text><text x="310" y="372">sees: the quick</text>
+    <text x="470" y="372">sees: the quick brown</text><text x="630" y="372">sees: … brown fox</text>
+  </g>
+
+  <!-- predictions -->
+  <g fill="var(--bg-raised)" stroke="var(--rule-strong)" stroke-width="1.3">
+    <rect x="82" y="152" width="136" height="46" rx="7"/><rect x="242" y="152" width="136" height="46" rx="7"/>
+    <rect x="402" y="152" width="136" height="46" rx="7"/><rect x="562" y="152" width="136" height="46" rx="7"/>
+  </g>
+  <g font-size="12.5" text-anchor="middle" fill="var(--ink)">
+    <text x="150" y="171">p(quick) = 0.31</text><text x="310" y="171">p(brown) = 0.20</text>
+    <text x="470" y="171">p(fox) = 0.55</text><text x="630" y="171">p(jumps) = 0.62</text>
+  </g>
+  <g font-size="11" text-anchor="middle" fill="var(--ink-faint)">
+    <text x="150" y="189">top guess: quick</text>
+    <text x="310" y="189" fill="var(--warn)" font-weight="600">top guess: red</text>
+    <text x="470" y="189">top guess: fox</text><text x="630" y="189">top guess: jumps</text>
+  </g>
+
+  <!-- targets: the true next word -->
+  <g fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3">
+    <rect x="108" y="108" width="84" height="27" rx="6"/><rect x="268" y="108" width="84" height="27" rx="6"/>
+    <rect x="428" y="108" width="84" height="27" rx="6"/><rect x="588" y="108" width="84" height="27" rx="6"/>
+  </g>
+  <g font-size="13" font-weight="600" text-anchor="middle" fill="var(--accent)">
+    <text x="150" y="126">quick</text><text x="310" y="126">brown</text>
+    <text x="470" y="126">fox</text><text x="630" y="126">jumps</text>
+  </g>
+
+  <!-- losses -->
+  <g font-size="12" text-anchor="middle" fill="var(--byhand)">
+    <text x="150" y="92">−ln 0.31 = 1.17</text><text x="310" y="92">−ln 0.20 = 1.61</text>
+    <text x="470" y="92">−ln 0.55 = 0.60</text><text x="630" y="92">−ln 0.62 = 0.48</text>
+  </g>
+
+  <!-- teacher forcing -->
+  <text x="390" y="404" font-size="12" text-anchor="middle" fill="var(--ink-soft)">Step 3 reads the true word “brown”, not the top guess “red”. This is <tspan font-weight="600">teacher forcing</tspan>.</text>
+</svg>
+<figcaption><b>Training: one window gives a prediction, a target and a loss at every
+step.</b> Read from the bottom. Each step reads one <em>true</em> word, and the hidden state
+carries the prefix to the right. After each step, the model gives a probability for every
+possible next word. The target is the true next word, and the loss of the step is $-\ln$ of
+the probability that the model gave to it. The window gives four losses, and the loss of the
+window is their mean. The probabilities are example values. The notebook does the same
+thing with characters, and its windows are 100 characters long, so each window gives 100
+losses.</figcaption>
+</figure>
+
+<p>
+At step $t$, the input is the true token at position $t$. The hidden state $h_t$ summarizes
+everything up to position $t$. Thus the prediction of step $t$ is a prediction from the full
+prefix. The loss of the step is $-\ln$ of the probability that the model gave to the true
+next token. A window of $T$ tokens gives $T$ losses, and the loss of the window is their
+mean. Then one backward pass sends the gradient of that mean back through all $T$ steps, and
+the optimizer makes one update.
+</p>
+
+<div class="box warn">
+  <span class="box-label">A common wrong picture</span>
+  <p style="margin-top:0">
+  Many readers think of training as a list of separate examples, learned one after the
+  other:
+  </p>
+  <div class="given">example 1:   "the quick"         ->  "brown"
+example 2:   "the quick brown"   ->  "fox"       (learned after example 1)</div>
+  <p>
+  The pairs are correct. Both are training pairs. But the mechanism is wrong in three
+  ways:
+  </p>
+  <ol style="margin-bottom:0">
+    <li><strong>One pass, not separate examples.</strong> All the pairs of one window come
+        from one forward pass. $h_2$ summarizes "the quick". The model uses $h_2$ to predict
+        "brown", and step 3 uses the same $h_2$ when it reads "brown". The model calculates
+        the prefix "the quick" one time, not one time for each pair.</li>
+    <li><strong>At the same time, not one after the other.</strong> The losses of all the
+        pairs go into one mean, one backward pass and one update. The model does not first
+        learn "brown" and then learn "fox". Each update changes the predictions for all the
+        prefixes together.</li>
+    <li><strong>The input is always the true text.</strong> At step 2 in the figure, the
+        top guess was "red". Step 3 reads "brown" anyway. During training, the inputs come
+        from the text, never from the predictions. This is called <strong>teacher
+        forcing</strong>. Without it, one early error would change the input of every later
+        step.</li>
+  </ol>
+</div>
+
+<p>
+The notebook checks the first point directly. It runs a full window through the model. Then
+it runs each prefix of that window alone. The two predictions for each prefix agree to
+within $10^{-5}$, which is rounding error. The full pass gives the prediction for every
+prefix at the cost of one pass.
+</p>
+
+<p>
+<strong>Prefixes of every length.</strong> Inside one window of 100 characters, the
+prefixes have every length from 1 to 100. Thus the model learns to predict from a short
+context and from a long context at the same time. But each window starts from a zero hidden
+state, so the first positions of a window see almost nothing. In the notebook, the held-out
+loss is approximately 2.8 at position 1, where the model has seen one character. At the later
+positions it is 1.6 to 2.1. (The notebook has only 99 held-out windows, so the loss at each
+single position is noisy.)
+</p>
+
+<p>
+<strong>Count the predictions.</strong> A window of 100 characters gives 100 predictions and
+100 losses. The notebook has 15,980 windows. Thus one epoch trains on 1,598,000 predictions,
+not on 15,980.
+</p>
+
+<div class="box note">
+  <span class="box-label">Compare: one label for each sequence</span>
+  Some tasks have one target for the full sequence. Examples are the sentiment of a review
+  (<a class="xref" href="#ch03">Chapter 03</a>) and the next value of a sine wave
+  (<a class="xref" href="#ch05">Chapter 05</a>). Then the model uses only the last hidden
+  state, $h_T$, and the outputs of the earlier steps are calculated but not used. The RNN is
+  the same in both setups. Only the loss is different: one loss for each step, or one loss
+  for each sequence.
+</div>
+
+<h2 id="ch04-train-eval-generate">Training, evaluation and generation</h2>
+
+<p>
+You use the trained model in three different ways. They use the same weights and the same
+step, but they are different calculations:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th></th><th>Training</th><th>Evaluation (the test)</th><th>Generation</th></tr></thead>
+  <tbody>
+    <tr><td>Text</td><td>the training text</td><td>text that the model never trained on</td><td>a seed that you give</td></tr>
+    <tr><td>Input at step $t$</td><td>the true token</td><td>the true token</td><td>a seed token, then the model's own sample</td></tr>
+    <tr><td>Predictions used</td><td>all $T$, each with a loss</td><td>all $T$, each with a loss</td><td>only the last; it is sampled</td></tr>
+    <tr><td>Target and loss</td><td>yes</td><td>yes, only to measure</td><td>no</td></tr>
+    <tr><td>Weights change</td><td>yes</td><td>no</td><td>no</td></tr>
+    <tr><td>Code</td><td><code>model.train()</code></td><td><code>model.eval()</code>, <code>no_grad</code></td><td><code>model.eval()</code>, <code>no_grad</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+Evaluation is the training calculation, on new text, without the update. It is the only
+fair test of a language model. The training loss is not a test, and the notebook shows why
+with numbers. It holds out the next 10,000 characters of the book, and it measures the loss
+on them after each epoch:
+</p>
+
+<div class="given">epoch    training loss    held-out loss
+  3          1.33             1.60      <- the lowest held-out loss
+ 15          0.74             2.06
+ 30          0.64             2.23
+
+guess each character from its frequency only:    3.17
+uniform guess over 72 characters, ln 72:         4.28</div>
+
+<p>
+The training loss decreased for all 30 epochs. The held-out loss decreased for only three
+epochs, and then it increased. After epoch 3, the model learns its 80,000 characters of
+training text, and it does not learn more English. The stride of the windows is 5, so each
+character is in 20 windows, and the model sees each passage 20 times in each epoch. (Two
+runs with different seeds agree to within 0.03.)
+</p>
+
+<p>
+Thus the notebook measures the held-out loss after each epoch, and it keeps the weights of
+the best epoch, not the last. The model at epoch 3 is a better model of English than the
+model at epoch 30, although its training loss is two times larger.
+</p>
+
+<div class="box warn">
+  <span class="box-label">The training loss is not a test</span>
+  The loss that the training loop prints comes from text that the model trains on, with
+  dropout on. It measures how well the model fits its training text. Always report the
+  held-out loss next to it. If only the training loss decreases, the model is memorizing.
+</div>
 
 <h2>Backpropagation through time</h2>
 
@@ -156,6 +507,106 @@ model in this book. <a class="xref" href="#ch09">Chapter 09</a> and
 After training, generation is a loop. Give the model a seed character, and get a
 distribution over the next character. Select one character, and give it back to the model.
 All the interesting behavior is in the selection.
+</p>
+
+<figure class="figure wide">
+<svg viewBox="0 0 760 350" role="img" aria-labelledby="rnn-gen-t rnn-gen-d" style="font-family:var(--sans)">
+  <title id="rnn-gen-t">Generation: read the seed, then feed each sample back as the next input</title>
+  <desc id="rnn-gen-d">Four RNN steps. Steps 1 and 2 read the seed words "the" and "quick", which the user gives. The prediction of step 1 is computed but not used. The prediction of step 2 is sampled, and the sample "brown" becomes the input of step 3. The prediction of step 3 is sampled as "fox", which becomes the input of step 4. There are no targets and no losses.</desc>
+  <defs>
+    <marker id="rg-arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
+    <marker id="rg-arw-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
+    <marker id="rg-arw-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
+  </defs>
+
+  <text x="390" y="24" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--ink)">No target, no loss, no update. Each sample becomes the next input.</text>
+  <text x="390" y="44" font-size="11.5" text-anchor="middle" fill="var(--ink-faint)">While the model reads the seed, it makes predictions too. They are thrown away; only the hidden state is kept.</text>
+
+  <!-- feedback: sample of step k is the input of step k+1 -->
+  <g fill="none" stroke="var(--concept)" stroke-width="1.6" stroke-dasharray="5 4" stroke-linejoin="round">
+    <path d="M378,112 H390 V232 H450 V254" marker-end="url(#rg-arw-s)"/>
+    <path d="M538,112 H550 V232 H610 V254" marker-end="url(#rg-arw-s)"/>
+    <path d="M698,112 H742" marker-end="url(#rg-arw-s)"/>
+  </g>
+  <text x="744" y="104" font-size="12" text-anchor="end" fill="var(--concept)">…</text>
+
+  <!-- arrows: input to step, step to prediction -->
+  <g fill="none" stroke="var(--ink-soft)" stroke-width="1.4">
+    <path d="M150,258 V222" marker-end="url(#rg-arw)"/><path d="M310,258 V222" marker-end="url(#rg-arw)"/>
+    <path d="M470,258 V222" marker-end="url(#rg-arw)"/><path d="M630,258 V222" marker-end="url(#rg-arw)"/>
+    <path d="M150,180 V138" marker-end="url(#rg-arw)"/><path d="M310,180 V138" marker-end="url(#rg-arw)"/>
+    <path d="M470,180 V138" marker-end="url(#rg-arw)"/><path d="M630,180 V138" marker-end="url(#rg-arw)"/>
+  </g>
+  <g fill="none" stroke="var(--concept)" stroke-width="2.4">
+    <path d="M62,200 H102" marker-end="url(#rg-arw-h)"/>
+    <path d="M194,200 H262" marker-end="url(#rg-arw-h)"/>
+    <path d="M354,200 H422" marker-end="url(#rg-arw-h)"/>
+    <path d="M514,200 H582" marker-end="url(#rg-arw-h)"/>
+  </g>
+  <text x="14" y="204" font-size="11.5" fill="var(--concept)">h<tspan font-size="9.5" dy="3">0</tspan><tspan dy="-3"> = 0</tspan></text>
+
+  <!-- the steps -->
+  <g fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.4">
+    <rect x="106" y="180" width="88" height="40" rx="7"/><rect x="266" y="180" width="88" height="40" rx="7"/>
+    <rect x="426" y="180" width="88" height="40" rx="7"/><rect x="586" y="180" width="88" height="40" rx="7"/>
+  </g>
+  <g font-size="12.5" text-anchor="middle" fill="var(--ink)">
+    <text x="150" y="205">step 1</text><text x="310" y="205">step 2</text>
+    <text x="470" y="205">step 3</text><text x="630" y="205">step 4</text>
+  </g>
+
+  <!-- predictions -->
+  <g fill="var(--bg-raised)" stroke="var(--rule-strong)" stroke-width="1.3">
+    <rect x="82" y="90" width="136" height="46" rx="7" opacity="0.45" stroke-dasharray="4 3"/>
+    <rect x="242" y="90" width="136" height="46" rx="7"/>
+    <rect x="402" y="90" width="136" height="46" rx="7"/>
+    <rect x="562" y="90" width="136" height="46" rx="7"/>
+  </g>
+  <g font-size="12" text-anchor="middle" fill="var(--ink)">
+    <text x="150" y="109" opacity="0.5">p(next | the)</text>
+    <text x="310" y="109">p(next | the quick)</text>
+    <text x="470" y="109">p(next | … brown)</text>
+    <text x="630" y="109">p(next | … fox)</text>
+  </g>
+  <g font-size="12" text-anchor="middle" font-weight="600">
+    <text x="150" y="127" fill="var(--ink-faint)" font-weight="400" opacity="0.8">not used</text>
+    <text x="310" y="127" fill="var(--concept)">sample: brown</text>
+    <text x="470" y="127" fill="var(--concept)">sample: fox</text>
+    <text x="630" y="127" fill="var(--concept)">sample: jumps</text>
+  </g>
+
+  <!-- inputs -->
+  <g fill="none" stroke-width="1.5">
+    <rect x="108" y="258" width="84" height="28" rx="6" stroke="var(--notebook)"/>
+    <rect x="268" y="258" width="84" height="28" rx="6" stroke="var(--notebook)"/>
+    <rect x="428" y="258" width="84" height="28" rx="6" stroke="var(--concept)" stroke-dasharray="4 3"/>
+    <rect x="588" y="258" width="84" height="28" rx="6" stroke="var(--concept)" stroke-dasharray="4 3"/>
+  </g>
+  <g font-size="13.5" font-weight="600" text-anchor="middle">
+    <text x="150" y="277" fill="var(--notebook)">the</text><text x="310" y="277" fill="var(--notebook)">quick</text>
+    <text x="470" y="277" fill="var(--concept)">brown</text><text x="630" y="277" fill="var(--concept)">fox</text>
+  </g>
+  <path d="M108,302 V310 H352 V302" fill="none" stroke="var(--notebook)" stroke-width="1.3"/>
+  <text x="230" y="328" font-size="12" text-anchor="middle" fill="var(--notebook)">the seed: text that you give</text>
+  <path d="M428,302 V310 H672 V302" fill="none" stroke="var(--concept)" stroke-width="1.3"/>
+  <text x="550" y="328" font-size="12" text-anchor="middle" fill="var(--concept)">the model's own samples</text>
+</svg>
+<figcaption><b>Generation: the model reads the seed, then feeds each sample back.</b> Steps 1
+and 2 read the seed. The prediction after "the" is calculated, but nothing uses it. Only the
+hidden state goes on. The prediction after "quick" is the first one that is used: the code
+samples one word from it, and that word is the input of step 3. From then on, each input is
+a sample that the model made. Compare the training figure: there, every prediction had a
+target and a loss, and every input was the true text.</figcaption>
+</figure>
+
+<p>
+Generation differs from training in one important way. During training, each input was the
+true next character. During generation, after the seed, each input is a sample that the model
+made. The model never saw its own errors during training. Thus one early error can take it
+into text that is not like its training text, and later errors become more probable.
+<a class="xref" href="#ch09">Chapter 09</a> calls this problem <strong>exposure
+bias</strong>. Most of the remaining behavior of generation comes from how the code selects
+each sample.
 </p>
 
 <p>
@@ -273,6 +724,50 @@ e^0.5=1.649  e^{−0.5}=0.607  e^{−1}=0.368  e^{−2}=0.135</div>
   </details>
 </div>
 
+<div class="box byhand">
+  <span class="box-label">By hand — exercise 04.3 · what one window trains on<span class="tag tag-must">Must do</span></span>
+  <p>
+  A word-level RNN trains on the window "the cat sat on the mat", which has six words.
+  </p>
+  <ol>
+    <li>Write the input and the target of each step. How many steps does the window have,
+        and how many losses does it give?</li>
+    <li>At step 2, the model gives "dog" the highest probability. During training, what is
+        the input of step 3? Why?</li>
+    <li>The losses of the steps are 0.9, 2.3, 0.4, 1.2 and 0.1. What is the loss of the
+        window? How many backward passes does the training do for this window?</li>
+    <li>Now you generate text from the seed "the cat". Which predictions does the code use?
+        At step 2, the code samples "ran". What is the input of step 3?</li>
+    <li>A student says: "First the model learns that 'the cat' goes to 'sat'. After that, it
+        learns that 'the cat sat' goes to 'on'." What is correct in this sentence, and what
+        is wrong?</li>
+  </ol>
+  <details>
+    <summary>Worked solution</summary>
+    <p><strong>1.</strong> Six words give five steps, because the last word has no next
+    word:</p>
+    <div class="given">step     1     2     3     4     5
+input    the   cat   sat   on    the
+target   cat   sat   on    the   mat</div>
+    <p>Five steps, five predictions and five losses.</p>
+    <p><strong>2.</strong> "sat". During training, each input is the true text. The
+    prediction "dog" gets a large loss at step 2, and that loss trains the model. But step
+    3 still reads "sat" (teacher forcing).</p>
+    <p><strong>3.</strong> $(0.9 + 2.3 + 0.4 + 1.2 + 0.1)/5 = 4.9/5 = \mathbf{0.98}$.
+    There is <strong>one</strong> backward pass. It goes through all five steps, and the
+    gradients from the five losses add into the same weight matrices.</p>
+    <p><strong>4.</strong> The code uses only the prediction of step 2, the prediction after
+    "cat". It discards the prediction after "the", because the next word of the seed is
+    already known. The input of step 3 is "ran", the sample. During generation, there is no
+    true text to read. The model reads its own output, even if "ran" is not the most
+    probable word.</p>
+    <p><strong>5.</strong> Correct: both are training pairs, and the model learns both.
+    Wrong: "first" and "after that". Both pairs come from the same forward pass, and their
+    losses go into the same mean and the same update. The model also calculates the prefix
+    "the cat" only one time. Step 3 uses the hidden state that step 2 already made.</p>
+  </details>
+</div>
+
 <div class="box feel">
   <span class="box-label">Feel for the numbers<span class="tag tag-must">Must do</span></span>
   <p style="margin-top:0">The full problem of a recurrent network is one number raised to a power. Learn that arithmetic well. Then the vanishing gradient is no longer a slogan. It is something that you can estimate in your head.</p>
@@ -341,7 +836,10 @@ e^0.5=1.649  e^{−0.5}=0.607  e^{−1}=0.368  e^{−2}=0.135</div>
   <span class="box-label">Notebook</span>
   Open <code>04_rnn_pytorch/prompt.ipynb</code>. You will build character sequences with a
   sliding window, define the RNN, train with gradient clipping, and generate text at
-  several temperatures. Sample at intervals during training, not only at the end. The
+  several temperatures. Between training and generation, three steps show what this chapter
+  describes. Step 7 prints the 100 predictions of one window and checks that the full pass
+  equals each prefix alone. Step 8 measures the loss on held-out text. Step 9 trains again,
+  watches the held-out loss after each epoch, and keeps the best epoch. Sample at intervals during training, not only at the end. The
   progression from noise to spelling to grammar is the clearest picture of learning in the
   full course.
 </div>

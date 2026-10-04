@@ -307,8 +307,8 @@ is the main architectural split between the encoder and the decoder.
 <h2>The task: sine wave prediction</h2>
 
 <p>
-The notebook changes from text to a regression problem. Given 50 samples of a sine wave,
-predict the 51st. The target is a continuous number. Thus, by the reasoning of
+The notebook changes from text to a regression problem. Given 20 samples of a sine wave,
+predict the 21st. The target is a continuous number. Thus, by the reasoning of
 <a class="xref" href="#ch00">Chapter 00</a>, the loss is MSE, which is the Gaussian negative
 log-likelihood.
 </p>
@@ -323,11 +323,146 @@ This looks like a toy, but it is a good choice. Here are four reasons:
   <li>The correct answer is exactly known, so you can see exactly how wrong the model
       is.</li>
   <li>It needs no corpus.</li>
-  <li>It shows a failure that text hides. If you run the model autoregressively on its own
-      predictions, small errors grow. After a few dozen steps, the wave moves out of phase.
-      This is the same exposure-bias problem that
-      <a class="xref" href="#ch09">teacher forcing</a> causes in translation.</li>
+  <li>It separates two tests that text makes difficult to separate. The normal test gives
+      the model 20 true values for each prediction. A harder test makes the model use its
+      own predictions as inputs. The notebook runs both (below).</li>
 </ul>
+
+<h3 id="ch05-one-prediction">One prediction for each window</h3>
+
+<p>
+This task is different from the task of <a class="xref" href="#ch04">Chapter 04</a>. There,
+every step had a target, and one window of 100 characters gave 100 losses. Here, one window
+of 20 values has <em>one</em> target: the next value after the window.
+</p>
+
+<figure class="figure wide">
+<svg viewBox="0 0 760 332" role="img" aria-labelledby="lstm-m1-t lstm-m1-d" style="font-family:var(--sans)">
+  <title id="lstm-m1-t">The sine task: twenty values in, one prediction out</title>
+  <desc id="lstm-m1-d">The LSTM is unrolled over 20 steps. Each step reads one true value of the sine wave. The cell state c and the hidden state h go from each step to the next. The hidden states of steps 1 to 19 are calculated but not used. Only the hidden state of step 20 goes through a linear layer, which gives one prediction, y-hat 21. That prediction is compared with the true value y 21 by the mean squared error, which gives one loss for the window.</desc>
+  <defs>
+    <marker id="lm-arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker>
+    <marker id="lm-arw-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--concept)"/></marker>
+  </defs>
+
+  <text x="300" y="30" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--ink)">20 true values in, 1 prediction out, 1 loss for each window</text>
+
+  <!-- states between the steps -->
+  <g fill="none" stroke="var(--concept)" stroke-width="3">
+    <path d="M44,164 H76" marker-end="url(#lm-arw-c)"/>
+    <path d="M162,164 H206" marker-end="url(#lm-arw-c)"/>
+    <path d="M292,164 H336" marker-end="url(#lm-arw-c)"/>
+    <path d="M422,164 H448"/><path d="M520,164 H546" marker-end="url(#lm-arw-c)"/>
+  </g>
+  <g fill="none" stroke="var(--ink-soft)" stroke-width="1.6">
+    <path d="M44,194 H76" marker-end="url(#lm-arw)"/>
+    <path d="M162,194 H206" marker-end="url(#lm-arw)"/>
+    <path d="M292,194 H336" marker-end="url(#lm-arw)"/>
+    <path d="M422,194 H448"/><path d="M520,194 H546" marker-end="url(#lm-arw)"/>
+  </g>
+  <g fill="none" stroke="var(--rule-strong)" stroke-width="1.6" stroke-dasharray="3 4">
+    <path d="M452,164 H516"/><path d="M452,194 H516"/>
+  </g>
+  <text x="484" y="184" font-size="15" text-anchor="middle" fill="var(--ink-faint)">…</text>
+  <g font-size="11" fill="var(--ink-faint)">
+    <text x="14" y="160" fill="var(--concept)">c<tspan font-size="9" dy="3">0</tspan><tspan dy="-3">=0</tspan></text>
+    <text x="14" y="190">h<tspan font-size="9" dy="3">0</tspan><tspan dy="-3">=0</tspan></text>
+  </g>
+
+  <!-- the steps -->
+  <g fill="var(--bg-sunken)" stroke="var(--rule-strong)" stroke-width="1.4">
+    <rect x="78" y="150" width="84" height="58" rx="8"/><rect x="208" y="150" width="84" height="58" rx="8"/>
+    <rect x="338" y="150" width="84" height="58" rx="8"/><rect x="548" y="150" width="84" height="58" rx="8"/>
+  </g>
+  <g font-size="12.5" text-anchor="middle" fill="var(--ink)">
+    <text x="120" y="176">LSTM</text><text x="250" y="176">LSTM</text><text x="380" y="176">LSTM</text><text x="590" y="176">LSTM</text>
+  </g>
+  <g font-size="10.5" text-anchor="middle" fill="var(--ink-faint)">
+    <text x="120" y="194">step 1</text><text x="250" y="194">step 2</text><text x="380" y="194">step 3</text><text x="590" y="194">step 20</text>
+  </g>
+
+  <!-- inputs -->
+  <g fill="none" stroke="var(--ink-soft)" stroke-width="1.4">
+    <path d="M120,250 V211" marker-end="url(#lm-arw)"/><path d="M250,250 V211" marker-end="url(#lm-arw)"/>
+    <path d="M380,250 V211" marker-end="url(#lm-arw)"/><path d="M590,250 V211" marker-end="url(#lm-arw)"/>
+  </g>
+  <g fill="none" stroke="var(--notebook)" stroke-width="1.5">
+    <rect x="88" y="250" width="64" height="26" rx="6"/><rect x="218" y="250" width="64" height="26" rx="6"/>
+    <rect x="348" y="250" width="64" height="26" rx="6"/><rect x="558" y="250" width="64" height="26" rx="6"/>
+  </g>
+  <g font-size="13" font-weight="600" text-anchor="middle" fill="var(--notebook)">
+    <text x="120" y="268">x<tspan font-size="10" dy="3">1</tspan></text><text x="250" y="268">x<tspan font-size="10" dy="3">2</tspan></text>
+    <text x="380" y="268">x<tspan font-size="10" dy="3">3</tspan></text><text x="590" y="268">x<tspan font-size="10" dy="3">20</tspan></text>
+  </g>
+  <path d="M88,290 V298 H622 V290" fill="none" stroke="var(--notebook)" stroke-width="1.3"/>
+  <text x="355" y="318" font-size="12" text-anchor="middle" fill="var(--notebook)">20 consecutive true values of the wave: one window</text>
+
+  <!-- outputs of steps 1-19: calculated, not used -->
+  <g fill="none" stroke="var(--ink-soft)" stroke-width="1.3" opacity="0.45" stroke-dasharray="3 3">
+    <path d="M120,148 V116"/><path d="M250,148 V116"/><path d="M380,148 V116"/>
+  </g>
+  <g font-size="11" text-anchor="middle" fill="var(--ink-faint)" opacity="0.8">
+    <text x="120" y="106">h<tspan font-size="9" dy="3">1</tspan><tspan dy="-3">: not used</tspan></text>
+    <text x="250" y="106">h<tspan font-size="9" dy="3">2</tspan><tspan dy="-3">: not used</tspan></text>
+    <text x="380" y="106">h<tspan font-size="9" dy="3">3</tspan><tspan dy="-3">: not used</tspan></text>
+  </g>
+
+  <!-- the one output -->
+  <path d="M590,148 V118" fill="none" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#lm-arw)"/>
+  <rect x="540" y="84" width="100" height="32" rx="6" fill="var(--accent)" fill-opacity="0.13" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="590" y="105" font-size="12.5" font-weight="600" text-anchor="middle" fill="var(--accent)">Linear 32 → 1</text>
+  <path d="M590,84 V66" fill="none" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#lm-arw)"/>
+  <text x="590" y="58" font-size="13.5" font-weight="600" text-anchor="middle" fill="var(--byhand)">ŷ<tspan font-size="10" dy="3">21</tspan><tspan dy="-3">  vs  true y</tspan><tspan font-size="10" dy="3">21</tspan><tspan dy="-3">  →  MSE</tspan></text>
+
+  <!-- legend -->
+  <g font-size="11" fill="var(--ink-soft)">
+    <line x1="660" y1="164" x2="680" y2="164" stroke="var(--concept)" stroke-width="3"/>
+    <text x="686" y="168">cell state c</text>
+    <line x1="660" y1="194" x2="680" y2="194" stroke="var(--ink-soft)" stroke-width="1.6"/>
+    <text x="686" y="198">hidden state h</text>
+  </g>
+</svg>
+<figcaption><b>The sine task: one prediction for each window.</b> The LSTM reads 20 true
+values, one for each step. The cell state $c$ and the hidden state $h$ carry the past to the
+right. Every step calculates a hidden state, but only $h_{20}$ is used: a linear layer
+changes it into one prediction, $\hat{y}_{21}$, and the mean squared error compares it with
+the true value. Compare <a class="xref" href="#ch04-every-step">Chapter 04</a>, where every
+step had a target and a loss. The notebook stacks two LSTM layers. The figure shows one
+layer.</figcaption>
+</figure>
+
+<p>
+The training data and the test data are windows of the same wave. The first 144 windows are
+for training, and the last 36 are for the test. The split keeps the order of time, so every
+test window comes after every training window. For each window, the model reads 20 true
+values and predicts one. Training changes the weights. The test only measures the error. In
+the notebook runs, the test MSE was between $1\times10^{-6}$ and $7\times10^{-6}$, which is
+a typical error of 0.001 to 0.003 for each prediction.
+</p>
+
+<p>
+That test is easy in one way: every input is a true value. A forecast of many steps cannot
+have true inputs. The model must use its own predictions. Start with the first test window.
+Predict the next value, add the prediction to the end of the window, remove the first value,
+and predict again:
+</p>
+
+<div class="given">window 1:  x₁₄₅ … x₁₆₄          (20 true values)   ->  ŷ₁₆₅
+window 2:  x₁₄₆ … x₁₆₄, ŷ₁₆₅     (19 true, 1 own)    ->  ŷ₁₆₆
+window 3:  x₁₄₇ … x₁₆₄, ŷ₁₆₅, ŷ₁₆₆                   ->  ŷ₁₆₇
+...
+after 20 steps, every value in the window is a prediction of the model</div>
+
+<p>
+Now an error at one step goes into the input of every later step. The errors grow, but on
+this clean wave they grow slowly. In three runs, the error after 50 steps on its own outputs
+was 0.004 to 0.016, and after 200 steps (two full periods past the end of the data) it was
+0.03 to 0.10. The lowest points of the wave become shallower first. Thus a test with true
+inputs, which reports an error of approximately 0.002, does not tell you how well the model forecasts 200
+steps. That is the same exposure bias as in
+<a class="xref" href="#ch04-train-eval-generate">Chapter 04</a>: the model trained only on
+true inputs, and the forecast gives it its own.
+</p>
 
 <div class="box byhand">
   <span class="box-label">By hand — exercise 05.1</span>
@@ -482,7 +617,8 @@ tanh(1.0) = 0.762   tanh(0.909) = 0.721</div>
   <span class="box-label">Notebook</span>
   Open <code>05_lstm_pytorch/prompt.ipynb</code>. You will make the sine data, build
   sliding-window sequences, define the LSTM regressor, train it, and plot predictions
-  against the true values. The final section compares directly with the RNN from
+  against the true values. Step 9 then feeds the model its own predictions for 200 steps,
+  and compares that forecast with the one-step test. The final section compares directly with the RNN from
   <a class="xref" href="#ch04">Chapter 04</a>. Remember exercise 05.2 when you read that
   comparison.
 </div>
